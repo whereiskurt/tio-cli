@@ -99,7 +99,9 @@ You can add '`--scanid`' and '`--detail`' for a more specific output:
 
 ## 'Bad' historical scans
 You may have some bad historicals scans in your Tenable.IO repository.  I've worked with Tenable.IO technical support and there is currently no way to delete historical scans from Tenable.IO (despite the documentation.) Some symptoms of 'bad' historical data are scans details failing to parse entirely and scans that ONLY EVER return 20 hosts IDs.
-
+```
+go run tio.go cache --warn --quiet
+```
 ![Scan details tio-cli](https://github.com/whereiskurt/tio-cli/blob/master/docs/gifs/cache.missinghosts.png)
 
 Depending on when your scans run and when Tenable.IO was updated you may notice inconsistencies.  Because of this challenge I've added `--ignoreScan` and `--ignoreHistory` parameters.  Add these to `scans|hosts|history` commands to skip over these bad scans.
