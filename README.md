@@ -16,12 +16,12 @@
 
 To try `tio-cli` without setting up a golang development environment the [`"bin/"`](https://github.com/whereiskurt/tio-cli/tree/master/bin) folder has precompiled binaries available for a few platforms.  For Windows:
 ```
-   1) Make directory like "`c:\tio`"
-   2) Download the "`tio64.exe`"
-   3) Open a 'cmd.exe' or 'powershell.exe' shell
+   1) Open a 'cmd.exe' or 'powershell.exe' shell
+   2) Make directory like "`c:\tio`"
+   3) Download the "`tio64.exe`" to your 'C:\tio'
    4) cd c:\tio 
   5a) tio64.exe scans
-      or
+        or
   5b) tio64.exe scans --nocolour
 ```
 **NOTE:** You may need to add "`--nocolour`" to Windows outputs if garbled.
@@ -35,6 +35,8 @@ Otherwise, if you do have a golang environment setup follow these faily common s
    $ go run tio.go scans
 ```
 ![tio-cli scans output](https://github.com/whereiskurt/tio-cli/blob/master/docs/gifs/scanlist.png)
+
+**TODO**: Add Mac binaries 
 
 # First Run - You'll need keys please!
 If you don't have a golang development environment setup consider downloading a precompiled binary - `"bin\tio64.exe"` (Windows) or `"bin\tio64"`(Linux).
