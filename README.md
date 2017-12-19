@@ -127,9 +127,15 @@ For each of the host's in the scan a row with these values will be outputted:
 ScanID,HistoryId,HostId,ScanName,ScanStart,ScanStartUnix,ScanEnd,ScanEndUnix,ScanDuration,HostScanStart,HostScanStartUnix,HostScanEnd,HostScanEndUnix,HostScanDuration,HostIP,MACAddress,HostName,NetBIOS,OperatingSystem,Critical,High,Medium,Low
 ```
 Furthermore, you can specifiy `"--plugin 100464"` and an additional column (in this case `"Microsoft Windows SMBv1 Multiple Vulnerabilities (100464)"`) is added to the CSV output and any host matching that plugin is listed:
+```
+   $ go run tio.go hosts --scanid 76 --plugin 100464
+```
 ![Host list with plugin](https://github.com/whereiskurt/tio-cli/blob/master/docs/gifs/hostlist.plugin.png)
 
 If you add multiple plugin ids `"--plugin 100464,84729"` each host that matches either of the plugins will be outputted:
+```
+   $ go run tio.go hosts --scanid 76 --plugin 100464,84729
+```
 ![Host list with many plugins](https://github.com/whereiskurt/tio-cli/blob/master/docs/gifs/hostlist.pluginmany.png)
 
 ### go run tio.go historical
