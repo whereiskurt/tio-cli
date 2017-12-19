@@ -133,7 +133,10 @@ If you add multiple plugin ids `"--plugin 100464,84729"` each host that matches 
 ![Host list with many plugins](https://github.com/whereiskurt/tio-cli/blob/master/docs/gifs/hostlist.pluginmany.png)
 
 ### go run tio.go historical
-The `tio-cli` historical command shows the first and last detection of a plugin for a host in a given set of scans.
+The `tio-cli` historical command shows the first and last detection of a plugin for a host in a given set of scans. This is the header row:
+```
+ScanId,ScanName,LastRun,DaysSinceLastRun,LastDetect,DaysSinceLastDetect,FirstDetect,DaysSinceFirstDect,HostIP,HostFQDN,HostNetBIOS,HostOperatingSystems,PluginId,VulnerableStatus,DurationStatus,Critical,High,Medium,Low
+```
 
 You specify exactly one plugin and it will search all historicals (upto `"--depth"` scans back) for hosts that matched.
 
