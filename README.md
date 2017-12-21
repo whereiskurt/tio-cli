@@ -19,6 +19,7 @@ This tool allows me to query Tenable.IO without opening a web browser.  The cach
 
 # Overview
 [Tenable.IO](https://cloud.tenable.com) is a modern webapp rendered in web browser - a **G**raphical **U**ser **I**nterfaces (**GUI**). 
+
 `tio-cli` is a **C**ommand **L**ine **I**nterface (**CLI**) tool that can query scans, plugins, hosts and historical details from the Tenable.IO vulnerability management using the command line (bash, powershell, MSDOS, etc.) to call the  [Tenable.IO's published APIs](https://cloud.tenable.com/api). Generally, the executed commands comma separated values (CSV) or textual/byte summaries, which are ideal for importing into a spreadsheets or databases (unlike webpages, images and PDFs.)
 
 To try `tio-cli` without setting up a golang development environment the [`"bin/"`](https://github.com/whereiskurt/tio-cli/tree/master/bin) folder has precompiled binaries available for a few platforms.  For Windows:
