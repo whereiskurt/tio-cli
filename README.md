@@ -61,7 +61,7 @@ Once you've entered valid keys `tio-cli` will then attempt to execute your actio
 
 `tio-cli` supports scans, hosts, history, and cache commands summarized here.  
 
-All of the command comand code is located under [`cmd/vulnerability/[scans|hosts|history|cache` folder.](https://github.com/whereiskurt/tio-cli/blob/master/cmd/vulnerability/).
+All of the command comand code is located under [`cmd/vulnerability/[scans|hosts|history|cache`](https://github.com/whereiskurt/tio-cli/blob/master/cmd/vulnerability/) folder.  I'm sure I've missed a few details or switches here.
 
 ```
    ##Scans
