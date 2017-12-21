@@ -6,7 +6,9 @@
 `tio-cli` was written by KPH (@whereiskurt) and **is not supported or endorsed by Tenable in anyway.**
 
 # tl;dr
-If you're not using Tenable.IO then there is nothing to see here. :- ) `tio-cli` is a tool for query Tenable.IO's vulnerability platfrom initially created to:
+If you're not using [Tenable.IO vulnerability management](https://www.tenable.com/products/tenable-io/vulnerability-management) then there is nothing to see here. :- ) 
+
+`tio-cli` is a tool for query Tenable.IO's vulnerability platform initially created to:
 - [X] Gain deeper/faster insight into my Tenable.IO data in a CLI way.
 - [x] Learn golang (and the Tenable.IO APIs)
 - [x] Have fun with an unconstrained **proof-of-concept project**!
