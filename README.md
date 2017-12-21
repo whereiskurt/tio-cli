@@ -65,8 +65,7 @@ Once you've entered valid keys `tio-cli` will then attempt to execute your actio
 
 `tio-cli` supports scans, hosts, history, and cache commands summarized here.  
 
-All of the command comand code is located under [`cmd/vulnerability/[scans|hosts|history|cache`](https://github.com/whereiskurt/tio-cli/blob/master/cmd/vulnerability/) folder.  I'm sure I've missed a few details or switches here.
-
+I'm sure I've missed a few details or switches here. All of the command comand code is located under [`cmd/vulnerability/[scans|hosts|history|cache`](https://github.com/whereiskurt/tio-cli/blob/master/cmd/vulnerability/) folder.  
 ```
    ##Scans
    $ go run tio.go scans
@@ -161,26 +160,31 @@ You specify exactly one plugin and it will search all historicals (upto `"--dept
 
 
 ### go run tio.go cache
-All `tio-cli` results are cached and encrypted in the default `'cache/'` folder which effectively gives you a local copy of you scan results.  The `.tio.yaml` contains a `cacheKey` entry to control the AES key for encrypt/decrypt. Using the `tio cache --decrypt --anonymize=false --pretty` mechanism you extract your cached JSON pretty printed through the `jq` processor. `tio-cli` will tell you what it has cached with: 
+All `tio-cli` results are cached and encrypted in the default "`cache/`" folder which effectively gives you a local copy of your scan results.  The "`.tio.yaml`" contains a "`cacheKey`" entry to control the AES key for encrypt/decrypt. Using the "`tio cache --decrypt --anonymize=false --pretty`" mechanism you extract your cached JSON pretty printed through the `jq` processor. 
+
+`tio-cli` will tell you what it has cached with: 
 
 ```   $ go run tio.go cache --scanid 76```
 
 ![tio-cli cache details](https://github.com/whereiskurt/tio-cli/blob/master/docs/gifs/cache.png)
 
-**NOTE**: You can delete the `cacheFolder` and `tio-cli` will recreate it as needed with the results from it's queries.
+**NOTE**: You can delete the `cacheFolder`, any of its subfolders or files and `tio-cli` will recreate it as needed with the results from it's queries. This can be useful for 'stale results' - from inprogress or deleted.
 
 # $HOMEDIR\.tio-cli.yaml
-This is `Yet Another Markup Language` configuration for `tio-cli`. It's a really simple file format and any command line parameters you use frequently can put here thanks to Viper and Corba.  For example, if you always wanted `--quiet` mode and to only ever shows scans `--scanid 1,2,3` you could add this to `"$HOMEDIR\.tio-cli.yaml"`:
+This is `Yet Another Markup Language` configuration for `tio-cli`. It's a really simple format and any command line parameters you use frequently can put here thanks to Viper and Corba.  
+
+If you always wanted `--quiet` mode and to only ever shows scans `--scanid 1,2,3` you could add this to `"$HOMEDIR\.tio-cli.yaml"`:
 ```
    accessKey: [YOUR_ACCESS_KEY]
    secretKey: [YOUR_SECRET_KEY]
    cacheKey: [YOUR_CACHE_KEY]
    cacheFolder: ./cache/
    tzDefault: -0600 CST
-   scanid: 1,2,3
-   quiet: true
+   ...
+   scanid: 1,2,3         
+   quiet: true           
+   
 ```
-
 # JSON and golang
 This v0.1 implementation is based off of the details posted at https://cloud.tenable.com/api/ - which are mostly accurate.  There are inconsistencies between the published documentation and the JSON actually returned by the call.  At the end of the day `tio-cli` has successfully navigated these inconsistencies. :- )
 
