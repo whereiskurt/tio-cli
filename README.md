@@ -198,17 +198,15 @@ From the `tio-cli` created golang structs that can work with it:
 
 ![tio-cli scans output](https://github.com/whereiskurt/tio-cli/blob/master/docs/gifs/tenableplugin.gostruct.png)
 
-**NOTE**: Tenable.IO does not have a version number for the vulnerability API and has changed formats at least once in 2017.
+**NOTE**: Tenable.IO does not have a version number for the vulnerability magament API :expressionless: and has changed interfaces at least once in 2017 - (eg. OS detection as a list, start/end_date as numbers not strings.) 
 
 # Motivation
-I started `tio-cli` in July 2017 because I wanted a command line way to answer questions I was dealing wtih daily, like: 
+I started `tio-cli` in July 2017 because I wanted a command line way to answer questions I was dealing wtih regularly like: 
 
-1. For all current scans show me all the hosts that are vulnerable to plugin 12345
-2. For scans X,Y,Z, over the last N scan runs, show me all hosts that are/were
-   vulnerable to plugin 12345 with their first/last detection dates.
-3. What are all of the detected operating systems for all of the current scans?
-4. What are all the IP addresses, hostname/netbois, MAC and OS 
-   for all hosts from all scans?
+  1. For all current scans what hosts are currently vulnerable to plugin 12345?
+  2. For scans X,Y,Z, over the last N scan runs, what are all the hosts that are/were vulnerable to plugin 12345 including their first/last detection dates?
+  3. What are all of the detected operating systems for all of the current hosts?
+  4. What are all the current IP addresses, FQDN, MAC and OSes for all hosts from all the current scans?
 
 While the Tenable.IO web portal is truly great - I additionally wanted to be able to dump results to CSV files to share easily with my colleagues.  I wanted something that could be scripted to answer questions repeatedly without my oversight.  
 
