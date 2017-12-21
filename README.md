@@ -14,7 +14,7 @@ If you're not using [Tenable.IO vulnerability management](https://www.tenable.co
 - [x] Have fun with an unconstrained **proof-of-concept project**!
 
 # Overview
-[Tenable.IO](https://cloud.tenable.com) is a modern webapp rendered in web browser - a **G**raphical **U**ser **I**nterfaces (**GUI**). `tio-cli` is a **C**ommand **L**ine **I**nterface (**CLI**) tool that can query scans, plugins, hosts and historical details from the Tenable.IO using typed commands and [Tenable.IO's published API](https://cloud.tenable.com/api). The commands results are generally comma separated values (CSV) or textual/byte summaries, which are ideal for importing into a spreadsheets or databases (unlike webpages, images and PDFs.)
+[Tenable.IO](https://cloud.tenable.com) is a modern webapp rendered in web browser - a **G**raphical **U**ser **I**nterfaces (**GUI**). `tio-cli` is a **C**ommand **L**ine **I**nterface (**CLI**) tool that can query scans, plugins, hosts and historical details from the Tenable.IO vulnerability management using the command line (bash, powershell, MSDOS, etc.) to call the  [Tenable.IO's published APIs](https://cloud.tenable.com/api). Generally, the executed commands comma separated values (CSV) or textual/byte summaries, which are ideal for importing into a spreadsheets or databases (unlike webpages, images and PDFs.)
 
 To try `tio-cli` without setting up a golang development environment the [`"bin/"`](https://github.com/whereiskurt/tio-cli/tree/master/bin) folder has precompiled binaries available for a few platforms.  For Windows:
 ```
@@ -22,18 +22,19 @@ To try `tio-cli` without setting up a golang development environment the [`"bin/
    2) Make directory like "`c:\tio`"
    3) Download the "`tio64.exe`" to your 'C:\tio'
    4) cd c:\tio 
+   
   5a) tio64.exe scans
         or
   5b) tio64.exe scans --nocolour
 ```
-**NOTE:** You may need to add "`--nocolour`" to Windows outputs if garbled.
+**NOTE:** You may need to add "`--nocolour`" to Windows outputs appears garbled.
 
-Otherwise, if you do have a golang environment setup follow these faily common steps to get golang running the code:
+If you do have a golang environment setup follow these faily common steps to get golang running the code:
 ```
    $ cd $GOPATH/src
    $ git clone https://github.com/whereiskurt/tio-cli.git
    $ cd tio-cli
-   $ go get
+   $ go get .
    $ go run tio.go scans
 ```
 ![tio-cli scans output](https://github.com/whereiskurt/tio-cli/blob/master/docs/gifs/scanlist.png)
@@ -56,11 +57,11 @@ Once you've entered valid keys `tio-cli` will then attempt to execute your actio
 ![Input keys into tio-cli](https://github.com/whereiskurt/tio-cli/blob/master/docs/gifs/tiokeys.png)
 
 ## Command Cheat Sheet
-**Afer executing commands a new a folder (`--cacheFolder`) will exists with results retrieved from Tenable.IO.**
+**Afer executing commands a new a folder (`--cacheFolder`) will exists with results retrieved from Tenable.IO. The default "`--useCryptoCache=true` encrypts all of the contents, HOWEVER the decryption key is in the `"$HOMEDIR\.tio-cli.yaml"` file.  Deleting the 'cacheKey' makes the entire cache permanently inaccessible.**
 
-**By default ("`--useCryptoCache=true`") `tio-cli` encrypts the contents, but the decryption key is in the `"$HOMEDIR\.tio-cli.yaml"` file.  Deleting the 'cacheKey' makes the entire cache permanently inaccessible.**
+`tio-cli` supports scans, hosts, history, and cache commands summarized here.  
 
-`tio-cli` supports scans, hosts, history, and cache commands. 
+All of the command comand code is located under [`cmd/vulnerability/[scans|hosts|history|cache` folder.](https://github.com/whereiskurt/tio-cli/blob/master/cmd/vulnerability/).
 
 ```
    ##Scans
