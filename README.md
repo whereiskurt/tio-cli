@@ -15,7 +15,7 @@ If you're not using [Tenable.IO vulnerability management](https://www.tenable.co
 - [x] Have fun with an unconstrained **proof-of-concept project**!
 - [x] Did I mentioned I really wanted to learn golang?
 
-This tool allows me to query Tenable.IO without opening a web browser.  The cached JSON results enable 'offline querying'. 
+This tool allows me to query Tenable.IO without opening a web browser.  The cached JSON results enable fast offline querying. 
 
 # Overview
 [Tenable.IO](https://cloud.tenable.com) is a modern webapp rendered in web browser - aka **G**raphical **U**ser **I**nterfaces (**GUI**). Alternatively, `tio-cli` is a **C**ommand **L**ine **I**nterface (**CLI**) tool run from the command line - like Bash, Powershell, MSDOS, etc.  This tool deals in TEXT and query scans, plugins, hosts and historical details from the Tenable.IO vulnerability management using the command line to call the  [Tenable.IO's published APIs](https://cloud.tenable.com/api) for scan details, host details, plugin details, etc.  Generally, the executed commands return comma separated values (CSV) or textual/byte summaries which are ideal for importing into a spreadsheets or databases (unlike webpages, images and PDFs.)
