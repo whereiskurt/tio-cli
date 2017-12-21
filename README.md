@@ -1,13 +1,13 @@
 ![porject logo topher](https://github.com/whereiskurt/tio-cli/blob/master/docs/topher.tiny.png)
 
 # A Tool for the Tenable.IO API - v0.1 [20171218] :rocket:
-`tio-cli` is a command line tool for interacting with the Tenable.IO API, written in golang. It only supports a very small set of the [Tenable.IO API](https://cloud.tenable.com/api) around scans, plugins, and hosts but has been a useful **proof of concept project**.  
+`tio-cli` is a command line tool for interacting with the Tenable.IO API, written in golang. It only supports a very small set of the [Tenable.IO vulnerability API](https://cloud.tenable.com/api) around scans, plugins, and hosts but has been a useful **proof of concept project**.  
 
 `tio-cli` was written by KPH (@whereiskurt) and **is not supported or endorsed by Tenable in anyway.**
 
 # tl;dr
-  `tio-cli` was initially created to:
-- [X] Gain deeper insight into my Tenable.IO data in a CLI way.
+If you're not using Tenable.IO then there is nothing to see here. :- ) `tio-cli` is a tool for query Tenable.IO's vulnerability platfrom initially created to:
+- [X] Gain deeper/faster insight into my Tenable.IO data in a CLI way.
 - [x] Learn golang (and the Tenable.IO APIs)
 - [x] Have fun with an unconstrained **proof-of-concept project**!
 
