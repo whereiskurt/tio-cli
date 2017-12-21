@@ -8,17 +8,18 @@
 # tl;dr
 If you're not using [Tenable.IO vulnerability management](https://www.tenable.com/products/tenable-io/vulnerability-management) then there is nothing to see here. :- ) 
 
-`tio-cli` is a tool for querying Tenable.IO's vulnerability platform initially a hobby project created to:
+`tio-cli` is a tool for querying Tenable.IO's vulnerability platform. Initially a hobby project created to:
+- [x] Learn golang
 - [X] Gain deeper/faster insight into my Tenable.IO vulnerability management data (in a CLI way.)
 - [x] Learn golang and the Tenable.IO APIs
-- [x] Learn golang
-- [x] Did I mentioned I really wanted to learn gearn golang?
 - [x] Have fun with an unconstrained **proof-of-concept project**!
+- [x] Did I mentioned I really wanted to learn golang?
 
 This tool allows me to query Tenable.IO without opening a web browser.  The cached JSON results enable 'offline querying'. 
 
 # Overview
-[Tenable.IO](https://cloud.tenable.com) is a modern webapp rendered in web browser - a **G**raphical **U**ser **I**nterfaces (**GUI**). `tio-cli` is a **C**ommand **L**ine **I**nterface (**CLI**) tool that can query scans, plugins, hosts and historical details from the Tenable.IO vulnerability management using the command line (bash, powershell, MSDOS, etc.) to call the  [Tenable.IO's published APIs](https://cloud.tenable.com/api). Generally, the executed commands comma separated values (CSV) or textual/byte summaries, which are ideal for importing into a spreadsheets or databases (unlike webpages, images and PDFs.)
+[Tenable.IO](https://cloud.tenable.com) is a modern webapp rendered in web browser - a **G**raphical **U**ser **I**nterfaces (**GUI**). 
+`tio-cli` is a **C**ommand **L**ine **I**nterface (**CLI**) tool that can query scans, plugins, hosts and historical details from the Tenable.IO vulnerability management using the command line (bash, powershell, MSDOS, etc.) to call the  [Tenable.IO's published APIs](https://cloud.tenable.com/api). Generally, the executed commands comma separated values (CSV) or textual/byte summaries, which are ideal for importing into a spreadsheets or databases (unlike webpages, images and PDFs.)
 
 To try `tio-cli` without setting up a golang development environment the [`"bin/"`](https://github.com/whereiskurt/tio-cli/tree/master/bin) folder has precompiled binaries available for a few platforms.  For Windows:
 ```
