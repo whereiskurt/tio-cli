@@ -12,11 +12,11 @@ import (
   "net/http"
   "encoding/json"
   "crypto/sha256"
-  "github.com/spf13/viper"
   "time"
   "io/ioutil"
   "strings"
   
+  "github.com/spf13/viper"
   "github.com/karlseguin/ccache"
 )
 
