@@ -1,40 +1,49 @@
 ![porject logo topher](https://github.com/whereiskurt/tio-cli/blob/master/docs/topher.tiny.png)
 
 # A Tool for the Tenable.IO API - v0.1 [20171218] :rocket:
-`tio-cli` is a command line tool for interacting with the Tenable.IO API, written in golang. It only supports a very small set of the [Tenable.IO API](https://cloud.tenable.com/api) around scans, plugins, and hosts but has been a useful **proof of concept project**.  
+`tio-cli` is a command line tool for interacting with the Tenable.IO API, written in golang. It only supports a very small set of the [Tenable.IO vulnerability API](https://cloud.tenable.com/api) around scans, plugins, and hosts but has been a useful **proof of concept project**.  
 
 `tio-cli` was written by KPH (@whereiskurt) and **is not supported or endorsed by Tenable in anyway.**
 
 # tl;dr
-  `tio-cli` was initially created to:
-- [X] Gain deeper insight into my Tenable.IO data in a CLI way.
-- [x] Learn golang (and the Tenable.IO APIs)
+If you're not using [Tenable.IO vulnerability management](https://www.tenable.com/products/tenable-io/vulnerability-management) then there is nothing to see here. :- ) 
+
+`tio-cli` is a tool for querying Tenable.IO's vulnerability platform. Initially a hobby project created to:
+- [x] Learn golang
+- [X] Gain deeper/faster insight into my Tenable.IO vulnerability management data (in a CLI way.)
+- [x] Learn golang and the Tenable.IO APIs
 - [x] Have fun with an unconstrained **proof-of-concept project**!
+- [x] Did I mentioned I really wanted to learn golang?
+
+This tool allows me to query Tenable.IO without opening a web browser.  The cached JSON results enable fast offline querying. 
 
 # Overview
-[Tenable.IO](https://cloud.tenable.com) is a modern webapp rendered in web browser - a **G**raphical **U**ser **I**nterfaces (**GUI**). `tio-cli` is a **C**ommand **L**ine **I**nterface (**CLI**) tool that can query scans, plugins, hosts and historical details from the Tenable.IO using typed commands and [Tenable.IO's published API](https://cloud.tenable.com/api). The commands results are generally comma separated values (CSV) or textual/byte summaries, which are ideal for importing into a spreadsheets or databases (unlike webpages, images and PDFs.)
+[Tenable.IO](https://cloud.tenable.com) is a modern webapp rendered in web browser - aka **G**raphical **U**ser **I**nterfaces (**GUI**). Alternatively, `tio-cli` is a **C**ommand **L**ine **I**nterface (**CLI**) tool run from the command line - like Bash, Powershell, MSDOS, etc.  This tool deals in TEXT and query scans, plugins, hosts and historical details from the Tenable.IO vulnerability management using the command line to call the  [Tenable.IO's published APIs](https://cloud.tenable.com/api) for scan details, host details, plugin details, etc.  Generally, the executed commands return comma separated values (CSV) or textual/byte summaries which are ideal for importing into a spreadsheets or databases (unlike webpages, images and PDFs.)
 
 To try `tio-cli` without setting up a golang development environment the [`"bin/"`](https://github.com/whereiskurt/tio-cli/tree/master/bin) folder has precompiled binaries available for a few platforms.  For Windows:
 ```
-   1) Make directory like "`c:\tio`"
-   2) Download the "`tio64.exe`"
-   3) Open a 'cmd.exe' or 'powershell.exe' shell
+   1) Open a 'cmd.exe' or 'powershell.exe' shell
+   2) Make directory like "`c:\tio`"
+   3) Download the "`tio64.exe`" to your 'C:\tio'
    4) cd c:\tio 
+   
   5a) tio64.exe scans
-      or
+        or
   5b) tio64.exe scans --nocolour
 ```
-**NOTE:** You may need to add "`--nocolour`" to Windows outputs if garbled.
+**NOTE:** You may need to add "`--nocolour`" to Windows outputs appears garbled.
 
-Otherwise, if you do have a golang environment setup follow these faily common steps to get golang running the code:
+If you do have a golang environment setup follow these faily common steps to get golang running the code:
 ```
    $ cd $GOPATH/src
    $ git clone https://github.com/whereiskurt/tio-cli.git
    $ cd tio-cli
-   $ go get
+   $ go get .
    $ go run tio.go scans
 ```
 ![tio-cli scans output](https://github.com/whereiskurt/tio-cli/blob/master/docs/gifs/scanlist.png)
+
+**TODO**: Add Mac binaries 
 
 # First Run - You'll need keys please!
 If you don't have a golang development environment setup consider downloading a precompiled binary - `"bin\tio64.exe"` (Windows) or `"bin\tio64"`(Linux).
@@ -52,12 +61,11 @@ Once you've entered valid keys `tio-cli` will then attempt to execute your actio
 ![Input keys into tio-cli](https://github.com/whereiskurt/tio-cli/blob/master/docs/gifs/tiokeys.png)
 
 ## Command Cheat Sheet
-**Afer executing commands a new a folder (`--cacheFolder`) will exists with results retrieved from Tenable.IO.**
+**Afer executing commands a new a folder (`--cacheFolder`) will exists with results retrieved from Tenable.IO. The default "`--useCryptoCache=true` encrypts all of the contents, HOWEVER the decryption key is in the `"$HOMEDIR\.tio-cli.yaml"` file.  Deleting the 'cacheKey' makes the entire cache permanently inaccessible.**
 
-**By default ("`--useCryptoCache=true`") `tio-cli` encrypts the contents, but the decryption key is in the `"$HOMEDIR\.tio-cli.yaml"` file.  Deleting the 'cacheKey' makes the entire cache permanently inaccessible.**
+`tio-cli` supports scans, hosts, history, and cache commands summarized here.  
 
-`tio-cli` supports scans, hosts, history, and cache commands. 
-
+I'm sure I've missed a few details or switches here. All of the command comand code is located under [`cmd/vulnerability/[scans|hosts|history|cache`](https://github.com/whereiskurt/tio-cli/blob/master/cmd/vulnerability/) folder.  
 ```
    ##Scans
    $ go run tio.go scans
@@ -99,7 +107,9 @@ You can add '`--scanid`' and '`--detail`' for a more specific output:
 
 ## 'Bad' historical scans
 You may have some bad historicals scans in your Tenable.IO repository.  I've worked with Tenable.IO technical support and there is currently no way to delete historical scans from Tenable.IO (despite the documentation.) Some symptoms of 'bad' historical data are scans details failing to parse entirely and scans that ONLY EVER return 20 hosts IDs.
-
+```
+go run tio.go cache --warn --quiet
+```
 ![Scan details tio-cli](https://github.com/whereiskurt/tio-cli/blob/master/docs/gifs/cache.missinghosts.png)
 
 Depending on when your scans run and when Tenable.IO was updated you may notice inconsistencies.  Because of this challenge I've added `--ignoreScan` and `--ignoreHistory` parameters.  Add these to `scans|hosts|history` commands to skip over these bad scans.
@@ -127,13 +137,22 @@ For each of the host's in the scan a row with these values will be outputted:
 ScanID,HistoryId,HostId,ScanName,ScanStart,ScanStartUnix,ScanEnd,ScanEndUnix,ScanDuration,HostScanStart,HostScanStartUnix,HostScanEnd,HostScanEndUnix,HostScanDuration,HostIP,MACAddress,HostName,NetBIOS,OperatingSystem,Critical,High,Medium,Low
 ```
 Furthermore, you can specifiy `"--plugin 100464"` and an additional column (in this case `"Microsoft Windows SMBv1 Multiple Vulnerabilities (100464)"`) is added to the CSV output and any host matching that plugin is listed:
+```
+   $ go run tio.go hosts --scanid 76 --plugin 100464
+```
 ![Host list with plugin](https://github.com/whereiskurt/tio-cli/blob/master/docs/gifs/hostlist.plugin.png)
 
 If you add multiple plugin ids `"--plugin 100464,84729"` each host that matches either of the plugins will be outputted:
+```
+   $ go run tio.go hosts --scanid 76 --plugin 100464,84729
+```
 ![Host list with many plugins](https://github.com/whereiskurt/tio-cli/blob/master/docs/gifs/hostlist.pluginmany.png)
 
 ### go run tio.go historical
-The `tio-cli` historical command shows the first and last detection of a plugin for a host in a given set of scans.
+The `tio-cli` historical command shows the first and last detection of a plugin for a host in a given set of scans. This is the header row:
+```
+ScanId,ScanName,LastRun,DaysSinceLastRun,LastDetect,DaysSinceLastDetect,FirstDetect,DaysSinceFirstDect,HostIP,HostFQDN,HostNetBIOS,HostOperatingSystems,PluginId,VulnerableStatus,DurationStatus,Critical,High,Medium,Low
+```
 
 You specify exactly one plugin and it will search all historicals (upto `"--depth"` scans back) for hosts that matched.
 
@@ -141,26 +160,31 @@ You specify exactly one plugin and it will search all historicals (upto `"--dept
 
 
 ### go run tio.go cache
-All `tio-cli` results are cached and encrypted in the default `'cache/'` folder which effectively gives you a local copy of you scan results.  The `.tio.yaml` contains a `cacheKey` entry to control the AES key for encrypt/decrypt. Using the `tio cache --decrypt --anonymize=false --pretty` mechanism you extract your cached JSON pretty printed through the `jq` processor. `tio-cli` will tell you what it has cached with: 
+All `tio-cli` results are cached and encrypted in the default "`cache/`" folder which effectively gives you a local copy of your scan results.  The "`.tio.yaml`" contains a "`cacheKey`" entry to control the AES key for encrypt/decrypt. Using the "`tio cache --decrypt --anonymize=false --pretty`" mechanism you extract your cached JSON pretty printed through the `jq` processor. 
+
+`tio-cli` will tell you what it has cached with: 
 
 ```   $ go run tio.go cache --scanid 76```
 
 ![tio-cli cache details](https://github.com/whereiskurt/tio-cli/blob/master/docs/gifs/cache.png)
 
-**NOTE**: You can delete the `cacheFolder` and `tio-cli` will recreate it as needed with the results from it's queries.
+**NOTE**: You can delete the `cacheFolder`, any of its subfolders or files and `tio-cli` will recreate it as needed with the results from it's queries. This can be useful for 'stale results' - from inprogress or deleted.
 
 # $HOMEDIR\.tio-cli.yaml
-This is `Yet Another Markup Language` configuration for `tio-cli`. It's a really simple file format and any command line parameters you use frequently can put here thanks to Viper and Corba.  For example, if you always wanted `--quiet` mode and to only ever shows scans `--scanid 1,2,3` you could add this to `"$HOMEDIR\.tio-cli.yaml"`:
+This is `Yet Another Markup Language` configuration for `tio-cli`. It's a really simple format and any command line parameters you use frequently can put here thanks to Viper and Corba.  
+
+If you always wanted `--quiet` mode and to only ever shows scans `--scanid 1,2,3` you could add this to `"$HOMEDIR\.tio-cli.yaml"`:
 ```
    accessKey: [YOUR_ACCESS_KEY]
    secretKey: [YOUR_SECRET_KEY]
    cacheKey: [YOUR_CACHE_KEY]
    cacheFolder: ./cache/
    tzDefault: -0600 CST
-   scanid: 1,2,3
-   quiet: true
+   ...
+   scanid: 1,2,3         
+   quiet: true           
+   
 ```
-
 # JSON and golang
 This v0.1 implementation is based off of the details posted at https://cloud.tenable.com/api/ - which are mostly accurate.  There are inconsistencies between the published documentation and the JSON actually returned by the call.  At the end of the day `tio-cli` has successfully navigated these inconsistencies. :- )
 
@@ -174,17 +198,15 @@ From the `tio-cli` created golang structs that can work with it:
 
 ![tio-cli scans output](https://github.com/whereiskurt/tio-cli/blob/master/docs/gifs/tenableplugin.gostruct.png)
 
-**NOTE**: Tenable.IO does not have a version number for the vulnerability API and has changed formats at least once in 2017.
+**NOTE**: Tenable.IO does not have a version number for the vulnerability magament API :expressionless: and has changed interfaces at least once in 2017 - (eg. OS detection as a list, start/end_date as numbers not strings.) 
 
 # Motivation
-I started `tio-cli` in July 2017 because I wanted a command line way to answer questions I was dealing wtih daily, like: 
+I started `tio-cli` in July 2017 because I wanted a command line way to answer questions I was dealing wtih regularly like: 
 
-1. For all current scans show me all the hosts that are vulnerable to plugin 12345
-2. For scans X,Y,Z, over the last N scan runs, show me all hosts that are/were
-   vulnerable to plugin 12345 with their first/last detection dates.
-3. What are all of the detected operating systems for all of the current scans?
-4. What are all the IP addresses, hostname/netbois, MAC and OS 
-   for all hosts from all scans?
+  1. For all current scans what hosts are currently vulnerable to plugin 12345?
+  2. For scans X,Y,Z, over the last N scan runs, what are all the hosts that are/were vulnerable to plugin 12345 including their first/last detection dates?
+  3. What are all of the detected operating systems for all of the current hosts?
+  4. What are all the current IP addresses, FQDN, MAC and OSes for all hosts from all the current scans?
 
 While the Tenable.IO web portal is truly great - I additionally wanted to be able to dump results to CSV files to share easily with my colleagues.  I wanted something that could be scripted to answer questions repeatedly without my oversight.  
 
