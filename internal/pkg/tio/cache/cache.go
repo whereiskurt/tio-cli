@@ -8,7 +8,7 @@ import (
 	"os"
 	"regexp"
 	"fmt"
-	"strings"
+	//"strings"
 	"errors"
 	"io/ioutil"
 )
@@ -42,6 +42,44 @@ var reHistoryScan = regexp.MustCompile("^.+?/scans/(\\d+)\\?history_id=(\\d+)$")
 //"/scans/123456/hosts/1234?history_id=101010231
 var reHostScan = regexp.MustCompile("^.+?/scans/(\\d+)\\/hosts/(\\d+)?history_id=(\\d+)$")
 
+func (portal *PortalCache) GetCacheFilename(url string) (string, error) {
+	var folder string
+
+  if matched := reAllScans.FindStringSubmatch(url); matched != nil {
+  	portal.Log.Debug("MATCHED regex for AllScans")
+  	folder = "scans/"
+  
+  } else if matched := reCurrentScan.FindStringSubmatch(url); matched != nil {
+  	portal.Log.Debug("MATCHED regex for CurrentScan")
+  	folder = "scans/" + matched[1] + "/"
+  
+  } else if matched := reHistoryScan.FindStringSubmatch(url); matched != nil {
+  	portal.Log.Debug("MATCHED regex for HistoryScan")
+  
+  } else if matched := reHostScan.FindStringSubmatch(url); matched != nil {
+  	portal.Log.Debug("MATCHED regex for HostScan")
+  	folder = "scans/" + matched[1] + "/history_id"
+  } else {
+  	err := errors.New("Falied to matched regex for Cache: " + url)
+  	portal.Log.Errorf("%s", err)
+  	return "", err
+  }
+
+  shaKey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, url)))
+  shaKeyHex := fmt.Sprintf("%x.dat", shaKey[:16])
+
+  var filename string = portal.CacheFolder + folder + shaKeyHex
+
+	err := os.MkdirAll(portal.CacheFolder + folder, 0777)
+	if err != nil {
+		portal.Log.Errorf("%s", err)
+		return "", err
+	}		
+
+  portal.Log.Debugf("Cache Filename: %s, for URL: %s", filename, url)
+	
+  return filename, nil
+}
 
 func (portal *PortalCache) CacheStore(cacheFilename string, store []byte) error {
 	if portal.UseCryptoCache { 
@@ -60,14 +98,20 @@ func (portal *PortalCache) CacheHit(cacheFilename string) ([]byte, error) {
   if (err != nil) {
   	return nil, err
   }
+	portal.Log.Debugf("Cache: HIT")
+
   if !portal.UseCryptoCache { 
+	  portal.Log.Debugf("Cache: NO CRYPTO")
   	return dat, nil
   }
+
 	decDat, decErr := util.Decrypt(dat, portal.CacheKeyBytes)
-	if decErr == nil {
-		return decDat, decErr
+	if decErr != nil {
+	  portal.Log.Errorf("%s", decErr)
+		return nil, decErr
   }
-	return nil,decErr
+	
+	return decDat, nil
 }
 
 func (portal *PortalCache) Get(url string) ([]byte, error) {
@@ -79,48 +123,30 @@ func (portal *PortalCache) Get(url string) ([]byte, error) {
 	cacheFilename, err := portal.GetCacheFilename(url)
 	if err != nil {
   	portal.Log.Errorf("%s", err)
-		return nil, err
+  	return nil, err
 	}
 
 	dat, err := portal.CacheHit(cacheFilename)
 	if err == nil {
 		return dat, err
 	}
+  portal.Log.Debugf("Cache: MISS")
 
 	body, err := portal.Portal.Get(url)
 	if (err != nil) {
 		return nil, err
 	}
+  portal.Log.Debugf("Fetched body: " + string(body))
 
-	portal.CacheStore(cacheFilename, body)
+	cacheErr := portal.CacheStore(cacheFilename, body)
+	if cacheErr != nil {
+  	portal.Log.Debugf(fmt.Sprintf("Failed to store in cache. Error: %s", cacheErr))
+		return nil, cacheErr
 
+	}
 	return body, nil
 }
 
-func (portal *PortalCache) GetCacheFilename(url string) (string, error) {
-//  matchAllScans := reAllScans.FindStringSubmatch(url)
-
-  if matched := reAllScans.FindStringSubmatch(url); matched != nil {
-  	portal.Log.Debug("MATCHED regex for AllScans")
-  } else if matched := reCurrentScan.FindStringSubmatch(url); matched != nil {
-  	portal.Log.Debug("MATCHED regex for CurrentScan")
-  } else if matched := reHistoryScan.FindStringSubmatch(url); matched != nil {
-  	portal.Log.Debug("MATCHED regex for HistoryScan")
-  } else if matched := reHostScan.FindStringSubmatch(url); matched != nil {
-  	portal.Log.Debug("MATCHED regex for HostScan")
-  } else {
-  	err := errors.New("Falied to matched regex for Cache: " + url)
-  	portal.Log.Errorf("%s", err)
-  	return "", err
-  }
-
-  shaKey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, url)))
-  filename := fmt.Sprintf("%x.dat", shaKey)
-
-  folder := strings.Replace(url, "/", "", -1)
-
-  return portal.CacheFolder + "/" + folder + "/" + filename, nil
-}
 
 func NewPortalCache(config *tio.BaseConfig) *PortalCache {
 	p := new(PortalCache)
