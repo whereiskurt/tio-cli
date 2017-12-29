@@ -1,1 +1,4 @@
 cache/*
+logs/*
+output/*
+.~lock.*
