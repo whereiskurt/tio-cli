@@ -1,6 +1,7 @@
 package tio
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 )
@@ -18,6 +19,7 @@ type BaseConfig struct {
 	SecretKey          string
 	CacheKey           string
 	CacheFolder        string
+  CacheDisabled       bool
 	UseCryptoCache     bool
 	QuietMode          bool
 	NoColourMode       bool
@@ -36,7 +38,17 @@ type BaseConfig struct {
 	DisplayGUIMode    bool
 
 	Log    *os.File
+	Logger *Logger
+
 	Output *os.File
+}
+
+func (config *BaseConfig) String() string {
+	return fmt.Sprintf("BaseConfig: BLAHBLAHLBAH")
+}
+
+func (config *VulnerabilityConfig) String() string {
+	return fmt.Sprintf("VulnConfig: BLAHBLAHLBAH")
 }
 
 type VulnerabilityConfig struct {

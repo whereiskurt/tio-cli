@@ -7,14 +7,24 @@ import (
 	"time"
 )
 
+type Loggable interface {
+	Debug(line string)
+	Info(line string)
+	Warn(line string)
+	Error(line string)
+	Debugf(fmt string, args ...interface{})
+	Infof(fmt string, args ...interface{})
+	Warnf(fmt string, args ...interface{})
+	Errorf(fmt string, args ...interface{})
+}
+
 type Logger struct {
+	Log          *os.File
 	MirrorStdout bool
 	IsDebugLevel bool
 	IsInfoLevel  bool
 	IsWarnLevel  bool
 	IsErrorLevel bool
-
-	Log *os.File
 }
 
 func NewLogger(config *BaseConfig) *Logger {
@@ -75,12 +85,19 @@ func NewLogger(config *BaseConfig) *Logger {
 }
 
 func (log *Logger) Write(level string, line string) {
-	lineout := time.Now().Local().Format("2006-01-02T15:04:05.999Z") + " [" + level + "] " + line
-	fmt.Fprintf(log.Log, lineout)
+	lineout := time.Now().UTC().Format("2006-01-02T15:04:05.999Z") + " [" + level + "] " + line
+	fmt.Fprintln(log.Log, lineout)
 	if log.MirrorStdout {
-		fmt.Fprintf(os.Stdout, lineout)
+		fmt.Fprintln(os.Stdout, lineout)
 	}
+}
 
+func (log *Logger) Debugf(format string, args ...interface{}) {
+	if log.IsDebugLevel {
+		line := fmt.Sprintf(format, args...)
+		log.Write("DEBUG", line)
+	}
+	return
 }
 
 func (log *Logger) Debug(line string) {
@@ -96,6 +113,13 @@ func (log *Logger) Info(line string) {
 	}
 	return
 }
+func (log *Logger) Infof(format string, args ...interface{}) {
+	if log.IsInfoLevel {
+		line := fmt.Sprintf(format, args...)
+		log.Write("INFO", line)
+	}
+	return
+}
 
 func (log *Logger) Warn(line string) {
 	if log.IsWarnLevel {
@@ -103,9 +127,23 @@ func (log *Logger) Warn(line string) {
 	}
 	return
 }
+func (log *Logger) Warnf(format string, args ...interface{}) {
+	if log.IsWarnLevel {
+		line := fmt.Sprintf(format, args...)
+		log.Write("WARN", line)
+	}
+	return
+}
 
 func (log *Logger) Error(line string) {
 	if log.IsErrorLevel {
+		log.Write("ERROR", line)
+	}
+	return
+}
+func (log *Logger) Errorf(format string, args ...interface{}) {
+	if log.IsErrorLevel {
+		line := fmt.Sprintf(format, args...)
 		log.Write("ERROR", line)
 	}
 	return
