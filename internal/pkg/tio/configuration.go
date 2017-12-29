@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-type ConfigReflector interface {
+type ReflectIntoConfig interface {
 	SetString(field string, value string)
 	SetBool(field string, value bool)
 }
@@ -23,12 +23,20 @@ type BaseConfig struct {
 	NoColourMode       bool
 	DisplayVersionMode bool
 	LogFilename        string
+	LogFolder          string
 	LogFileAppend      bool
-	OutputFilename     string
-	OutputFileAppend   bool
-	ConcurrentWorkers  string
-	Log                *os.File
-	Output             *os.File
+
+	OutputFilename   string
+	OutputFolder     string
+	OutputFileAppend bool
+	OutputCSVMode    bool
+	OutputJSONMode   bool
+
+	ConcurrentWorkers string
+	DisplayGUIMode    bool
+
+	Log    *os.File
+	Output *os.File
 }
 
 type VulnerabilityConfig struct {

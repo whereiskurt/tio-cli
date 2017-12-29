@@ -29,11 +29,13 @@ func NewLogger(config *BaseConfig) *Logger {
 
 	l := new(Logger)
 
+	//Set to all to false
 	l.IsDebugLevel = false
 	l.IsInfoLevel = false
 	l.IsWarnLevel = false
 	l.IsErrorLevel = false
 
+	//Set to true based on verbose level (1:ERROR,2:WARN,3:INFO,3:DEBUG)
 	switch verbose {
 	case 0:
 		config.QuietMode = true
@@ -65,6 +67,7 @@ func NewLogger(config *BaseConfig) *Logger {
 		break
 	}
 
+	//Unless we are 'quietmode' we echo to STDOUT
 	l.MirrorStdout = !config.QuietMode
 	l.Log = config.Log
 
