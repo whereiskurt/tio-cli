@@ -19,7 +19,7 @@ type BaseConfig struct {
 	SecretKey          string
 	CacheKey           string
 	CacheFolder        string
-  CacheDisabled       bool
+	CacheDisabled      bool
 	UseCryptoCache     bool
 	QuietMode          bool
 	NoColourMode       bool
@@ -37,8 +37,8 @@ type BaseConfig struct {
 	ConcurrentWorkers string
 	DisplayGUIMode    bool
 
-	Log    *os.File
-	Logger *Logger
+	LogFileHandle *os.File
+	Logger        *Logger
 
 	Output *os.File
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -19,12 +20,13 @@ type Loggable interface {
 }
 
 type Logger struct {
-	Log          *os.File
-	MirrorStdout bool
-	IsDebugLevel bool
-	IsInfoLevel  bool
-	IsWarnLevel  bool
-	IsErrorLevel bool
+	LogFileHandle *os.File
+	MirrorStdout  bool
+	IsDebugLevel  bool
+	IsInfoLevel   bool
+	IsWarnLevel   bool
+	IsErrorLevel  bool
+	ThreadSafe    *sync.Mutex
 }
 
 func NewLogger(config *BaseConfig) *Logger {
@@ -38,6 +40,7 @@ func NewLogger(config *BaseConfig) *Logger {
 	}
 
 	l := new(Logger)
+	l.ThreadSafe = new(sync.Mutex)
 
 	//Set to all to false
 	l.IsDebugLevel = false
@@ -79,17 +82,20 @@ func NewLogger(config *BaseConfig) *Logger {
 
 	//Unless we are 'quietmode' we echo to STDOUT
 	l.MirrorStdout = !config.QuietMode
-	l.Log = config.Log
+	l.LogFileHandle = config.LogFileHandle
 
 	return l
 }
 
-func (log *Logger) Write(level string, line string) {
+func (logger *Logger) Write(level string, line string) {
 	lineout := time.Now().UTC().Format("2006-01-02T15:04:05.999Z") + " [" + level + "] " + line
-	fmt.Fprintln(log.Log, lineout)
-	if log.MirrorStdout {
+
+	logger.ThreadSafe.Lock()
+	fmt.Fprintln(logger.LogFileHandle, lineout)
+	if logger.MirrorStdout {
 		fmt.Fprintln(os.Stdout, lineout)
 	}
+	logger.ThreadSafe.Unlock()
 }
 
 func (log *Logger) Debugf(format string, args ...interface{}) {
