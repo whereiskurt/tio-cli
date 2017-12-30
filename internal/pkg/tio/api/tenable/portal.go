@@ -11,12 +11,11 @@ import (
 )
 
 type Portal struct {
-	BaseUrl       string
-	AccessKey     string
-	SecretKey     string
-	Log           *tio.Logger
-	stats         map[string]interface{}
-	counters      map[string]int
+	BaseUrl   string
+	AccessKey string
+	SecretKey string
+	Log       *tio.Logger
+	Stats     *tio.Statistics
 }
 
 func NewPortal(config *tio.BaseConfig) *Portal {
@@ -27,9 +26,8 @@ func NewPortal(config *tio.BaseConfig) *Portal {
 	p.AccessKey = config.AccessKey
 	p.SecretKey = config.SecretKey
 
-	p.stats = make(map[string]interface{})
-	p.counters = make(map[string]int)
-	config.AddStatistics("tenable.portal", &p.stats)
+	p.Stats = tio.NewStatistics()
+
 	return p
 }
 
@@ -39,14 +37,15 @@ var tr = &http.Transport{
 }
 
 var headerCalls int
+
 func (portal *Portal) TenableXHeader() string {
-  headerCalls++
-  akeys := strings.Split(portal.AccessKey, ",")
-  skeys := strings.Split(portal.SecretKey, ",")
-  
-  var key int = headerCalls % len(akeys)
-  
-  return fmt.Sprintf("accessKey=%s;secretKey=%s", akeys[key], skeys[key])
+	headerCalls++
+	akeys := strings.Split(portal.AccessKey, ",")
+	skeys := strings.Split(portal.SecretKey, ",")
+
+	var key int = headerCalls % len(akeys)
+
+	return fmt.Sprintf("accessKey=%s;secretKey=%s", akeys[key], skeys[key])
 }
 
 func (portal *Portal) Delete(endPoint string) error {
@@ -88,9 +87,7 @@ func (portal *Portal) Get(endPoint string) ([]byte, error) {
 	var url string = endPoint
 	var method string = "GET"
 
-	portal.counters["GET"]++
-	portal.stats["GET"] = fmt.Sprintf("%d", portal.counters["GET"])
-	//portal.stats["ENDPOINT"] = append(portal.stats["ENDPOINT"], url)
+	portal.Stats.Count("GET")
 
 	client := &http.Client{Transport: tr}
 	req, err := http.NewRequest(method, url, nil)

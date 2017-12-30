@@ -27,8 +27,7 @@ type PortalCache struct {
 
 	Log *tio.Logger
 
-	stats    map[string]interface{}
-	counters map[string]int
+	Stats *tio.Statistics
 }
 
 var reAllScans = regexp.MustCompile("^.+?/scans$")
@@ -99,8 +98,7 @@ func (portal *PortalCache) PortalCacheGet(cacheFilename string) ([]byte, error) 
 	}
 	portal.Log.Debugf("Cache: HIT on filename %s", cacheFilename)
 
-	portal.counters["HIT.FILESYSTEM"]++
-	portal.stats["HIT.FILESYSTEM"] = fmt.Sprintf("%d", portal.counters["HIT.FILESYSTEM"])
+	portal.Stats.Count("HIT.FILESYSTEM")
 
 	if !portal.UseCryptoCache {
 		portal.Log.Debugf("Cache: NO CRYPTO - not decryption needed.")
@@ -155,9 +153,7 @@ func NewPortalCache(config *tio.BaseConfig) *PortalCache {
 	p := new(PortalCache)
 	p.Portal = tenable.NewPortal(config)
 
-	p.stats = make(map[string]interface{})
-	p.counters = make(map[string]int)
-	config.AddStatistics("tio.cache", &p.stats)
+	p.Stats = tio.NewStatistics()
 
 	p.CacheFolder = config.CacheFolder
 	p.CacheKey = config.CacheKey
