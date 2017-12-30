@@ -11,16 +11,17 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 type Translator struct {
 	Config *tio.VulnerabilityConfig
 
-	TranslatorCache *cache.TranslatorCache
-	PortalCache     *cache.PortalCache
-	Memcache        *ccache.Cache
-
+	TranslatorCache  *cache.TranslatorCache
+	PortalCache      *cache.PortalCache
+	Memcache         *ccache.Cache
+	ThreadSafe       *sync.Mutex
 	IgnoreScanId     map[string]bool
 	IncludeScanId    map[string]bool
 	IgnoreHistoryId  map[string]bool
@@ -41,6 +42,8 @@ type Translator struct {
 
 func NewTranslator(config *tio.VulnerabilityConfig) *Translator {
 	t := new(Translator)
+
+	t.ThreadSafe = new(sync.Mutex)
 	t.Config = config
 	t.TranslatorCache = cache.NewTranslatorCache(config.Base) //NOTE: Not implemented yet.
 	t.PortalCache = cache.NewPortalCache(config.Base)
@@ -210,7 +213,6 @@ func (trans *Translator) transformTenableScanList(scanList tenable.ScanList) []S
 }
 
 func (trans *Translator) GetScanDetail(scanId string, previousOffset int) (*ScanDetailRecord, error) {
-	//var previousOffset, _ = strconv.Atoi(trans.Config.Previous)
 
 	historyId, histErr := trans.getTenableHistoryId(scanId, previousOffset)
 	if histErr != nil {
@@ -257,24 +259,72 @@ func (trans *Translator) transformTenableScanDetail(scanId string, detail tenabl
 	ret.TotalHistoryCount = fmt.Sprintf("%v", len(detail.History))
 
 	for i := previousOffset; i < len(detail.History) && i < depth+previousOffset; i++ {
-		histDetails, err := trans.GetScanDetail(scanId, i)
-		if err != nil {
-			trans.Errorf("%s", err)
-			return nil, err
+		historyId, histErr := trans.getTenableHistoryId(scanId, i)
+		if histErr != nil {
+			trans.Errorf("%s", histErr)
+			return nil, histErr
 		}
+
+		histDetails, _ := trans.getTenableScanDetail(scanId, *historyId)
+
 		hist := new(ScanDetailHistoryRecord)
 
-		//   hist.HistoryId = fmt.Sprintf("%v", histDetails.HistoryRecords[i].HistoryId)
-		//   //hist.HostCount = fmt.Sprintf("%v", len(histDetails.Hosts))
-		//   //hist.LastModifiedDate  = string(histDetails.History[i].LastModifiedDate)
-		//   //hist.CreationDate  = string(histDetails.History[i].CreationDate)
-		//   //hist.Status = histDetails.History[i].Status
+		hist.HistoryId = fmt.Sprintf("%v", histDetails.History[i].HistoryId)
+		hist.HostCount = fmt.Sprintf("%v", len(histDetails.Hosts))
+		hist.LastModifiedDate = string(histDetails.History[i].LastModifiedDate)
+		hist.CreationDate = string(histDetails.History[i].CreationDate)
+		hist.Status = histDetails.History[i].Status
 
-		//   ret.HistoryRecords = append(ret.HistoryRecords, *hist)
+		for _, host := range histDetails.Hosts {
+			var retHost HostScanPluginRecord
 
+			var hostId = string(host.Id)
+			retHost.HostId = hostId
+			retHost.ScanId = scanId
+			retHost.HistoryId = *historyId
+			retHost.HistoryIndex = fmt.Sprintf("%v", i)
+
+			trans.ThreadSafe.Lock()
+			critsHist, _ := strconv.Atoi(hist.PluginCriticalCount)
+			critsHost, _ := strconv.Atoi(string(host.SeverityCritical))
+			hist.PluginCriticalCount = fmt.Sprintf("%v", critsHist+critsHost)
+			highHist, _ := strconv.Atoi(hist.PluginHighCount)
+			highHost, _ := strconv.Atoi(string(host.SeverityHigh))
+			hist.PluginHighCount = fmt.Sprintf("%v", highHist+highHost)
+			mediumHist, _ := strconv.Atoi(hist.PluginMediumCount)
+			mediumHost, _ := strconv.Atoi(string(host.SeverityMedium))
+			hist.PluginMediumCount = fmt.Sprintf("%v", mediumHist+mediumHost)
+			lowHist, _ := strconv.Atoi(hist.PluginLowCount)
+			lowHost, _ := strconv.Atoi(string(host.SeverityLow))
+			hist.PluginLowCount = fmt.Sprintf("%v", lowHist+lowHost)
+			hist.PluginTotalCount = fmt.Sprintf("%v", lowHist+lowHost+mediumHist+mediumHost+highHist+highHost+critsHist+critsHost)
+			trans.ThreadSafe.Unlock()
+
+			// hostDetailV1, detailErrV1 := trans.getTenableHostDetailV1(scanId, hostId, *historyId)
+			// if detailErrV1 != nil {
+			//   hostDetailV2, detailErrV2 := trans.getTenableHostDetailV2(scanId, hostId, *historyId)
+			//   if detailErrV2 != nil {
+			//     trans.Errorf("%s", detailErrV1)
+			//     trans.Errorf("%s", detailErrV2)
+			//     return nil, detailErrV2
+			//   }
+			// }
+
+			hist.Hosts = append(hist.Hosts, retHost)
+
+		}
+
+		ret.HistoryRecords = append(ret.HistoryRecords, *hist)
 	}
 
 	return &ret, nil
+}
+
+func (trans *Translator) getTenableHostDetailV1(scanId string, hostId string, historyId string) (*tenable.HostDetailV1, error) {
+	return nil, nil
+}
+func (trans *Translator) getTenableHostDetailV2(scanId string, hostId string, historyId string) (*tenable.HostDetailV1, error) {
+	return nil, nil
 }
 
 func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (*tenable.ScanDetail, error) {

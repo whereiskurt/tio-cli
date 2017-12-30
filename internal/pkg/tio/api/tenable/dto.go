@@ -78,16 +78,16 @@ type ScanDetailHistory struct {
 }
 
 //https://cloud.tenable.com/api#/resources/scans/{id}/host/{host_id}
-type HostDetails struct {
-	Info            HostDetailsInfo
-	Vulnerabilities []HostDetailsVulnerabilities
+type HostDetailV2 struct {
+	Info            HostDetailInfoV2
+	Vulnerabilities []HostDetailVulnerabilities
 }
-type HostDetailsV2 struct {
-	Info            HostDetailsInfoV2
-	Vulnerabilities []HostDetailsVulnerabilities
+type HostDetailV1 struct {
+	Info            HostDetailInfoV1
+	Vulnerabilities []HostDetailVulnerabilities
 }
 
-type HostDetailsInfo struct {
+type HostDetailInfoV2 struct {
 	HostStart       string `json:"host_start"`
 	HostEnd         string `json:"host_end"`
 	MACAddress      string `json:"mac-address"`
@@ -96,7 +96,7 @@ type HostDetailsInfo struct {
 	OperatingSystem string `json:"operating-system"`
 	HostIP          string `json:"host-ip"`
 }
-type HostDetailsInfoV2 struct {
+type HostDetailInfoV1 struct {
 	HostStart       json.Number `json:"host_start"` //becoming a number
 	HostEnd         json.Number `json:"host_end"`   //becoming a number
 	MACAddress      string      `json:"mac-address"`
@@ -106,7 +106,7 @@ type HostDetailsInfoV2 struct {
 	HostIP          string      `json:"host-ip"`
 }
 
-type HostDetailsVulnerabilities struct {
+type HostDetailVulnerabilities struct {
 	HostId       json.Number `json:"host_id"`
 	HostName     string      `json:"hostname"`
 	PluginId     json.Number `json:"plugin_id"`
