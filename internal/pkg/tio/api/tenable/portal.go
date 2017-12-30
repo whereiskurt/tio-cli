@@ -14,7 +14,6 @@ type Portal struct {
 	BaseUrl       string
 	AccessKey     string
 	SecretKey     string
-	TenableHeader string
 	Log           *tio.Logger
 	stats         map[string]interface{}
 	counters      map[string]int
@@ -28,8 +27,6 @@ func NewPortal(config *tio.BaseConfig) *Portal {
 	p.AccessKey = config.AccessKey
 	p.SecretKey = config.SecretKey
 
-	p.TenableHeader = fmt.Sprintf("accessKey=%s;secretKey=%s", config.AccessKey, config.SecretKey)
-
 	p.stats = make(map[string]interface{})
 	p.counters = make(map[string]int)
 	config.AddStatistics("tenable.portal", &p.stats)
@@ -39,6 +36,17 @@ func NewPortal(config *tio.BaseConfig) *Portal {
 var tr = &http.Transport{
 	MaxIdleConns:    20,
 	IdleConnTimeout: 60 * time.Second,
+}
+
+var headerCalls int
+func (portal *Portal) TenableXHeader() string {
+  headerCalls++
+  akeys := strings.Split(portal.AccessKey, ",")
+  skeys := strings.Split(portal.SecretKey, ",")
+  
+  var key int = headerCalls % len(akeys)
+  
+  return fmt.Sprintf("accessKey=%s;secretKey=%s", akeys[key], skeys[key])
 }
 
 func (portal *Portal) Delete(endPoint string) error {
@@ -51,7 +59,7 @@ func (portal *Portal) Delete(endPoint string) error {
 		return err
 	}
 
-	req.Header.Add("X-ApiKeys", portal.TenableHeader)
+	req.Header.Add("X-ApiKeys", portal.TenableXHeader())
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -90,7 +98,7 @@ func (portal *Portal) Get(endPoint string) ([]byte, error) {
 		portal.Log.Errorf("%s", err)
 		return nil, err
 	}
-	req.Header.Add("X-ApiKeys", portal.TenableHeader)
+	req.Header.Add("X-ApiKeys", portal.TenableXHeader())
 
 	//Make the request
 	var reqStartTime = time.Now() //Start the clock!
