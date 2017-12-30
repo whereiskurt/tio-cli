@@ -26,9 +26,13 @@ type PortalCache struct {
 	CacheKeyBytes []byte
 
 	Log *tio.Logger
+
+	stats    map[string]interface{}
+	counters map[string]int
 }
 
 var reAllScans = regexp.MustCompile("^.+?/scans$")
+var rePlugin = regexp.MustCompile("^.+?/plugins/plugin/(\\d+)$")
 var reCurrentScan = regexp.MustCompile("^.+?/scans/(\\d+)$")
 var reHistoryScan = regexp.MustCompile("^.+?/scans/(\\d+)\\?history_id=(\\d+)$")
 var reHostScan = regexp.MustCompile("^.+?/scans/(\\d+)\\/hosts/(\\d+)?history_id=(\\d+)$")
@@ -39,6 +43,10 @@ func (portal *PortalCache) PortalCacheFilename(url string) (string, error) {
 	if matched := reAllScans.FindStringSubmatch(url); matched != nil {
 		portal.Log.Debug("MATCHED regex for AllScans")
 		folder = "tenable/scans/"
+
+	} else if matched := rePlugin.FindStringSubmatch(url); matched != nil {
+		portal.Log.Debug("MATCHED regex for Plugin")
+		folder = "tenable/plugins/" + matched[1] + "/"
 
 	} else if matched := reCurrentScan.FindStringSubmatch(url); matched != nil {
 		portal.Log.Debug("MATCHED regex for CurrentScan")
@@ -91,6 +99,9 @@ func (portal *PortalCache) PortalCacheGet(cacheFilename string) ([]byte, error) 
 	}
 	portal.Log.Debugf("Cache: HIT on filename %s", cacheFilename)
 
+	portal.counters["HIT.FILESYSTEM"]++
+	portal.stats["HIT.FILESYSTEM"] = fmt.Sprintf("%d", portal.counters["HIT.FILESYSTEM"])
+
 	if !portal.UseCryptoCache {
 		portal.Log.Debugf("Cache: NO CRYPTO - not decryption needed.")
 		return dat, nil
@@ -106,6 +117,7 @@ func (portal *PortalCache) PortalCacheGet(cacheFilename string) ([]byte, error) 
 }
 
 func (portal *PortalCache) Get(url string) ([]byte, error) {
+
 	if portal.CacheDisabled == true {
 		bytes, err := portal.Portal.Get(url)
 		return bytes, err
@@ -123,6 +135,7 @@ func (portal *PortalCache) Get(url string) ([]byte, error) {
 	}
 	portal.Log.Debugf("Cache: MISSED: GET '%s' not in local cache.", url)
 
+	//TODO: Add some 'soft retry' concepts here.
 	body, err := portal.Portal.Get(url)
 	if err != nil {
 		return nil, err
@@ -141,6 +154,10 @@ func (portal *PortalCache) Get(url string) ([]byte, error) {
 func NewPortalCache(config *tio.BaseConfig) *PortalCache {
 	p := new(PortalCache)
 	p.Portal = tenable.NewPortal(config)
+
+	p.stats = make(map[string]interface{})
+	p.counters = make(map[string]int)
+	config.AddStatistics("tio.cache", &p.stats)
 
 	p.CacheFolder = config.CacheFolder
 	p.CacheKey = config.CacheKey

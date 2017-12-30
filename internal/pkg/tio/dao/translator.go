@@ -38,6 +38,9 @@ type Translator struct {
 	Infof  func(string, ...interface{})
 	Warnf  func(string, ...interface{})
 	Errorf func(string, ...interface{})
+
+	stats    map[string]interface{}
+	counters map[string]int
 }
 
 func NewTranslator(config *tio.VulnerabilityConfig) *Translator {
@@ -48,6 +51,10 @@ func NewTranslator(config *tio.VulnerabilityConfig) *Translator {
 	t.TranslatorCache = cache.NewTranslatorCache(config.Base) //NOTE: Not implemented yet.
 	t.PortalCache = cache.NewPortalCache(config.Base)
 	t.Memcache = ccache.New(ccache.Configure().MaxSize(500000).ItemsToPrune(50))
+
+	t.stats = make(map[string]interface{})
+	t.counters = make(map[string]int)
+	config.Base.AddStatistics("dao.translator", &t.stats)
 
 	t.Debug = config.Base.Logger.Debug
 	t.Debugf = config.Base.Logger.Debugf
@@ -136,9 +143,14 @@ func (trans *Translator) GetScans() ([]Scan, error) {
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
 		trans.Debug("Memcache: HIT on translator GetScans")
+		trans.counters["GetScans.Memcached"]++
+		trans.stats["GetScans.Memcached"] = fmt.Sprintf("%d", trans.counters["GetScans.Memcached"])
+
 		scans = item.Value().([]Scan)
 		return scans, nil
 	}
+	trans.counters["GetScans"]++
+	trans.stats["GetScans"] = fmt.Sprintf("%d", trans.counters["GetScans"])
 
 	tenableScans, err := trans.getTenableScanList()
 	if err != nil {
@@ -160,9 +172,14 @@ func (trans *Translator) getTenableScanList() (*tenable.ScanList, error) {
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
 		trans.Debugf("Memcache: HIT on  GET '%s'", portalUrl)
+		trans.counters["GetTenableScanList.Memcached"]++
+		trans.stats["GetTenableScanList.Memcached"] = fmt.Sprintf("%d", trans.counters["GetTenableScanList.Memcached"])
 		retScanList = item.Value().(tenable.ScanList)
 		return &retScanList, nil
 	}
+
+	trans.counters["GetTenableScanList"]++
+	trans.stats["GetTenableScanList"] = fmt.Sprintf("%d", trans.counters["GetTenableScanList"])
 
 	raw, err := trans.PortalCache.Get(portalUrl)
 	if err != nil {
@@ -213,6 +230,8 @@ func (trans *Translator) transformTenableScanList(scanList tenable.ScanList) []S
 }
 
 func (trans *Translator) GetScanDetail(scanId string, previousOffset int) (*ScanDetailRecord, error) {
+	trans.counters["GetScanDetail"]++
+	trans.stats["GetScanDetail"] = fmt.Sprintf("%d", trans.counters["GetScanDetail"])
 
 	historyId, histErr := trans.getTenableHistoryId(scanId, previousOffset)
 	if histErr != nil {
@@ -311,7 +330,18 @@ func (trans *Translator) transformTenableScanDetail(scanId string, detail tenabl
 			// }
 
 			hist.Hosts = append(hist.Hosts, retHost)
+		}
 
+		for _, vuln := range histDetails.Vulnerabilities {
+			var retPlugin PluginRecord
+
+			retPlugin.PluginId = string(vuln.PluginId)
+			retPlugin.Name = vuln.Name
+			retPlugin.Family = vuln.Family
+			retPlugin.Count = string(vuln.Count)
+			retPlugin.Severity = string(vuln.Severity)
+
+			hist.Plugins = append(hist.Plugins, retPlugin)
 		}
 
 		ret.HistoryRecords = append(ret.HistoryRecords, *hist)
@@ -332,10 +362,16 @@ func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (
 
 	var portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId + "?history_id=" + historyId
 
+	trans.counters["GetTenableScanDetail"]++
+	trans.stats["GetTenableScanDetail"] = fmt.Sprintf("%d", trans.counters["GetTenableScanDetail"])
+
 	var memcacheKey = portalUrl
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
 		trans.Debugf("Memcache: HIT on  GET '%s'", memcacheKey)
+		trans.counters["GetTenableScanDetail.Memcached"]++
+		trans.stats["GetTenableScanDetail.Memcached"] = fmt.Sprintf("%d", trans.counters["GetTenableScanDetail.Memcached"])
+
 		scanDetail = item.Value().(tenable.ScanDetail)
 		return &scanDetail, nil
 	}
@@ -365,9 +401,14 @@ func (trans *Translator) getTenableHistoryId(scanId string, previousOffset int) 
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
 		trans.Debugf("Memcache: HIT on  GET '%s'", memcacheKey)
+		trans.counters["GetTenableHistoryId.Memcached"]++
+		trans.stats["GetTenableHistoryId.Memcached"] = fmt.Sprintf("%d", trans.counters["GetTenableHistoryId.Memcached"])
+
 		retHistoryId = item.Value().(string)
 		return &retHistoryId, nil
 	}
+	trans.counters["GetTenableHistoryId"]++
+	trans.stats["GetTenableHistoryId"] = fmt.Sprintf("%d", trans.counters["GetTenableHistoryId"])
 
 	var portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId
 	raw, err := trans.PortalCache.Get(portalUrl)

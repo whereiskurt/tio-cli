@@ -85,9 +85,7 @@ type HostScanPluginRecord struct {
 	HostMACAddresses     string `json:"hostMACAddresses"`
 	HostOperatingSystems string `json:"hostOperatingSystems"`
 
-	HostPlugins              []PluginRecord `json:"hostPlugins"`
-	HostPluginsMatchCSVCount string         `json:"hostPluginsCSV"`
-	HostPluginsMatchCount    string         `json:"hostPluginsMatchCount"`
+	HostPlugins []PluginRecord `json:"hostPlugins"`
 
 	PluginCriticalCount string `json:"pluginCriticalCount"`
 	PluginHighCount     string `json:"pluginHighCount"`
