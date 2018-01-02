@@ -40,23 +40,18 @@ func (portal *PortalCache) PortalCacheFilename(url string) (string, error) {
 	var folder string
 
 	if matched := reAllScans.FindStringSubmatch(url); matched != nil {
-		portal.Log.Debug("MATCHED regex for AllScans")
 		folder = "tenable/scans/"
 
 	} else if matched := rePlugin.FindStringSubmatch(url); matched != nil {
-		portal.Log.Debug("MATCHED regex for Plugin")
 		folder = "tenable/plugins/" + matched[1] + "/"
 
 	} else if matched := reCurrentScan.FindStringSubmatch(url); matched != nil {
-		portal.Log.Debug("MATCHED regex for CurrentScan")
 		folder = "tenable/scans/" + matched[1] + "/"
 
 	} else if matched := reHistoryScan.FindStringSubmatch(url); matched != nil {
-		portal.Log.Debug("MATCHED regex for HistoryScan")
 		folder = "tenable/scans/" + matched[1] + "/history_id=" + matched[2] + "/"
 
 	} else if matched := reHostScan.FindStringSubmatch(url); matched != nil {
-		portal.Log.Debug("MATCHED regex for HostScan")
 		folder = "tenable/scans/" + matched[1] + "/history_id=" + matched[3] + "/hosts/" + matched[2] + "/"
 
 	} else {
@@ -76,8 +71,6 @@ func (portal *PortalCache) PortalCacheFilename(url string) (string, error) {
 		return "", err
 	}
 
-	portal.Log.Debugf("Cache Filename: %s, for URL: %s", filename, url)
-
 	return filename, nil
 }
 func (portal *PortalCache) PortalCacheSet(cacheFilename string, store []byte) error {
@@ -96,12 +89,9 @@ func (portal *PortalCache) PortalCacheGet(cacheFilename string) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	portal.Log.Debugf("Cache: HIT on filename %s", cacheFilename)
-
 	portal.Stats.Count("HIT.FILESYSTEM")
 
 	if !portal.UseCryptoCache {
-		portal.Log.Debugf("Cache: NO CRYPTO - not decryption needed.")
 		return dat, nil
 	}
 

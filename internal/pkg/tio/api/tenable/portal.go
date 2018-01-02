@@ -33,7 +33,7 @@ func NewPortal(config *tio.BaseConfig) *Portal {
 
 var tr = &http.Transport{
 	MaxIdleConns:    20,
-	IdleConnTimeout: 60 * time.Second,
+	IdleConnTimeout: 30 * time.Second,
 }
 
 var headerCalls int

@@ -18,10 +18,11 @@ import (
 type Translator struct {
 	Config *tio.VulnerabilityConfig
 
-	TranslatorCache  *cache.TranslatorCache
-	PortalCache      *cache.PortalCache
-	Memcache         *ccache.Cache
-	ThreadSafe       *sync.Mutex
+  TranslatorCache  *cache.TranslatorCache
+  PortalCache      *cache.PortalCache
+  Memcache         *ccache.Cache
+  ThreadSafe       *sync.Mutex
+  Workers           *sync.WaitGroup
 	IgnoreScanId     map[string]bool
 	IncludeScanId    map[string]bool
 	IgnoreHistoryId  map[string]bool
@@ -50,6 +51,7 @@ func NewTranslator(config *tio.VulnerabilityConfig) *Translator {
 	t.TranslatorCache = cache.NewTranslatorCache(config.Base) //NOTE: Not implemented yet.
 	t.PortalCache = cache.NewPortalCache(config.Base)
 	t.Memcache = ccache.New(ccache.Configure().MaxSize(500000).ItemsToPrune(50))
+  t.Workers = new(sync.WaitGroup)
 
 	t.Stats = tio.NewStatistics()
 
@@ -112,7 +114,6 @@ func (trans *Translator) GetScan(scanId string) (*Scan, error) {
 
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
-		trans.Debug("Memcache: HIT on translator GetScans")
 		scan := item.Value().(Scan)
 		return &scan, nil
 	}
@@ -139,7 +140,6 @@ func (trans *Translator) GetScans() ([]Scan, error) {
 
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
-		trans.Debug("Memcache: HIT on translator GetScans")
 		trans.Stats.Count("GetScans.Memcached")
 
 		scans = item.Value().([]Scan)
@@ -166,7 +166,6 @@ func (trans *Translator) getTenableScanList() (*tenable.ScanList, error) {
 	var memcacheKey = portalUrl
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
-		trans.Debugf("Memcache: HIT on  GET '%s'", portalUrl)
 		trans.Stats.Count("GetTenableScanList.Memcached")
 
 		retScanList = item.Value().(tenable.ScanList)
@@ -200,8 +199,6 @@ func (trans *Translator) transformTenableScanList(scanList tenable.ScanList) []S
 			continue
 		}
 
-		trans.Debugf("transformTenableScanList: Including scan '%s'", scanId)
-
 		r := new(Scan)
 		r.ScanId = scanId
 		r.UUID = scan.UUID
@@ -223,6 +220,44 @@ func (trans *Translator) transformTenableScanList(scanList tenable.ScanList) []S
 	return retScans
 }
 
+func (trans *Translator) GoGetScanDetails(out chan ScanDetailRecord, concurrentWorkers int) (error) {
+  var previousOffset, _ = strconv.Atoi(trans.Config.Previous)
+
+  var scansChan = make(chan Scan)
+
+  scans, err := trans.GetScans()
+  if err != nil {
+    trans.Errorf("Failed to get scans: %s", err) 
+    return err
+  }
+  
+  go func() {
+    for _, s := range scans {
+      scansChan <- s
+    }
+    close(scansChan)
+  }()
+  
+  for i := 0; i < concurrentWorkers; i++ {
+    trans.Workers.Add(1)
+  
+    go func() {
+      for s := range scansChan {
+        record, _ := trans.GetScanDetail(s.ScanId, previousOffset)
+        if record != nil {
+          out <- *record
+        }
+      }
+      trans.Workers.Done()
+    }()
+  }
+  
+  trans.Workers.Wait()
+  
+  close(out)
+  return nil
+}
+
 func (trans *Translator) GetScanDetail(scanId string, previousOffset int) (*ScanDetailRecord, error) {
 	trans.Stats.Count("GetScanDetail")
 
@@ -232,7 +267,6 @@ func (trans *Translator) GetScanDetail(scanId string, previousOffset int) (*Scan
 		return nil, histErr
 	}
 
-	trans.Debugf("GetScanDetail: id:%s, histid:%s, offset:%d", scanId, *historyId, previousOffset)
 	scanDetail, sdErr := trans.getTenableScanDetail(scanId, *historyId)
 	if sdErr != nil {
 		trans.Errorf("GetScanDetail: Cannot retrieve Tenable Scan Detail: id:%s, histid:%s, offset:%d - %s", scanId, *historyId, previousOffset, sdErr)
@@ -360,8 +394,6 @@ func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (
 	var memcacheKey = portalUrl
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
-		trans.Debugf("Memcache: HIT on  GET '%s'", memcacheKey)
-
 		trans.Stats.Count("GetTenableScanDetail.Memcached")
 
 		scanDetail = item.Value().(tenable.ScanDetail)
@@ -392,7 +424,6 @@ func (trans *Translator) getTenableHistoryId(scanId string, previousOffset int) 
 	var memcacheKey = fmt.Sprintf("%s:%s", scanId, previousOffset)
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
-		trans.Debugf("Memcache: HIT on  GET '%s'", memcacheKey)
 
 		trans.Stats.Count("GetTenableHistoryId.Memcached")
 
@@ -432,8 +463,7 @@ func (trans *Translator) getTenableHistoryId(scanId string, previousOffset int) 
 		}
 		return iv > jv
 	})
-	trans.Debugf("Sorted scan detail. Offset [%d] is history_id: %s", previousOffset, scanDetail.History[previousOffset].HistoryId)
-
+	
 	retHistoryId = string(scanDetail.History[previousOffset].HistoryId)
 
 	trans.Memcache.Set(memcacheKey, retHistoryId, time.Minute*60)
