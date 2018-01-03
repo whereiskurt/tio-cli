@@ -18,11 +18,11 @@ import (
 type Translator struct {
 	Config *tio.VulnerabilityConfig
 
-  TranslatorCache  *cache.TranslatorCache
-  PortalCache      *cache.PortalCache
-  Memcache         *ccache.Cache
-  ThreadSafe       *sync.Mutex
-  Workers           *sync.WaitGroup
+	TranslatorCache  *cache.TranslatorCache
+	PortalCache      *cache.PortalCache
+	Memcache         *ccache.Cache
+	ThreadSafe       *sync.Mutex
+	Workers          *sync.WaitGroup
 	IgnoreScanId     map[string]bool
 	IncludeScanId    map[string]bool
 	IgnoreHistoryId  map[string]bool
@@ -51,7 +51,7 @@ func NewTranslator(config *tio.VulnerabilityConfig) *Translator {
 	t.TranslatorCache = cache.NewTranslatorCache(config.Base) //NOTE: Not implemented yet.
 	t.PortalCache = cache.NewPortalCache(config.Base)
 	t.Memcache = ccache.New(ccache.Configure().MaxSize(500000).ItemsToPrune(50))
-  t.Workers = new(sync.WaitGroup)
+	t.Workers = new(sync.WaitGroup)
 
 	t.Stats = tio.NewStatistics()
 
@@ -72,22 +72,34 @@ func NewTranslator(config *tio.VulnerabilityConfig) *Translator {
 	t.IgnoreAssetId = make(map[string]bool)
 
 	for _, id := range strings.Split(t.Config.ScanId, ",") {
-		t.IncludeScanId[id] = true
+		if id != "" {
+			t.IncludeScanId[id] = true
+		}
 	}
 	for _, id := range strings.Split(t.Config.IgnoreScanId, ",") {
-		t.IgnoreScanId[id] = true
+		if id != "" {
+			t.IgnoreScanId[id] = true
+		}
 	}
 	for _, id := range strings.Split(t.Config.HistoryId, ",") {
-		t.IncludeHistoryId[id] = true
+		if id != "" {
+			t.IncludeHistoryId[id] = true
+		}
 	}
 	for _, id := range strings.Split(t.Config.IgnoreHistoryId, ",") {
-		t.IgnoreHistoryId[id] = true
+		if id != "" {
+			t.IgnoreHistoryId[id] = true
+		}
 	}
 	for _, id := range strings.Split(t.Config.AssetId, ",") {
-		t.IncludeAssetId[id] = true
+		if id != "" {
+			t.IncludeAssetId[id] = true
+		}
 	}
 	for _, id := range strings.Split(t.Config.IgnoreAssetId, ",") {
-		t.IgnoreAssetId[id] = true
+		if id != "" {
+			t.IgnoreAssetId[id] = true
+		}
 	}
 
 	return t
@@ -107,6 +119,81 @@ func (trans *Translator) ShouldSkipScanId(scanId string) bool {
 		}
 	}
 	return retSkip
+}
+
+func (trans *Translator) GoGetHostDetails(out chan HostScanPluginRecord, concurrentWorkers int) error {
+	var chanScanDetails = make(chan ScanDetailRecord, 2)
+
+	go func() {
+		for scan := range chanScanDetails {
+			if len(scan.HistoryRecords) < 1 {
+				continue
+			}
+
+			for _, hist := range scan.HistoryRecords {
+				if len(hist.Hosts) < 1 {
+					continue
+				}
+
+				for _, host := range hist.Hosts {
+					record, err := trans.GetHostDetail(host.ScanId, host.HostId, host.HistoryId)
+					if record == nil {
+						continue
+					}
+					if err != nil {
+						trans.Errorf("%s", err)
+						return
+					}
+
+					out <- *record
+				}
+
+			}
+		}
+
+		trans.Debugf("Done reading for scan details ...")
+	}()
+
+	trans.GoGetScanDetails(chanScanDetails, concurrentWorkers)
+
+	return nil
+}
+
+func (trans *Translator) GoGetScanDetails(out chan ScanDetailRecord, concurrentWorkers int) error {
+	var previousOffset, _ = strconv.Atoi(trans.Config.Previous)
+
+	var scansChan = make(chan Scan)
+
+	scans, err := trans.GetScans()
+	if err != nil {
+		trans.Errorf("Failed to get scans: %s", err)
+		return err
+	}
+
+	go func() {
+		for _, s := range scans {
+			scansChan <- s
+		}
+		close(scansChan)
+	}()
+
+	for i := 0; i < concurrentWorkers; i++ {
+		trans.Workers.Add(1)
+		go func() {
+			for s := range scansChan {
+				record, _ := trans.GetScanDetail(s.ScanId, previousOffset)
+				if record != nil {
+					out <- *record
+				}
+			}
+			trans.Workers.Done()
+		}()
+	}
+
+	trans.Workers.Wait()
+
+	close(out)
+	return nil
 }
 
 func (trans *Translator) GetScan(scanId string) (*Scan, error) {
@@ -220,44 +307,6 @@ func (trans *Translator) transformTenableScanList(scanList tenable.ScanList) []S
 	return retScans
 }
 
-func (trans *Translator) GoGetScanDetails(out chan ScanDetailRecord, concurrentWorkers int) (error) {
-  var previousOffset, _ = strconv.Atoi(trans.Config.Previous)
-
-  var scansChan = make(chan Scan)
-
-  scans, err := trans.GetScans()
-  if err != nil {
-    trans.Errorf("Failed to get scans: %s", err) 
-    return err
-  }
-  
-  go func() {
-    for _, s := range scans {
-      scansChan <- s
-    }
-    close(scansChan)
-  }()
-  
-  for i := 0; i < concurrentWorkers; i++ {
-    trans.Workers.Add(1)
-  
-    go func() {
-      for s := range scansChan {
-        record, _ := trans.GetScanDetail(s.ScanId, previousOffset)
-        if record != nil {
-          out <- *record
-        }
-      }
-      trans.Workers.Done()
-    }()
-  }
-  
-  trans.Workers.Wait()
-  
-  close(out)
-  return nil
-}
-
 func (trans *Translator) GetScanDetail(scanId string, previousOffset int) (*ScanDetailRecord, error) {
 	trans.Stats.Count("GetScanDetail")
 
@@ -346,16 +395,6 @@ func (trans *Translator) transformTenableScanDetail(scanId string, detail tenabl
 			hist.PluginTotalCount = fmt.Sprintf("%v", lowHist+lowHost+mediumHist+mediumHost+highHist+highHost+critsHist+critsHost)
 			trans.ThreadSafe.Unlock()
 
-			// hostDetailV1, detailErrV1 := trans.getTenableHostDetailV1(scanId, hostId, *historyId)
-			// if detailErrV1 != nil {
-			//   hostDetailV2, detailErrV2 := trans.getTenableHostDetailV2(scanId, hostId, *historyId)
-			//   if detailErrV2 != nil {
-			//     trans.Errorf("%s", detailErrV1)
-			//     trans.Errorf("%s", detailErrV2)
-			//     return nil, detailErrV2
-			//   }
-			// }
-
 			hist.Hosts = append(hist.Hosts, retHost)
 		}
 
@@ -375,6 +414,11 @@ func (trans *Translator) transformTenableScanDetail(scanId string, detail tenabl
 	}
 
 	return &ret, nil
+}
+
+func (trans *Translator) GetHostDetail(scanId string, hostId string, historyId string) (*HostScanPluginRecord, error) {
+
+	return nil, nil
 }
 
 func (trans *Translator) getTenableHostDetailV1(scanId string, hostId string, historyId string) (*tenable.HostDetailV1, error) {
@@ -463,7 +507,7 @@ func (trans *Translator) getTenableHistoryId(scanId string, previousOffset int) 
 		}
 		return iv > jv
 	})
-	
+
 	retHistoryId = string(scanDetail.History[previousOffset].HistoryId)
 
 	trans.Memcache.Set(memcacheKey, retHistoryId, time.Minute*60)
