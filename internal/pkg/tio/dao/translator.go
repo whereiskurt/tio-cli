@@ -150,8 +150,7 @@ func (trans *Translator) GoGetHostDetails(out chan HostScanPluginRecord, concurr
 
 			}
 		}
-
-		trans.Debugf("Done reading for scan details ...")
+		close(out)
 	}()
 
 	trans.GoGetScanDetails(chanScanDetails, concurrentWorkers)
@@ -354,15 +353,18 @@ func (trans *Translator) transformTenableScanDetail(scanId string, detail tenabl
 	ret.TotalHistoryCount = fmt.Sprintf("%v", len(detail.History))
 
 	for i := previousOffset; i < len(detail.History) && i < depth+previousOffset; i++ {
+		var hist = new(ScanDetailHistoryRecord)
+
 		historyId, histErr := trans.getTenableHistoryId(scanId, i)
 		if histErr != nil {
 			trans.Errorf("%s", histErr)
-			return nil, histErr
 		}
 
-		histDetails, _ := trans.getTenableScanDetail(scanId, *historyId)
-
-		hist := new(ScanDetailHistoryRecord)
+		histDetails, errDetails := trans.getTenableScanDetail(scanId, *historyId)
+		if errDetails != nil {
+			trans.Errorf("%s", errDetails)
+			return nil, errDetails
+		}
 
 		hist.HistoryId = fmt.Sprintf("%v", histDetails.History[i].HistoryId)
 		hist.HostCount = fmt.Sprintf("%v", len(histDetails.Hosts))
