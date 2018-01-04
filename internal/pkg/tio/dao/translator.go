@@ -399,7 +399,7 @@ func (trans *Translator) transformTenableScanDetail(scanId string, detail tenabl
 		hist.ScanStart = fmt.Sprintf("%v", unixScanStart)
 		hist.ScanStartUnix = fmt.Sprintf("%s", string(start))
 		hist.ScanEnd = fmt.Sprintf("%v", unixScanEnd)
-		hist.ScanEndUnix = fmt.Sprintf("%s", string(histDetails.Info.ScannerEnd))
+		hist.ScanEndUnix = fmt.Sprintf("%s", string(end))
 		hist.ScanDuration = fmt.Sprintf("%v", unixScanEnd.Sub(unixScanStart))
 
 		for _, host := range histDetails.Hosts {
@@ -484,6 +484,7 @@ func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (
 
 	return &scanDetail, nil
 }
+
 func (trans *Translator) getTenableHistoryId(scanId string, previousOffset int) (*string, error) {
 	var retHistoryId string
 	var scanDetail tenable.ScanDetail

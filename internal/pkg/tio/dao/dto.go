@@ -13,12 +13,12 @@ type Scan struct {
 	StartTime        string `json:"startTime"`
 	CreationDate     string `json:"creation_date"`
 	LastModifiedDate string `json:"last_modification_date"`
+	PolicyName       string `json:"policy_name"`
 	Timestamp        string `json:"timestamp"`
 }
 
 type ScanDetailRecord struct {
 	Scan
-	PolicyName        string `json:"policy_name"`
 	TotalHistoryCount string `json:'totalHistoryCount'`
 	HistoryRecords    []ScanDetailHistoryRecord
 }
@@ -64,13 +64,13 @@ type PluginRecordAttribute struct {
 }
 
 type HostScanPluginRecord struct {
-	ScanId       string `json:"scanId"`
+	ScanId         string `json:"scanId"`
+	ScanName       string `json:"scanName"`
+	ScanPolicyName string `json:"scanPolicyName"`
+
 	HostId       string `json:"hostId"`
 	HistoryId    string `json:"historyId"`
 	HistoryIndex string `json:"historyIndex"`
-
-	ScanName       string `json:"scanName"`
-	ScanPolicyName string `json:"scanPolicyName"`
 
 	HostFQDN        string `json:"hostFQDN"`
 	HostIP          string `json:"hostIP"`
