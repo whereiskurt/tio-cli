@@ -24,18 +24,26 @@ type ScanDetailRecord struct {
 }
 
 type ScanDetailHistoryRecord struct {
-	HistoryId           string                 `json:"historyId"`
-	Status              string                 `json:"status"`
-	CreationDate        string                 `json:'createDate'`
-	LastModifiedDate    string                 `json:'lastModifiedDate'`
-	PluginCriticalCount string                 `json:"pluginCriticalCount"`
-	PluginHighCount     string                 `json:"pluginHighCount"`
-	PluginMediumCount   string                 `json:"pluginMediumCount"`
-	PluginLowCount      string                 `json:"pluginLowCount"`
-	PluginTotalCount    string                 `json:"pluginTotalCount"`
-	HostCount           string                 `json:"hostCount"`
-	Plugins             []PluginRecord         `json:"plugins"`
-	Hosts               []HostScanPluginRecord `json:"hosts"`
+	HistoryId           string `json:"historyId"`
+	Status              string `json:"status"`
+	CreationDate        string `json:'createDate'`
+	LastModifiedDate    string `json:'lastModifiedDate'`
+	PluginCriticalCount string `json:"pluginCriticalCount"`
+	PluginHighCount     string `json:"pluginHighCount"`
+	PluginMediumCount   string `json:"pluginMediumCount"`
+	PluginLowCount      string `json:"pluginLowCount"`
+	PluginTotalCount    string `json:"pluginTotalCount"`
+
+	ScanStart     string `json:"scanStart"`
+	ScanStartUnix string `json:"scanStartUnix"`
+	ScanEnd       string `json:"scanEnd"`
+	ScanEndUnix   string `json:"scanEndUnix"`
+	ScanDuration  string `json:"scanDuration"`
+
+	Plugins []PluginRecord `json:"plugins"`
+
+	HostCount string                 `json:"hostCount"`
+	Hosts     []HostScanPluginRecord `json:"hosts"`
 }
 
 type PluginRecord struct {
@@ -63,12 +71,6 @@ type HostScanPluginRecord struct {
 
 	ScanName       string `json:"scanName"`
 	ScanPolicyName string `json:"scanPolicyName"`
-
-	ScanStart     string `json:"scanStart"`
-	ScanStartUnix string `json:"scanStartUnix"`
-	ScanEnd       string `json:"scanEnd"`
-	ScanEndUnix   string `json:"scanEndUnix"`
-	ScanDuration  string `json:"scanDuration"`
 
 	HostFQDN        string `json:"hostFQDN"`
 	HostIP          string `json:"hostIP"`

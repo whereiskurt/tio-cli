@@ -104,6 +104,7 @@ func NewTranslator(config *tio.VulnerabilityConfig) *Translator {
 
 	return t
 }
+
 func (trans *Translator) ShouldSkipScanId(scanId string) bool {
 	var retSkip = false
 
@@ -125,18 +126,18 @@ func (trans *Translator) GoGetHostDetails(out chan HostScanPluginRecord, concurr
 	var chanScanDetails = make(chan ScanDetailRecord, 2)
 
 	go func() {
-		for scan := range chanScanDetails {
-			if len(scan.HistoryRecords) < 1 {
+		for sd := range chanScanDetails {
+			if len(sd.HistoryRecords) < 1 {
 				continue
 			}
 
-			for _, hist := range scan.HistoryRecords {
+			for _, hist := range sd.HistoryRecords {
 				if len(hist.Hosts) < 1 {
 					continue
 				}
 
-				for _, host := range hist.Hosts {
-					record, err := trans.GetHostDetail(host.ScanId, host.HostId, host.HistoryId)
+				for _, h := range hist.Hosts {
+					record, err := trans.GetHostDetail(h.ScanId, h.HostId, h.HistoryId)
 					if record == nil {
 						continue
 					}
@@ -156,6 +157,11 @@ func (trans *Translator) GoGetHostDetails(out chan HostScanPluginRecord, concurr
 	trans.GoGetScanDetails(chanScanDetails, concurrentWorkers)
 
 	return nil
+}
+
+func (trans *Translator) GetHostDetail(scanId string, hostId string, historyId string) (*HostScanPluginRecord, error) {
+
+	return nil, nil
 }
 
 func (trans *Translator) GoGetScanDetails(out chan ScanDetailRecord, concurrentWorkers int) error {
@@ -311,7 +317,7 @@ func (trans *Translator) GetScanDetail(scanId string, previousOffset int) (*Scan
 
 	historyId, histErr := trans.getTenableHistoryId(scanId, previousOffset)
 	if histErr != nil {
-		trans.Errorf("GetScanDetail: Cannot retrieve Tenable Scan History Id: id:%s,offset:%s - %s", scanId, previousOffset, histErr)
+		trans.Errorf("GetScanDetail: %s", histErr)
 		return nil, histErr
 	}
 
@@ -372,6 +378,30 @@ func (trans *Translator) transformTenableScanDetail(scanId string, detail tenabl
 		hist.CreationDate = string(histDetails.History[i].CreationDate)
 		hist.Status = histDetails.History[i].Status
 
+		start := histDetails.Info.Start
+		end := histDetails.Info.End
+
+		rawScanStart, errParseStart := strconv.ParseInt(string(start), 10, 64)
+		if errParseStart != nil {
+			rawScanStart = int64(0)
+			trans.Warnf("hist.Start: Failed to parse value '%s' for scan '%s':id:%s:histid:%s (status: %s). Setting to zero.", string(start), ret.Name, ret.ScanId, *historyId, hist.Status)
+		}
+
+		rawScanEnd, errParseEnd := strconv.ParseInt(string(end), 10, 64)
+		if errParseEnd != nil {
+			rawScanEnd = rawScanStart
+			trans.Warnf("hist.End: Failed to parse value '%s' for scan name:'%s':id:%s:histid:%s (status: %s). Setting to %s", string(end), ret.Name, ret.ScanId, *historyId, hist.Status, string(start))
+		}
+
+		unixScanStart := time.Unix(rawScanStart, 0)
+		unixScanEnd := time.Unix(rawScanEnd, 0)
+
+		hist.ScanStart = fmt.Sprintf("%v", unixScanStart)
+		hist.ScanStartUnix = fmt.Sprintf("%s", string(start))
+		hist.ScanEnd = fmt.Sprintf("%v", unixScanEnd)
+		hist.ScanEndUnix = fmt.Sprintf("%s", string(histDetails.Info.ScannerEnd))
+		hist.ScanDuration = fmt.Sprintf("%v", unixScanEnd.Sub(unixScanStart))
+
 		for _, host := range histDetails.Hosts {
 			var retHost HostScanPluginRecord
 
@@ -416,11 +446,6 @@ func (trans *Translator) transformTenableScanDetail(scanId string, detail tenabl
 	}
 
 	return &ret, nil
-}
-
-func (trans *Translator) GetHostDetail(scanId string, hostId string, historyId string) (*HostScanPluginRecord, error) {
-
-	return nil, nil
 }
 
 func (trans *Translator) getTenableHostDetailV1(scanId string, hostId string, historyId string) (*tenable.HostDetailV1, error) {
@@ -488,6 +513,11 @@ func (trans *Translator) getTenableHistoryId(scanId string, previousOffset int) 
 	err = json.Unmarshal([]byte(string(raw)), &scanDetail)
 	if err != nil {
 		trans.Errorf("Couldn't unmarshal tenable.ScanList: %s", err)
+		return nil, err
+	}
+
+	if len(scanDetail.History) == 0 {
+		err := errors.New(fmt.Sprintf("No scan history for scan %s offset %d", scanId, previousOffset))
 		return nil, err
 	}
 
