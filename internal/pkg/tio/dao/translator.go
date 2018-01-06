@@ -126,48 +126,53 @@ func (trans *Translator) ShouldSkipScanId(scanId string) bool {
 func (trans *Translator) GoGetHostDetails(out chan HostScanPluginRecord, concurrentWorkers int) error {
 	var chanScanDetails = make(chan ScanDetailRecord, 2)
 
-	go func() {
+
+  for i := 0; i < concurrentWorkers; i++ {
     trans.Workers.Add(1)
-		for sd := range chanScanDetails {
-			if len(sd.HistoryRecords) < 1 {
-				continue
-			}
+  	go func() error {
 
-			for _, hist := range sd.HistoryRecords {
-				if len(hist.Hosts) < 1 {
-					continue
-				}
+      for sd := range chanScanDetails {
+        if len(sd.HistoryRecords) < 1 {
+          continue
+        }
 
-				for _, h := range hist.Hosts {
-					record, err := trans.GetHostDetail(sd.Scan.ScanId, h.HostId, h.ScanDetail.HistoryId)
-
-          if record == nil {
+        for _, hist := range sd.HistoryRecords {
+          if len(hist.Hosts) < 1 {
             continue
           }
-          if err != nil {
-            trans.Errorf("%s", err)
-            return
+
+          for _, h := range hist.Hosts {
+            record, err := trans.GetHostDetail(sd.Scan.ScanId, h.HostId, h.ScanDetail.HistoryId)
+            if err != nil {
+              trans.Errorf("%s", err)
+              continue
+            }
+
+            if record == nil {
+              continue
+            }
+
+            //Attach the ScanDetail and Scan. Unattach ScanDetail.Hosts
+            record.ScanDetail = hist
+            record.ScanDetail.Hosts = nil /*This prevents some recursive outputs later.
+                                            We are returning an element that is in the
+                                            parent's Hosts lists.
+                                          */
+
+            record.ScanDetail.Scan = sd.Scan 
+
+            out <- *record
           }
+        }
+      }
+      
+      close(out)
+      trans.Workers.Done()
+      return nil
+  	}()
+  }
 
-          //Attach the ScanDetail and Scan. Unattach ScanDetail.Hosts
-          record.ScanDetail = hist
-          record.ScanDetail.Hosts = nil /*This prevents some recursive outputs later.
-                                          We are returning an element that is in the
-                                          parent's Hosts lists.
-                                        */
-
-          record.ScanDetail.Scan = sd.Scan 
-
-					out <- *record
-				}
-
-			}
-		}
-		close(out)
-	}()
-
-	err := trans.GoGetScanDetails(chanScanDetails, concurrentWorkers)
-  
+	err := trans.GoGetScanDetails(chanScanDetails, concurrentWorkers)  
   trans.Workers.Wait()
 
 	return err
@@ -187,11 +192,13 @@ func (trans *Translator) GetHostDetail(scanId string, hostId string, historyId s
 	raw, err := trans.PortalCache.Get(portalUrl)
 	if err != nil {
 		trans.Errorf("Couldn't HTTP GET tenable.HostDetails for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
-		return nil, err
-	}
+    return nil, err
+  }
 
-	hd, err := trans.getTenableHostDetail(scanId, hostId, historyId, raw)
-	if err != nil || hd == nil {
+  hd, err := trans.getTenableHostDetail(scanId, hostId, historyId, raw)
+  if err != nil {
+    trans.Errorf("Couldn't unmarshal tenable.HostDetails for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
+		return nil, err
 	}
 
 	ret.HostId = hostId
