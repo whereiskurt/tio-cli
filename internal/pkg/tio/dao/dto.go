@@ -18,13 +18,16 @@ type Scan struct {
 }
 
 type ScanDetailRecord struct {
-	Scan
+	Scan              Scan
 	TotalHistoryCount string `json:'totalHistoryCount'`
 	HistoryRecords    []ScanDetailHistoryRecord
 }
 
 type ScanDetailHistoryRecord struct {
+	Scan                Scan
+
 	HistoryId           string `json:"historyId"`
+	HistoryIndex        string `json:"historyIndex"`
 	Status              string `json:"status"`
 	CreationDate        string `json:'createDate'`
 	LastModifiedDate    string `json:'lastModifiedDate'`
@@ -40,13 +43,41 @@ type ScanDetailHistoryRecord struct {
 	ScanEndUnix   string `json:"scanEndUnix"`
 	ScanDuration  string `json:"scanDuration"`
 
-	Plugins []PluginRecord `json:"plugins"`
+	HostPlugins []SummaryPluginRecord `json:"plugins"`
 
 	HostCount string                 `json:"hostCount"`
 	Hosts     []HostScanPluginRecord `json:"hosts"`
 }
 
-type PluginRecord struct {
+type HostScanPluginRecord struct {
+	ScanDetail ScanDetailHistoryRecord
+
+	HostId               string `json:"hostId"`
+	HostFQDN             string `json:"hostFQDN"`
+	HostIP               string `json:"hostIP"`
+	HostNetBIOS          string `json:"hostNetBIOS"` //Windows only, but prevelant.
+	HostMACAddresses     string `json:"hostMACAddresses"`
+	HostOperatingSystems string `json:"hostOperatingSystems"`
+
+	HostScannerName   string `json:"hostScannerName"`
+	HostScanStart     string `json:"hostScanStart"`
+	HostScanStartUnix string `json:"hostScanStartUnix"`
+	HostScanEnd       string `json:"hostScanEnd"`
+	HostScanEndUnix   string `json:"hostScanEndUnix"`
+	HostScanDuration  string `json:"hostScanDuration"`
+
+	HostPlugins []HostPluginRecord `json:"hostPlugins"`
+}
+
+type SummaryPluginRecord struct {
+	PluginId              string `"json:pluginId"`
+	Name                  string `"json:pluginName"`
+	Family                string `"json:pluginFamily"`
+	Count                 string `"json:pluginCount"`
+	Severity              string `"json:severityTypeId"`
+}
+
+type HostPluginRecord struct {
 	PluginId              string `"json:pluginId"`
 	Name                  string `"json:pluginName"`
 	Family                string `"json:pluginFamily"`
@@ -56,42 +87,9 @@ type PluginRecord struct {
 	FunctionName          string `"json:functionName"`
 	PluginPublicationDate string `"json:pluginPublicationDate"`
 	PatchPublicationDate  string `"json:patchPublicationDate"`
-	Attributes            []PluginRecordAttribute
+	Attributes            []HostPluginRecordAttribute
 }
-type PluginRecordAttribute struct {
+type HostPluginRecordAttribute struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
-}
-
-type HostScanPluginRecord struct {
-	ScanId         string `json:"scanId"`
-	ScanName       string `json:"scanName"`
-	ScanPolicyName string `json:"scanPolicyName"`
-
-	HostId       string `json:"hostId"`
-	HistoryId    string `json:"historyId"`
-	HistoryIndex string `json:"historyIndex"`
-
-	HostFQDN        string `json:"hostFQDN"`
-	HostIP          string `json:"hostIP"`
-	HostScannerName string `json:"hostScannerName"`
-
-	HostScanStart     string `json:"hostScanStart"`
-	HostScanStartUnix string `json:"hostScanStartUnix"`
-	HostScanEnd       string `json:"hostScanEnd"`
-	HostScanEndUnix   string `json:"hostScanEndUnix"`
-	HostScanDuration  string `json:"hostScanDuration"`
-
-	HostNetBIOS string `json:"hostNetBIOS"` //Windows only, but prevelant.
-
-	HostMACAddresses     string `json:"hostMACAddresses"`
-	HostOperatingSystems string `json:"hostOperatingSystems"`
-
-	HostPlugins []PluginRecord `json:"hostPlugins"`
-
-	PluginCriticalCount string `json:"pluginCriticalCount"`
-	PluginHighCount     string `json:"pluginHighCount"`
-	PluginMediumCount   string `json:"pluginMediumCount"`
-	PluginLowCount      string `json:"pluginLowCount"`
-	PluginTotalCount    string `json:"pluginTotalCount"`
 }

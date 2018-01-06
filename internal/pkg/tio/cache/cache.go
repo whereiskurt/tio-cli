@@ -34,7 +34,7 @@ var reAllScans = regexp.MustCompile("^.+?/scans$")
 var rePlugin = regexp.MustCompile("^.+?/plugins/plugin/(\\d+)$")
 var reCurrentScan = regexp.MustCompile("^.+?/scans/(\\d+)$")
 var reHistoryScan = regexp.MustCompile("^.+?/scans/(\\d+)\\?history_id=(\\d+)$")
-var reHostScan = regexp.MustCompile("^.+?/scans/(\\d+)\\/hosts/(\\d+)?history_id=(\\d+)$")
+var reHostScan = regexp.MustCompile("^.+?/scans/(\\d+)\\/hosts/(\\d+)\\?history_id=(\\d+)$")
 
 func (portal *PortalCache) PortalCacheFilename(url string) (string, error) {
 	var folder string

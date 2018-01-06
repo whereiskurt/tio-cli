@@ -113,8 +113,9 @@ func (trans *Translator) ShouldSkipScanId(scanId string) bool {
 		retSkip = true
 	}
 
-	if len(trans.IncludeScanId) > 0 {
+	if len(trans.IncludeScanId) > 1 {
 		_, include := trans.IncludeScanId[scanId]
+
 		if !include {
 			retSkip = true
 		}
@@ -126,6 +127,7 @@ func (trans *Translator) GoGetHostDetails(out chan HostScanPluginRecord, concurr
 	var chanScanDetails = make(chan ScanDetailRecord, 2)
 
 	go func() {
+    trans.Workers.Add(1)
 		for sd := range chanScanDetails {
 			if len(sd.HistoryRecords) < 1 {
 				continue
@@ -137,14 +139,24 @@ func (trans *Translator) GoGetHostDetails(out chan HostScanPluginRecord, concurr
 				}
 
 				for _, h := range hist.Hosts {
-					record, err := trans.GetHostDetail(h.ScanId, h.HostId, h.HistoryId)
-					if record == nil {
-						continue
-					}
-					if err != nil {
-						trans.Errorf("%s", err)
-						return
-					}
+					record, err := trans.GetHostDetail(sd.Scan.ScanId, h.HostId, h.ScanDetail.HistoryId)
+
+          if record == nil {
+            continue
+          }
+          if err != nil {
+            trans.Errorf("%s", err)
+            return
+          }
+
+          //Attach the ScanDetail and Scan. Unattach ScanDetail.Hosts
+          record.ScanDetail = hist
+          record.ScanDetail.Hosts = nil /*This prevents some recursive outputs later.
+                                          We are returning an element that is in the
+                                          parent's Hosts lists.
+                                        */
+
+          record.ScanDetail.Scan = sd.Scan 
 
 					out <- *record
 				}
@@ -154,12 +166,76 @@ func (trans *Translator) GoGetHostDetails(out chan HostScanPluginRecord, concurr
 		close(out)
 	}()
 
-	trans.GoGetScanDetails(chanScanDetails, concurrentWorkers)
+	err := trans.GoGetScanDetails(chanScanDetails, concurrentWorkers)
+  
+  trans.Workers.Wait()
 
-	return nil
+	return err
 }
 
 func (trans *Translator) GetHostDetail(scanId string, hostId string, historyId string) (*HostScanPluginRecord, error) {
+	var portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId + "/hosts/" + hostId + "?history_id=" + string(historyId)
+	var ret HostScanPluginRecord
+
+	var memcacheKey = portalUrl
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+    ret := item.Value().(HostScanPluginRecord)
+    return &ret, nil
+	}
+
+	raw, err := trans.PortalCache.Get(portalUrl)
+	if err != nil {
+		trans.Errorf("Couldn't HTTP GET tenable.HostDetails for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
+		return nil, err
+	}
+
+	hd, err := trans.getTenableHostDetail(scanId, hostId, historyId, raw)
+	if err != nil || hd == nil {
+	}
+
+	ret.HostId = hostId
+	ret.HostIP = hd.Info.HostIP
+	ret.HostFQDN = hd.Info.FQDN
+	ret.HostNetBIOS = hd.Info.NetBIOS
+	ret.HostMACAddresses = strings.Replace(hd.Info.MACAddress,"\n", ",", -1)
+	ret.HostOperatingSystems = strings.Join(hd.Info.OperatingSystem, ",")
+
+  for _,v := range hd.Vulnerabilities {
+    //This is a Plugin Skelton, more details from GetPlugin are needed.
+    var r HostPluginRecord
+    r.PluginId =string(v.PluginId)
+    r.Name = v.PluginName
+    r.Family = v.PluginFamily
+    r.Count = string(v.Count)
+    r.Severity = string(v.Severity)
+    ret.HostPlugins = append(ret.HostPlugins, r)
+  }
+
+
+	trans.Memcache.Set(memcacheKey, ret, time.Minute*60)
+	return &ret, nil
+}
+
+func (trans *Translator) getTenableHostDetail(scanId string, hostId string, historyId string, raw []byte) (*tenable.HostDetail, error) {
+	var hd tenable.HostDetail
+	err := json.Unmarshal([]byte(string(raw)), &hd)
+	if err != nil {
+
+		trans.Debugf("Failed to unmarshal older version of HostDetail for scan id:%s:host%s:histId:%s", scanId, hostId, historyId)
+		hdLegacy, legacyErr := trans.getTenableHostDetailLegacy(scanId, hostId, historyId, raw)
+
+		if legacyErr != nil || hdLegacy == nil {
+			trans.Errorf("Failed to unmarshal Legacy tenable.HostDetail for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
+			return nil, err
+		}
+
+		hd = *hdLegacy
+	}
+	return &hd, nil
+}
+
+func (trans *Translator) getTenableHostDetailLegacy(scanId string, hostId string, historyId string, raw []byte) (*tenable.HostDetail, error) {
 
 	return nil, nil
 }
@@ -344,18 +420,18 @@ func (trans *Translator) transformTenableScanDetail(scanId string, detail tenabl
 		return nil, scanErr
 	}
 
-	ret.ScanId = scanId
-	ret.UUID = scan.UUID
-	ret.Name = scan.Name
-	ret.PolicyName = detail.Info.PolicyName
-	ret.CreationDate = string(scan.CreationDate)
-	ret.LastModifiedDate = string(scan.LastModifiedDate)
-	ret.Status = scan.Status
-	ret.Enabled = fmt.Sprintf("%t", scan.Enabled)
-	ret.RRules = scan.RRules
-	ret.Timezone = scan.Timezone
-	ret.StartTime = scan.StartTime
-	ret.PolicyName = detail.Info.PolicyName
+	ret.Scan.ScanId = scanId
+	ret.Scan.UUID = scan.UUID
+	ret.Scan.Name = scan.Name
+	ret.Scan.PolicyName = detail.Info.PolicyName
+	ret.Scan.CreationDate = string(scan.CreationDate)
+	ret.Scan.LastModifiedDate = string(scan.LastModifiedDate)
+	ret.Scan.Status = scan.Status
+	ret.Scan.Enabled = fmt.Sprintf("%t", scan.Enabled)
+	ret.Scan.RRules = scan.RRules
+	ret.Scan.Timezone = scan.Timezone
+	ret.Scan.StartTime = scan.StartTime
+	ret.Scan.PolicyName = detail.Info.PolicyName
 	ret.TotalHistoryCount = fmt.Sprintf("%v", len(detail.History))
 
 	for i := previousOffset; i < len(detail.History) && i < depth+previousOffset; i++ {
@@ -384,13 +460,13 @@ func (trans *Translator) transformTenableScanDetail(scanId string, detail tenabl
 		rawScanStart, errParseStart := strconv.ParseInt(string(start), 10, 64)
 		if errParseStart != nil {
 			rawScanStart = int64(0)
-			trans.Warnf("hist.Start: Failed to parse value '%s' for scan '%s':id:%s:histid:%s (status: %s). Setting to zero.", string(start), ret.Name, ret.ScanId, *historyId, hist.Status)
+			trans.Warnf("hist.Start: Failed to parse value '%s' for scan '%s':id:%s:histid:%s (status: %s). Setting to zero.", string(start), ret.Scan.Name, ret.Scan.ScanId, *historyId, hist.Status)
 		}
 
 		rawScanEnd, errParseEnd := strconv.ParseInt(string(end), 10, 64)
 		if errParseEnd != nil {
 			rawScanEnd = rawScanStart
-			trans.Warnf("hist.End: Failed to parse value '%s' for scan name:'%s':id:%s:histid:%s (status: %s). Setting to %s", string(end), ret.Name, ret.ScanId, *historyId, hist.Status, string(start))
+			trans.Warnf("hist.End: Failed to parse value '%s' for scan name:'%s':id:%s:histid:%s (status: %s). Setting to %s", string(end), ret.Scan.Name, ret.Scan.ScanId, *historyId, hist.Status, string(start))
 		}
 
 		unixScanStart := time.Unix(rawScanStart, 0)
@@ -407,9 +483,9 @@ func (trans *Translator) transformTenableScanDetail(scanId string, detail tenabl
 
 			var hostId = string(host.Id)
 			retHost.HostId = hostId
-			retHost.ScanId = scanId
-			retHost.HistoryId = *historyId
-			retHost.HistoryIndex = fmt.Sprintf("%v", i)
+			retHost.ScanDetail.Scan.ScanId = scanId
+			retHost.ScanDetail.HistoryId = *historyId
+			retHost.ScanDetail.HistoryIndex = fmt.Sprintf("%v", i)
 
 			trans.ThreadSafe.Lock()
 			critsHist, _ := strconv.Atoi(hist.PluginCriticalCount)
@@ -431,7 +507,7 @@ func (trans *Translator) transformTenableScanDetail(scanId string, detail tenabl
 		}
 
 		for _, vuln := range histDetails.Vulnerabilities {
-			var retPlugin PluginRecord
+			var retPlugin SummaryPluginRecord
 
 			retPlugin.PluginId = string(vuln.PluginId)
 			retPlugin.Name = vuln.Name
@@ -439,20 +515,13 @@ func (trans *Translator) transformTenableScanDetail(scanId string, detail tenabl
 			retPlugin.Count = string(vuln.Count)
 			retPlugin.Severity = string(vuln.Severity)
 
-			hist.Plugins = append(hist.Plugins, retPlugin)
+			hist.HostPlugins = append(hist.HostPlugins, retPlugin)
 		}
 
 		ret.HistoryRecords = append(ret.HistoryRecords, *hist)
 	}
 
 	return &ret, nil
-}
-
-func (trans *Translator) getTenableHostDetailV1(scanId string, hostId string, historyId string) (*tenable.HostDetailV1, error) {
-	return nil, nil
-}
-func (trans *Translator) getTenableHostDetailV2(scanId string, hostId string, historyId string) (*tenable.HostDetailV1, error) {
-	return nil, nil
 }
 
 func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (*tenable.ScanDetail, error) {

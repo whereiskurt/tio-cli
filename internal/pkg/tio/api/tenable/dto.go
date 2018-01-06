@@ -78,25 +78,11 @@ type ScanDetailHistory struct {
 }
 
 //https://cloud.tenable.com/api#/resources/scans/{id}/host/{host_id}
-type HostDetailV2 struct {
-	Info            HostDetailInfoV2
+type HostDetail struct {
+	Info            HostDetailInfo
 	Vulnerabilities []HostDetailVulnerabilities
 }
-type HostDetailV1 struct {
-	Info            HostDetailInfoV1
-	Vulnerabilities []HostDetailVulnerabilities
-}
-
-type HostDetailInfoV2 struct {
-	HostStart       string `json:"host_start"`
-	HostEnd         string `json:"host_end"`
-	MACAddress      string `json:"mac-address"`
-	FQDN            string `json:"host-fqdn"`
-	NetBIOS         string `json:"netbios-name"`
-	OperatingSystem string `json:"operating-system"`
-	HostIP          string `json:"host-ip"`
-}
-type HostDetailInfoV1 struct {
+type HostDetailInfo struct {
 	HostStart       json.Number `json:"host_start"` //becoming a number
 	HostEnd         json.Number `json:"host_end"`   //becoming a number
 	MACAddress      string      `json:"mac-address"`
@@ -104,6 +90,19 @@ type HostDetailInfoV1 struct {
 	NetBIOS         string      `json:"netbios-name"`
 	OperatingSystem []string    `json:"operating-system"` //becoming an array
 	HostIP          string      `json:"host-ip"`
+}
+type HostDetailLegacyV2 struct {
+	Info            HostDetailInfoLegacyV2
+	Vulnerabilities []HostDetailVulnerabilities
+}
+type HostDetailInfoLegacyV2 struct {
+	HostStart       string `json:"host_start"`
+	HostEnd         string `json:"host_end"`
+	MACAddress      string `json:"mac-address"`
+	FQDN            string `json:"host-fqdn"`
+	NetBIOS         string `json:"netbios-name"`
+	OperatingSystem string `json:"operating-system"`
+	HostIP          string `json:"host-ip"`
 }
 
 type HostDetailVulnerabilities struct {
