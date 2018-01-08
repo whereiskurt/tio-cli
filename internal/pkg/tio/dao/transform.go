@@ -183,7 +183,8 @@ func (trans *Translator) fromHostDetailSummary(hsd HostScanDetailSummary, hd ten
 
 	for _, v := range hd.Vulnerabilities {
 		//This is a Plugin Skelton, more details from GetPlugin are needed.
-		var p PluginDetail
+		var p PluginDetailSummary
+		
 		p.PluginId = string(v.PluginId)
 		p.Name = v.PluginName
 		p.Family = v.PluginFamily

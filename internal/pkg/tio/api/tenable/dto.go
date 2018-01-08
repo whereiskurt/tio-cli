@@ -77,6 +77,8 @@ type ScanDetailHistory struct {
 	CreationDate     json.Number `json:"creation_date"`
 }
 
+
+//http://eagain.net/articles/go-dynamic-json/
 //https://cloud.tenable.com/api#/resources/scans/{id}/host/{host_id}
 type HostDetail struct {
 	Info            HostDetailInfo
@@ -85,10 +87,10 @@ type HostDetail struct {
 type HostDetailInfo struct {
 	HostStart       json.Number `json:"host_start"` //becoming a number
 	HostEnd         json.Number `json:"host_end"`   //becoming a number
+	OperatingSystem []string    `json:"operating-system"` //becoming an array
 	MACAddress      string      `json:"mac-address"`
 	FQDN            string      `json:"host-fqdn"`
 	NetBIOS         string      `json:"netbios-name"`
-	OperatingSystem []string    `json:"operating-system"` //becoming an array
 	HostIP          string      `json:"host-ip"`
 }
 

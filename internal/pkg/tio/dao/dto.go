@@ -72,7 +72,7 @@ type HostScanDetail struct {
 	HostScanEndUnix   string `json:"hostScanEndUnix"`
 	HostScanDuration  string `json:"hostScanDuration"`
 
-	HostPlugins []PluginDetail `json:"hostPlugins"`
+	HostPlugins []PluginDetailSummary `json:"hostPlugins"`
 }
 
 type PluginDetailSummary struct {
@@ -81,10 +81,10 @@ type PluginDetailSummary struct {
 	Family   string `"json:pluginFamily"`
 	Count    string `"json:pluginCount"`
 	Severity string `"json:severityTypeId"`
+  Detail PluginDetail
 }
 
 type PluginDetail struct {
-	PluginDetailSummary
 	RiskFactor            string `"json:riskFactor"`
 	FunctionName          string `"json:functionName"`
 	PluginPublicationDate string `"json:pluginPublicationDate"`
