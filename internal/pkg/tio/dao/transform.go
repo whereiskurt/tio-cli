@@ -160,24 +160,22 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 }
 
 func (trans *Translator) fromHostDetailSummary(hsd HostScanDetailSummary, hd tenable.HostDetail) (host HostScanDetail, err error) {
-	scan := hsd.ScanDetail.Scan
-	hostId := host.HostId
+
+	tz := trans.GetScannerTZ(hsd.ScanDetail.Scan)
 
 	host.HostScanDetailSummary = hsd
-	host.HostId = hostId
+	host.HostId = hsd.HostId
 	host.HostIP = hd.Info.HostIP
 	host.HostFQDN = hd.Info.FQDN
 	host.HostNetBIOS = hd.Info.NetBIOS
 	host.HostMACAddresses = strings.Replace(hd.Info.MACAddress, "\n", ",", -1)
 	host.HostOperatingSystems = strings.Join(hd.Info.OperatingSystem, ",")
 
-	tzLookupForScanner := trans.GetScannerTZ(scan.ScannerName)
-	
-	tmStart, start, err := trans.UnixDateWithTZ(string(hd.Info.HostStart), tzLookupForScanner)
+	tmStart, start, err := trans.UnixDateWithTZ(string(hd.Info.HostStart), tz)
 	host.HostScanStartUnix = fmt.Sprintf("%v", tmStart.In(time.Local).Unix())
 	host.HostScanStart = start
 
-	tmEnd, end, err := trans.UnixDateWithTZ(string(hd.Info.HostEnd), tzLookupForScanner)
+	tmEnd, end, err := trans.UnixDateWithTZ(string(hd.Info.HostEnd), tz)
 	host.HostScanEndUnix = fmt.Sprintf("%v", tmEnd.In(time.Local).Unix())
 	host.HostScanEnd = end
 
@@ -185,7 +183,7 @@ func (trans *Translator) fromHostDetailSummary(hsd HostScanDetailSummary, hd ten
 
 	for _, v := range hd.Vulnerabilities {
 		//This is a Plugin Skelton, more details from GetPlugin are needed.
-		var p PluginDetailSummary
+		var p PluginDetail
 		p.PluginId = string(v.PluginId)
 		p.Name = v.PluginName
 		p.Family = v.PluginFamily
@@ -197,8 +195,9 @@ func (trans *Translator) fromHostDetailSummary(hsd HostScanDetailSummary, hd ten
 	return host, nil
 }
 
-func (trans *Translator) GetScannerTZ(scanner string) (scannerTZ string) {
+func (trans *Translator) GetScannerTZ(scan Scan) (scannerTZ string) {
 	//TODO: Actually do the look-up and it is fails return defaultTZ
+	//scan.ScannerName
 	scannerTZ = trans.Config.Base.DefaultTimezone
 	return scannerTZ
 }
