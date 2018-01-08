@@ -1,14 +1,11 @@
 package dao
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/karlseguin/ccache"
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio"
-	"github.com/whereiskurt/tio-cli/internal/pkg/tio/api/tenable"
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio/cache"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -22,7 +19,7 @@ type Translator struct {
 	PortalCache      *cache.PortalCache
 	Memcache         *ccache.Cache
 	ThreadSafe       *sync.Mutex
-	Workers          *sync.WaitGroup
+	Workers          map[string]*sync.WaitGroup
 	IgnoreScanId     map[string]bool
 	IncludeScanId    map[string]bool
 	IgnoreHistoryId  map[string]bool
@@ -43,15 +40,18 @@ type Translator struct {
 	Stats *tio.Statistics
 }
 
-func NewTranslator(config *tio.VulnerabilityConfig) *Translator {
-	t := new(Translator)
+func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
+	t = new(Translator)
 
 	t.ThreadSafe = new(sync.Mutex)
 	t.Config = config
 	t.TranslatorCache = cache.NewTranslatorCache(config.Base) //NOTE: Not implemented yet.
 	t.PortalCache = cache.NewPortalCache(config.Base)
 	t.Memcache = ccache.New(ccache.Configure().MaxSize(500000).ItemsToPrune(50))
-	t.Workers = new(sync.WaitGroup)
+	t.Workers = make(map[string]*sync.WaitGroup)
+	t.Workers["host"] = new(sync.WaitGroup)
+	t.Workers["detail"] = new(sync.WaitGroup)
+	t.Workers["plugin"] = new(sync.WaitGroup)
 
 	t.Stats = tio.NewStatistics()
 
@@ -105,152 +105,170 @@ func NewTranslator(config *tio.VulnerabilityConfig) *Translator {
 	return t
 }
 
-func (trans *Translator) ShouldSkipScanId(scanId string) bool {
-	var retSkip = false
+func (trans *Translator) ShouldSkipScanId(scanId string) (skip bool) {
+	skip = false
 
 	_, ignore := trans.IgnoreScanId[scanId]
 	if ignore {
-		retSkip = true
+		skip = true
 	}
 
 	if len(trans.IncludeScanId) > 1 {
 		_, include := trans.IncludeScanId[scanId]
-
 		if !include {
-			retSkip = true
+			skip = true
 		}
 	}
-	return retSkip
+	return skip
 }
 
-func (trans *Translator) GoGetHostDetails(out chan HostScanPluginRecord, concurrentWorkers int) error {
-	var chanScanDetails = make(chan ScanDetailRecord, 2)
+func (trans *Translator) ShouldSkipHistoryId(historyId string) (skip bool) {
+	skip = false
 
+	_, ignore := trans.IgnoreHistoryId[historyId]
+	if ignore {
+		skip = true
+	}
 
-  for i := 0; i < concurrentWorkers; i++ {
-    trans.Workers.Add(1)
-  	go func() error {
+	if len(trans.IgnoreHistoryId) > 1 {
+		_, include := trans.IgnoreHistoryId[historyId]
+		if !include {
+			skip = true
+		}
+	}
+	return skip
+}
 
-      for sd := range chanScanDetails {
-        if len(sd.HistoryRecords) < 1 {
-          continue
-        }
+func (trans *Translator) GetScans() (scans []Scan, err error) {
+	var memcacheKey = "translator:GetScans"
 
-        for _, hist := range sd.HistoryRecords {
-          if len(hist.Hosts) < 1 {
-            continue
-          }
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		trans.Stats.Count("GetScans.Memcached")
 
-          for _, h := range hist.Hosts {
-            record, err := trans.GetHostDetail(sd.Scan.ScanId, h.HostId, h.ScanDetail.HistoryId)
-            if err != nil {
-              trans.Errorf("%s", err)
-              continue
-            }
+		scans = item.Value().([]Scan)
+		return scans, nil
+	}
+	trans.Stats.Count("GetScans")
 
-            if record == nil {
-              continue
-            }
+	tenableScans, err := trans.getTenableScanList()
+	if err != nil {
+		trans.Errorf("GetScans: Cannot retrieve Tenable ScanList: '%s'", err)
+		return scans, err
+	}
 
-            //Attach the ScanDetail and Scan. Unattach ScanDetail.Hosts
-            record.ScanDetail = hist
-            record.ScanDetail.Hosts = nil /*This prevents some recursive outputs later.
-                                            We are returning an element that is in the
-                                            parent's Hosts lists.
-                                          */
+	scans = trans.fromScanList(tenableScans)
+	trans.Memcache.Set(memcacheKey, scans, time.Minute*60)
 
-            record.ScanDetail.Scan = sd.Scan 
+	return scans, nil
+}
+func (trans *Translator) GetScan(scanId string) (scan Scan, err error) {
+	var memcacheKey = "translator:GetScan:" + scanId
 
-            out <- *record
-          }
-        }
-      }
-      
-      close(out)
-      trans.Workers.Done()
-      return nil
-  	}()
-  }
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		scan = item.Value().(Scan)
+		return scan, nil
+	}
 
-	err := trans.GoGetScanDetails(chanScanDetails, concurrentWorkers)  
-  trans.Workers.Wait()
+	scans, err := trans.GetScans()
+	if err != nil {
+		return scan, err
+	}
+
+	var found bool = false
+	for _, s := range scans {
+		if s.ScanId == scanId {
+			found = true
+			scan = s
+			break
+		}
+	}
+
+	if found {
+		trans.Memcache.Set(memcacheKey, scan, time.Minute*60)
+	} else {
+		err = errors.New(fmt.Sprintf("Cannot find scanId %s", scanId))
+		trans.Errorf("%s", err)
+	}
+
+	return scan, err
+}
+
+func (trans *Translator) GoGetHostDetails(out chan HostScanDetail, concurrentWorkers int) (err error) {
+	var chanScanDetails = make(chan ScanHistory, 2)
+
+	defer close(out)
+
+	for i := 0; i < concurrentWorkers; i++ {
+		trans.Workers["host"].Add(1)
+
+		go func() {
+			for sd := range chanScanDetails {
+
+				if len(sd.ScanHistoryDetails) < 1 {
+					continue
+				}
+
+				for _, hist := range sd.ScanHistoryDetails {
+					if len(hist.Hosts) < 1 {
+						continue
+					}
+
+					for _, h := range hist.Hosts {
+						record, err := trans.GetHostDetail(sd.Scan, h, h.ScanDetail)
+						if err != nil {
+							trans.Errorf("%s", err)
+							continue
+						}
+
+						record.ScanDetail = hist
+						record.ScanDetail.Scan = sd.Scan
+
+						record.ScanDetail.Hosts = nil //This prevents some recursive outputs later.
+
+						out <- record
+					}
+				}
+
+			}
+
+			trans.Workers["host"].Done()
+
+			return
+		}()
+	}
+
+	err = trans.GoGetScanDetails(chanScanDetails, concurrentWorkers)
+
+	trans.Workers["host"].Wait()
 
 	return err
 }
 
-func (trans *Translator) GetHostDetail(scanId string, hostId string, historyId string) (*HostScanPluginRecord, error) {
-	var portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId + "/hosts/" + hostId + "?history_id=" + string(historyId)
-	var ret HostScanPluginRecord
+func (trans *Translator) GetHostDetail(scan Scan, host HostScanDetailSummary, scanDetail ScanHistoryDetail) (record HostScanDetail, err error) {
 
-	var memcacheKey = portalUrl
-	item := trans.Memcache.Get(memcacheKey)
-	if item != nil {
-    ret := item.Value().(HostScanPluginRecord)
-    return &ret, nil
-	}
+	scanId := scan.ScanId
+	hostId := host.HostId
+	historyId := scanDetail.HistoryId
 
-	raw, err := trans.PortalCache.Get(portalUrl)
+	hd, err := trans.getTenableHostDetail(scanId, hostId, historyId)
 	if err != nil {
-		trans.Errorf("Couldn't HTTP GET tenable.HostDetails for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
-    return nil, err
-  }
-
-  hd, err := trans.getTenableHostDetail(scanId, hostId, historyId, raw)
-  if err != nil {
-    trans.Errorf("Couldn't unmarshal tenable.HostDetails for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
-		return nil, err
+		trans.Errorf("Couldn't unmarshal tenable.HostDetails for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
+		return record, err
 	}
 
-	ret.HostId = hostId
-	ret.HostIP = hd.Info.HostIP
-	ret.HostFQDN = hd.Info.FQDN
-	ret.HostNetBIOS = hd.Info.NetBIOS
-	ret.HostMACAddresses = strings.Replace(hd.Info.MACAddress,"\n", ",", -1)
-	ret.HostOperatingSystems = strings.Join(hd.Info.OperatingSystem, ",")
+	record, err = trans.fromHostDetailSummary(host, hd)
 
-  for _,v := range hd.Vulnerabilities {
-    //This is a Plugin Skelton, more details from GetPlugin are needed.
-    var r HostPluginRecord
-    r.PluginId =string(v.PluginId)
-    r.Name = v.PluginName
-    r.Family = v.PluginFamily
-    r.Count = string(v.Count)
-    r.Severity = string(v.Severity)
-    ret.HostPlugins = append(ret.HostPlugins, r)
-  }
-
-
-	trans.Memcache.Set(memcacheKey, ret, time.Minute*60)
-	return &ret, nil
+	return record, err
 }
 
-func (trans *Translator) getTenableHostDetail(scanId string, hostId string, historyId string, raw []byte) (*tenable.HostDetail, error) {
-	var hd tenable.HostDetail
-	err := json.Unmarshal([]byte(string(raw)), &hd)
-	if err != nil {
-
-		trans.Debugf("Failed to unmarshal older version of HostDetail for scan id:%s:host%s:histId:%s", scanId, hostId, historyId)
-		hdLegacy, legacyErr := trans.getTenableHostDetailLegacy(scanId, hostId, historyId, raw)
-
-		if legacyErr != nil || hdLegacy == nil {
-			trans.Errorf("Failed to unmarshal Legacy tenable.HostDetail for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
-			return nil, err
-		}
-
-		hd = *hdLegacy
-	}
-	return &hd, nil
-}
-
-func (trans *Translator) getTenableHostDetailLegacy(scanId string, hostId string, historyId string, raw []byte) (*tenable.HostDetail, error) {
-
-	return nil, nil
-}
-
-func (trans *Translator) GoGetScanDetails(out chan ScanDetailRecord, concurrentWorkers int) error {
+func (trans *Translator) GoGetScanDetails(out chan ScanHistory, concurrentWorkers int) (err error) {
 	var previousOffset, _ = strconv.Atoi(trans.Config.Previous)
 
 	var scansChan = make(chan Scan)
+
+	defer close(out)
 
 	scans, err := trans.GetScans()
 	if err != nil {
@@ -266,359 +284,37 @@ func (trans *Translator) GoGetScanDetails(out chan ScanDetailRecord, concurrentW
 	}()
 
 	for i := 0; i < concurrentWorkers; i++ {
-		trans.Workers.Add(1)
+		trans.Workers["detail"].Add(1)
 		go func() {
 			for s := range scansChan {
-				record, _ := trans.GetScanDetail(s.ScanId, previousOffset)
-				if record != nil {
-					out <- *record
+				record, err := trans.GetScanDetail(s.ScanId, previousOffset)
+				if err == nil {
+					out <- record
 				}
 			}
-			trans.Workers.Done()
+			trans.Workers["detail"].Done()
 		}()
 	}
+	trans.Workers["detail"].Wait()
 
-	trans.Workers.Wait()
-
-	close(out)
 	return nil
 }
-
-func (trans *Translator) GetScan(scanId string) (*Scan, error) {
-	var memcacheKey = "translator:GetScan:" + scanId
-
-	item := trans.Memcache.Get(memcacheKey)
-	if item != nil {
-		scan := item.Value().(Scan)
-		return &scan, nil
-	}
-
-	scans, scanErr := trans.GetScans()
-	if scanErr != nil {
-		return nil, scanErr
-	}
-
-	for _, s := range scans {
-		if s.ScanId == scanId {
-			trans.Memcache.Set(memcacheKey, s, time.Minute*60)
-			return &s, nil
-		}
-	}
-
-	err := errors.New(fmt.Sprintf("Cannot find scanId %s", scanId))
-	return nil, err
-}
-
-func (trans *Translator) GetScans() ([]Scan, error) {
-	var scans []Scan
-	var memcacheKey = "translator:GetScans"
-
-	item := trans.Memcache.Get(memcacheKey)
-	if item != nil {
-		trans.Stats.Count("GetScans.Memcached")
-
-		scans = item.Value().([]Scan)
-		return scans, nil
-	}
-	trans.Stats.Count("GetScans")
-
-	tenableScans, err := trans.getTenableScanList()
-	if err != nil {
-		trans.Errorf("GetScans: Cannot retrieve Tenable ScanList: '%s'", err)
-		return nil, err
-	}
-
-	scans = trans.transformTenableScanList(*tenableScans)
-	trans.Memcache.Set(memcacheKey, scans, time.Minute*60)
-
-	return scans, nil
-}
-
-func (trans *Translator) getTenableScanList() (*tenable.ScanList, error) {
-	var retScanList tenable.ScanList
-
-	var portalUrl = trans.Config.Base.BaseUrl + "/scans"
-	var memcacheKey = portalUrl
-	item := trans.Memcache.Get(memcacheKey)
-	if item != nil {
-		trans.Stats.Count("GetTenableScanList.Memcached")
-
-		retScanList = item.Value().(tenable.ScanList)
-		return &retScanList, nil
-	}
-
-	trans.Stats.Count("GetTenableScanList.Memcached")
-
-	raw, err := trans.PortalCache.Get(portalUrl)
-	if err != nil {
-		trans.Errorf("Couldn't get tenable.ScanList from PortalCache: %s", err)
-		return nil, err
-	}
-	err = json.Unmarshal([]byte(string(raw)), &retScanList)
-	if err != nil {
-		trans.Errorf("Couldn't unmarshal tenable.ScanList: %s", err)
-		return nil, err
-	}
-
-	trans.Memcache.Set(memcacheKey, retScanList, time.Minute*60)
-
-	return &retScanList, nil
-}
-func (trans *Translator) transformTenableScanList(scanList tenable.ScanList) []Scan {
-	var retScans []Scan
-
-	for _, scan := range scanList.Scans {
-		scanId := string(scan.Id)
-
-		if trans.ShouldSkipScanId(scanId) {
-			continue
-		}
-
-		r := new(Scan)
-		r.ScanId = scanId
-		r.UUID = scan.UUID
-		r.Name = scan.Name
-		r.Status = scan.Status
-		r.Owner = scan.Owner
-		r.UserPermissions = string(scan.UserPermissions)
-		r.Enabled = fmt.Sprintf("%v", scan.Enabled)
-		r.RRules = scan.RRules
-		r.Timezone = scan.Timezone
-		r.StartTime = scan.StartTime
-		r.CreationDate = string(scan.CreationDate)
-		r.LastModifiedDate = string(scan.LastModifiedDate)
-		r.Timestamp = string(scanList.Timestamp)
-
-		retScans = append(retScans, *r)
-
-	}
-	return retScans
-}
-
-func (trans *Translator) GetScanDetail(scanId string, previousOffset int) (*ScanDetailRecord, error) {
+func (trans *Translator) GetScanDetail(scanId string, previousOffset int) (record ScanHistory, err error) {
 	trans.Stats.Count("GetScanDetail")
 
-	historyId, histErr := trans.getTenableHistoryId(scanId, previousOffset)
-	if histErr != nil {
-		trans.Errorf("GetScanDetail: %s", histErr)
-		return nil, histErr
-	}
-
-	scanDetail, sdErr := trans.getTenableScanDetail(scanId, *historyId)
-	if sdErr != nil {
-		trans.Errorf("GetScanDetail: Cannot retrieve Tenable Scan Detail: id:%s, histid:%s, offset:%d - %s", scanId, *historyId, previousOffset, sdErr)
-		return nil, sdErr
-	}
-
-	scanDetailRecord, transErr := trans.transformTenableScanDetail(scanId, *scanDetail)
-
-	return scanDetailRecord, transErr
-}
-
-func (trans *Translator) transformTenableScanDetail(scanId string, detail tenable.ScanDetail) (*ScanDetailRecord, error) {
-	var ret ScanDetailRecord
-
-	var previousOffset, _ = strconv.Atoi(trans.Config.Previous)
-	var depth, _ = strconv.Atoi(trans.Config.Depth)
-
-	scan, scanErr := trans.GetScan(scanId)
-	if scanErr != nil {
-		trans.Errorf("%s", scanErr)
-		return nil, scanErr
-	}
-
-	ret.Scan.ScanId = scanId
-	ret.Scan.UUID = scan.UUID
-	ret.Scan.Name = scan.Name
-	ret.Scan.PolicyName = detail.Info.PolicyName
-	ret.Scan.CreationDate = string(scan.CreationDate)
-	ret.Scan.LastModifiedDate = string(scan.LastModifiedDate)
-	ret.Scan.Status = scan.Status
-	ret.Scan.Enabled = fmt.Sprintf("%t", scan.Enabled)
-	ret.Scan.RRules = scan.RRules
-	ret.Scan.Timezone = scan.Timezone
-	ret.Scan.StartTime = scan.StartTime
-	ret.Scan.PolicyName = detail.Info.PolicyName
-	ret.TotalHistoryCount = fmt.Sprintf("%v", len(detail.History))
-
-	for i := previousOffset; i < len(detail.History) && i < depth+previousOffset; i++ {
-		var hist = new(ScanDetailHistoryRecord)
-
-		historyId, histErr := trans.getTenableHistoryId(scanId, i)
-		if histErr != nil {
-			trans.Errorf("%s", histErr)
-		}
-
-		histDetails, errDetails := trans.getTenableScanDetail(scanId, *historyId)
-		if errDetails != nil {
-			trans.Errorf("%s", errDetails)
-			return nil, errDetails
-		}
-
-		hist.HistoryId = fmt.Sprintf("%v", histDetails.History[i].HistoryId)
-		hist.HostCount = fmt.Sprintf("%v", len(histDetails.Hosts))
-		hist.LastModifiedDate = string(histDetails.History[i].LastModifiedDate)
-		hist.CreationDate = string(histDetails.History[i].CreationDate)
-		hist.Status = histDetails.History[i].Status
-
-		start := histDetails.Info.Start
-		end := histDetails.Info.End
-
-		rawScanStart, errParseStart := strconv.ParseInt(string(start), 10, 64)
-		if errParseStart != nil {
-			rawScanStart = int64(0)
-			trans.Warnf("hist.Start: Failed to parse value '%s' for scan '%s':id:%s:histid:%s (status: %s). Setting to zero.", string(start), ret.Scan.Name, ret.Scan.ScanId, *historyId, hist.Status)
-		}
-
-		rawScanEnd, errParseEnd := strconv.ParseInt(string(end), 10, 64)
-		if errParseEnd != nil {
-			rawScanEnd = rawScanStart
-			trans.Warnf("hist.End: Failed to parse value '%s' for scan name:'%s':id:%s:histid:%s (status: %s). Setting to %s", string(end), ret.Scan.Name, ret.Scan.ScanId, *historyId, hist.Status, string(start))
-		}
-
-		unixScanStart := time.Unix(rawScanStart, 0)
-		unixScanEnd := time.Unix(rawScanEnd, 0)
-
-		hist.ScanStart = fmt.Sprintf("%v", unixScanStart)
-		hist.ScanStartUnix = fmt.Sprintf("%s", string(start))
-		hist.ScanEnd = fmt.Sprintf("%v", unixScanEnd)
-		hist.ScanEndUnix = fmt.Sprintf("%s", string(end))
-		hist.ScanDuration = fmt.Sprintf("%v", unixScanEnd.Sub(unixScanStart))
-
-		for _, host := range histDetails.Hosts {
-			var retHost HostScanPluginRecord
-
-			var hostId = string(host.Id)
-			retHost.HostId = hostId
-			retHost.ScanDetail.Scan.ScanId = scanId
-			retHost.ScanDetail.HistoryId = *historyId
-			retHost.ScanDetail.HistoryIndex = fmt.Sprintf("%v", i)
-
-			trans.ThreadSafe.Lock()
-			critsHist, _ := strconv.Atoi(hist.PluginCriticalCount)
-			critsHost, _ := strconv.Atoi(string(host.SeverityCritical))
-			hist.PluginCriticalCount = fmt.Sprintf("%v", critsHist+critsHost)
-			highHist, _ := strconv.Atoi(hist.PluginHighCount)
-			highHost, _ := strconv.Atoi(string(host.SeverityHigh))
-			hist.PluginHighCount = fmt.Sprintf("%v", highHist+highHost)
-			mediumHist, _ := strconv.Atoi(hist.PluginMediumCount)
-			mediumHost, _ := strconv.Atoi(string(host.SeverityMedium))
-			hist.PluginMediumCount = fmt.Sprintf("%v", mediumHist+mediumHost)
-			lowHist, _ := strconv.Atoi(hist.PluginLowCount)
-			lowHost, _ := strconv.Atoi(string(host.SeverityLow))
-			hist.PluginLowCount = fmt.Sprintf("%v", lowHist+lowHost)
-			hist.PluginTotalCount = fmt.Sprintf("%v", lowHist+lowHost+mediumHist+mediumHost+highHist+highHost+critsHist+critsHost)
-			trans.ThreadSafe.Unlock()
-
-			hist.Hosts = append(hist.Hosts, retHost)
-		}
-
-		for _, vuln := range histDetails.Vulnerabilities {
-			var retPlugin SummaryPluginRecord
-
-			retPlugin.PluginId = string(vuln.PluginId)
-			retPlugin.Name = vuln.Name
-			retPlugin.Family = vuln.Family
-			retPlugin.Count = string(vuln.Count)
-			retPlugin.Severity = string(vuln.Severity)
-
-			hist.HostPlugins = append(hist.HostPlugins, retPlugin)
-		}
-
-		ret.HistoryRecords = append(ret.HistoryRecords, *hist)
-	}
-
-	return &ret, nil
-}
-
-func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (*tenable.ScanDetail, error) {
-	var scanDetail tenable.ScanDetail
-
-	var portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId + "?history_id=" + historyId
-
-	trans.Stats.Count("GetTenableScanDetail")
-
-	var memcacheKey = portalUrl
-	item := trans.Memcache.Get(memcacheKey)
-	if item != nil {
-		trans.Stats.Count("GetTenableScanDetail.Memcached")
-
-		scanDetail = item.Value().(tenable.ScanDetail)
-		return &scanDetail, nil
-	}
-
-	raw, err := trans.PortalCache.Get(portalUrl)
+	historyId, err := trans.getTenableHistoryId(scanId, previousOffset)
 	if err != nil {
-		trans.Errorf("Couldn't get tenable.ScanDetail from PortalCache: %s", err)
-		return nil, err
+		trans.Errorf("GetScanDetail: Cannot retrieve historyid for scanid '%s' at offset '%s': %s", scanId, previousOffset, err)
+		return record, err
 	}
-	err = json.Unmarshal([]byte(string(raw)), &scanDetail)
+
+	scanDetail, err := trans.getTenableScanDetail(scanId, historyId)
 	if err != nil {
-		trans.Errorf("Couldn't unmarshal tenable.ScanList: %s", err)
-		return nil, err
+		trans.Errorf("GetScanDetail: Cannot retrieve Tenable Scan Detail: id:%s, histid:%s, offset:%d - %s", scanId, historyId, previousOffset, err)
+		return record, err
 	}
 
-	return &scanDetail, nil
-}
+	record, err = trans.fromScanDetail(scanId, scanDetail)
 
-func (trans *Translator) getTenableHistoryId(scanId string, previousOffset int) (*string, error) {
-	var retHistoryId string
-	var scanDetail tenable.ScanDetail
-
-	if trans.ShouldSkipScanId(scanId) {
-		return nil, nil
-	}
-
-	var memcacheKey = fmt.Sprintf("%s:%s", scanId, previousOffset)
-	item := trans.Memcache.Get(memcacheKey)
-	if item != nil {
-
-		trans.Stats.Count("GetTenableHistoryId.Memcached")
-
-		retHistoryId = item.Value().(string)
-		return &retHistoryId, nil
-	}
-
-	trans.Stats.Count("GetTenableHistoryId")
-
-	var portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId
-	raw, err := trans.PortalCache.Get(portalUrl)
-	if err != nil {
-		trans.Errorf("Couldn't get tenable.ScanDetail from PortalCache: %s", err)
-		return nil, err
-	}
-	err = json.Unmarshal([]byte(string(raw)), &scanDetail)
-	if err != nil {
-		trans.Errorf("Couldn't unmarshal tenable.ScanList: %s", err)
-		return nil, err
-	}
-
-	if len(scanDetail.History) == 0 {
-		err := errors.New(fmt.Sprintf("No scan history for scan %s offset %d", scanId, previousOffset))
-		return nil, err
-	}
-
-	if previousOffset > len(scanDetail.History)-1 {
-		err := errors.New(fmt.Sprintf("Cannot get history id for offset - %d bigger than %d", previousOffset, len(scanDetail.History)-1))
-		trans.Errorf("%s", err)
-		return nil, err
-	}
-
-	//Sort histories by creation date DESC, to get offset history_id
-	sort.Slice(scanDetail.History, func(i, j int) bool {
-		iv, iverr := strconv.ParseInt(string(scanDetail.History[i].CreationDate), 10, 64)
-		if iverr != nil {
-			panic(iverr)
-		}
-		jv, jverr := strconv.ParseInt(string(scanDetail.History[j].CreationDate), 10, 64)
-		if jverr != nil {
-			panic(jverr)
-		}
-		return iv > jv
-	})
-
-	retHistoryId = string(scanDetail.History[previousOffset].HistoryId)
-
-	trans.Memcache.Set(memcacheKey, retHistoryId, time.Minute*60)
-	return &retHistoryId, nil
+	return record, err
 }

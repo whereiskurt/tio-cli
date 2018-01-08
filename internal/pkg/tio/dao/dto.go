@@ -1,11 +1,14 @@
 package dao
 
 type Scan struct {
-	ScanId           string `json:"id"`
-	UUID             string `json:"uuid"`
-	Name             string `json:"name"`
-	Status           string `json:"status"`
-	Owner            string `json:"owner"`
+	ScanId      string `json:"id"`
+	UUID        string `json:"uuid"`
+	Name        string `json:"name"`
+	Status      string `json:"status"`
+	Owner       string `json:"owner"`
+	Targets     string `json:"targets"`
+	ScannerName string `json:"scanner_name"`
+
 	UserPermissions  string `json:"user_permissions"`
 	Enabled          string `json:"enabled"`
 	RRules           string `json:"rrules"`
@@ -17,14 +20,14 @@ type Scan struct {
 	Timestamp        string `json:"timestamp"`
 }
 
-type ScanDetailRecord struct {
-	Scan              Scan
-	TotalHistoryCount string `json:'totalHistoryCount'`
-	HistoryRecords    []ScanDetailHistoryRecord
+type ScanHistory struct {
+	Scan               Scan
+	ScanHistoryCount   string `json:'ScanHistoryCount'`
+	ScanHistoryDetails []ScanHistoryDetail
 }
 
-type ScanDetailHistoryRecord struct {
-	Scan                Scan
+type ScanHistoryDetail struct {
+	Scan Scan
 
 	HistoryId           string `json:"historyId"`
 	HistoryIndex        string `json:"historyIndex"`
@@ -43,16 +46,20 @@ type ScanDetailHistoryRecord struct {
 	ScanEndUnix   string `json:"scanEndUnix"`
 	ScanDuration  string `json:"scanDuration"`
 
-	HostPlugins []SummaryPluginRecord `json:"plugins"`
+	HostPlugins []PluginDetailSummary `json:"plugins"`
 
-	HostCount string                 `json:"hostCount"`
-	Hosts     []HostScanPluginRecord `json:"hosts"`
+	HostCount string                  `json:"hostCount"`
+	Hosts     []HostScanDetailSummary `json:"hosts"`
 }
 
-type HostScanPluginRecord struct {
-	ScanDetail ScanDetailHistoryRecord
+type HostScanDetailSummary struct {
+	HostId     string `json:"hostId"`
+	ScanDetail ScanHistoryDetail
+}
 
-	HostId               string `json:"hostId"`
+type HostScanDetail struct {
+	HostScanDetailSummary
+
 	HostFQDN             string `json:"hostFQDN"`
 	HostIP               string `json:"hostIP"`
 	HostNetBIOS          string `json:"hostNetBIOS"` //Windows only, but prevelant.
@@ -66,30 +73,26 @@ type HostScanPluginRecord struct {
 	HostScanEndUnix   string `json:"hostScanEndUnix"`
 	HostScanDuration  string `json:"hostScanDuration"`
 
-	HostPlugins []HostPluginRecord `json:"hostPlugins"`
+	HostPlugins []PluginDetail `json:"hostPlugins"`
 }
 
-type SummaryPluginRecord struct {
-	PluginId              string `"json:pluginId"`
-	Name                  string `"json:pluginName"`
-	Family                string `"json:pluginFamily"`
-	Count                 string `"json:pluginCount"`
-	Severity              string `"json:severityTypeId"`
+type PluginDetailSummary struct {
+	PluginId string `"json:pluginId"`
+	Name     string `"json:pluginName"`
+	Family   string `"json:pluginFamily"`
+	Count    string `"json:pluginCount"`
+	Severity string `"json:severityTypeId"`
 }
 
-type HostPluginRecord struct {
-	PluginId              string `"json:pluginId"`
-	Name                  string `"json:pluginName"`
-	Family                string `"json:pluginFamily"`
-	Count                 string `"json:pluginCount"`
-	Severity              string `"json:severityTypeId"`
+type PluginDetail struct {
+	PluginDetailSummary
 	RiskFactor            string `"json:riskFactor"`
 	FunctionName          string `"json:functionName"`
 	PluginPublicationDate string `"json:pluginPublicationDate"`
 	PatchPublicationDate  string `"json:patchPublicationDate"`
-	Attributes            []HostPluginRecordAttribute
+	Attributes            []PluginDetailAttribute
 }
-type HostPluginRecordAttribute struct {
+type PluginDetailAttribute struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }

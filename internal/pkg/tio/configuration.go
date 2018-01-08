@@ -28,6 +28,8 @@ type BaseConfig struct {
 	LogFolder          string
 	LogFileAppend      bool
 
+	DefaultTimezone   string
+
 	OutputFilename   string
 	OutputFolder     string
 	OutputFileAppend bool

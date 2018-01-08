@@ -91,6 +91,7 @@ type HostDetailInfo struct {
 	OperatingSystem []string    `json:"operating-system"` //becoming an array
 	HostIP          string      `json:"host-ip"`
 }
+
 type HostDetailLegacyV2 struct {
 	Info            HostDetailInfoLegacyV2
 	Vulnerabilities []HostDetailVulnerabilities
