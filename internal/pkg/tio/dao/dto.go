@@ -66,14 +66,13 @@ type HostScanDetail struct {
 	HostMACAddresses     string `json:"hostMACAddresses"`
 	HostOperatingSystems string `json:"hostOperatingSystems"`
 
-	HostScannerName   string `json:"hostScannerName"`
 	HostScanStart     string `json:"hostScanStart"`
 	HostScanStartUnix string `json:"hostScanStartUnix"`
 	HostScanEnd       string `json:"hostScanEnd"`
 	HostScanEndUnix   string `json:"hostScanEndUnix"`
 	HostScanDuration  string `json:"hostScanDuration"`
 
-	HostPlugins []PluginDetail `json:"hostPlugins"`
+	HostPlugins []PluginDetailSummary `json:"hostPlugins"`
 }
 
 type PluginDetailSummary struct {

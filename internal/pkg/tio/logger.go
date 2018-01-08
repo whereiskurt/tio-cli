@@ -114,7 +114,7 @@ func (log *Logger) Debug(line string) {
 		runtime.Callers(2, pc)
 		f := runtime.FuncForPC(pc[0])
 		file, codeline := f.FileLine(pc[0])
-		v := fmt.Sprintf("%s:%d:\n%s", file, codeline, line)
+		v := fmt.Sprintf("%s\n%s:%d", line, file, codeline)
 
 		log.Write("DEBUG", v)
 	}

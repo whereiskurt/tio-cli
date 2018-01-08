@@ -123,24 +123,22 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 			retHost.ScanDetail.Scan.ScanId = scanId
 			retHost.ScanDetail.HistoryId = historyId
 			retHost.ScanDetail.HistoryIndex = fmt.Sprintf("%v", i)
+			hist.Hosts = append(hist.Hosts, retHost)
 
-			trans.ThreadSafe.Lock()
 			critsHist, _ := strconv.Atoi(hist.PluginCriticalCount)
 			critsHost, _ := strconv.Atoi(string(host.SeverityCritical))
-			hist.PluginCriticalCount = fmt.Sprintf("%v", critsHist+critsHost)
 			highHist, _ := strconv.Atoi(hist.PluginHighCount)
 			highHost, _ := strconv.Atoi(string(host.SeverityHigh))
-			hist.PluginHighCount = fmt.Sprintf("%v", highHist+highHost)
 			mediumHist, _ := strconv.Atoi(hist.PluginMediumCount)
 			mediumHost, _ := strconv.Atoi(string(host.SeverityMedium))
-			hist.PluginMediumCount = fmt.Sprintf("%v", mediumHist+mediumHost)
 			lowHist, _ := strconv.Atoi(hist.PluginLowCount)
 			lowHost, _ := strconv.Atoi(string(host.SeverityLow))
+
+			hist.PluginCriticalCount = fmt.Sprintf("%v", critsHist+critsHost)
+			hist.PluginHighCount = fmt.Sprintf("%v", highHist+highHost)
+			hist.PluginMediumCount = fmt.Sprintf("%v", mediumHist+mediumHost)
 			hist.PluginLowCount = fmt.Sprintf("%v", lowHist+lowHost)
 			hist.PluginTotalCount = fmt.Sprintf("%v", lowHist+lowHost+mediumHist+mediumHost+highHist+highHost+critsHist+critsHost)
-			trans.ThreadSafe.Unlock()
-
-			hist.Hosts = append(hist.Hosts, retHost)
 		}
 
 		for _, vuln := range histDetails.Vulnerabilities {
@@ -173,22 +171,21 @@ func (trans *Translator) fromHostDetailSummary(hsd HostScanDetailSummary, hd ten
 	host.HostMACAddresses = strings.Replace(hd.Info.MACAddress, "\n", ",", -1)
 	host.HostOperatingSystems = strings.Join(hd.Info.OperatingSystem, ",")
 
-	host.HostScannerName = scan.ScannerName
 	tzLookupForScanner := trans.GetScannerTZ(scan.ScannerName)
 	
-	tmStart, start, err := trans.UnixDate(string(hd.Info.HostStart), tzLookupForScanner)
+	tmStart, start, err := trans.UnixDateWithTZ(string(hd.Info.HostStart), tzLookupForScanner)
 	host.HostScanStartUnix = fmt.Sprintf("%v", tmStart.In(time.Local).Unix())
 	host.HostScanStart = start
 
-	tmEnd, end, err := trans.UnixDate(string(hd.Info.HostEnd), tzLookupForScanner)
-	host.HostScanEndUnix = fmt.Sprintf("%v", tmStart.In(time.Local).Unix())
+	tmEnd, end, err := trans.UnixDateWithTZ(string(hd.Info.HostEnd), tzLookupForScanner)
+	host.HostScanEndUnix = fmt.Sprintf("%v", tmEnd.In(time.Local).Unix())
 	host.HostScanEnd = end
 
 	host.HostScanDuration = fmt.Sprintf("%v", tmEnd.Sub(tmStart))
 
 	for _, v := range hd.Vulnerabilities {
 		//This is a Plugin Skelton, more details from GetPlugin are needed.
-		var p PluginDetail
+		var p PluginDetailSummary
 		p.PluginId = string(v.PluginId)
 		p.Name = v.PluginName
 		p.Family = v.PluginFamily
@@ -196,31 +193,30 @@ func (trans *Translator) fromHostDetailSummary(hsd HostScanDetailSummary, hd ten
 		p.Severity = string(v.Severity)
 		host.HostPlugins = append(host.HostPlugins, p)
 	}
-	err = nil
-	return host, err
+
+	return host, nil
 }
 
 func (trans *Translator) GetScannerTZ(scanner string) (scannerTZ string) {
-
+	//TODO: Actually do the look-up and it is fails return defaultTZ
 	scannerTZ = trans.Config.Base.DefaultTimezone
-
 	return scannerTZ
 }
 
-func (trans *Translator) UnixDate(start string, scannerTZ string) (unix time.Time, startWithTZ string, err error) {
+func (trans *Translator) UnixDateWithTZ(date string, scannerTZ string) (unix time.Time, startWithTZ string, err error) {
 	var TZ_FORMAT string = "2006-01-_2 15:04:05 -0700 MST"
 
-	rawNoTZ, err := time.Parse(time.ANSIC, start)
+	unix, err = time.Parse(time.ANSIC, date)
 	if err != nil {
-		trans.Warnf("Couldn't parse time.ANSIC for '%v' as integer.", start)
+		trans.Warnf("Couldn't parse time.ANSIC for '%v' as integer.", date)
 		return unix, startWithTZ, err
 	}
 
-	startWithTZ = strings.Replace(fmt.Sprintf("%v", rawNoTZ), "+0000 UTC", scannerTZ, -1)
+	startWithTZ = strings.Replace(fmt.Sprintf("%v", unix), "+0000 UTC", scannerTZ, -1)
 	tmTZ, err := time.Parse(TZ_FORMAT, startWithTZ)
 
 	if err != nil {
-		trans.Warnf("Couldn't parse Unix date for '%v' as integer.", start)
+		trans.Warnf("Couldn't parse Unix date for '%v' as integer.", date)
 		return unix, startWithTZ, err
 	}
 
