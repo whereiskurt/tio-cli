@@ -28,23 +28,46 @@ func (trans *Translator) getTenableHostDetail(scanId string, hostId string, hist
 	err = json.Unmarshal([]byte(string(raw)), &hd)
 	if err != nil {
 
-		trans.Debugf("Failed to unmarshal older version of HostDetail for scan id:%s:host%s:histId:%s", scanId, hostId, historyId)
-		hdLegacy, err := trans.getTenableHostDetailLegacy(scanId, hostId, historyId, raw)
+		hd, err := trans.getTenableHostDetailPastVersion(scanId, hostId, historyId, raw)
 
 		if err != nil {
 			trans.Errorf("Failed to unmarshal Legacy tenable.HostDetail for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
 			return hd, err
 		}
-
-		hd = hdLegacy
+    
 	}
-
 	trans.Memcache.Set(memcacheKey, hd, time.Minute*60)
 
 	return hd, nil
 }
 
-func (trans *Translator) getTenableHostDetailLegacy(scanId string, hostId string, historyId string, raw []byte) (hd tenable.HostDetail, err error) {
+func (trans *Translator) getTenableHostDetailPastVersion(scanId string, hostId string, historyId string, raw []byte) (hd tenable.HostDetail, err error) {
+	var legacy tenable.HostDetailLegacyV2
+	err = json.Unmarshal([]byte(string(raw)), &legacy)
+	if err != nil {	
+    trans.Errorf("Failed to unmarshal tenable.HostDetailLegacyV2 for  [Scan:%s Host:%s History:%s] - %s", scanId, hostId, historyId, err)
+    return hd, err
+  }
+  hd.Info.OperatingSystem = append(hd.Info.OperatingSystem, legacy.Info.OperatingSystem)
+  hd.Info.FQDN = legacy.Info.FQDN
+  hd.Info.NetBIOS = legacy.Info.NetBIOS
+  hd.Vulnerabilities = legacy.Vulnerabilities
+
+  unixStart, err := time.Parse(time.ANSIC, legacy.Info.HostStart)
+  if err != nil {
+    trans.Errorf("Failed to parse '%s' as time.ANSIC - start/end/duration inaccurate for [Scan:%s History:%s Host:%s.]", legacy.Info.HostStart, scanId, historyId, hostId)
+    return hd, err
+  }
+
+  unixEnd, err := time.Parse(time.ANSIC, legacy.Info.HostEnd)
+  if err != nil {
+    trans.Errorf("Failed to parse '%s' as time.ANSIC - start/end/duration inaccurate for [Scan:%s History:%s Host:%s.]", legacy.Info.HostEnd, scanId, historyId, hostId)
+    return hd, err
+  }
+
+  hd.Info.HostStart = json.Number(unixStart.Format(time.ANSIC))
+  hd.Info.HostEnd = json.Number(unixEnd.Format(time.ANSIC))
+
 	return hd, err
 }
 

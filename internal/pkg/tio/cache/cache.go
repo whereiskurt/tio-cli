@@ -36,23 +36,54 @@ var reCurrentScan = regexp.MustCompile("^.+?/scans/(\\d+)$")
 var reHistoryScan = regexp.MustCompile("^.+?/scans/(\\d+)\\?history_id=(\\d+)$")
 var reHostScan = regexp.MustCompile("^.+?/scans/(\\d+)\\/hosts/(\\d+)\\?history_id=(\\d+)$")
 
-func (portal *PortalCache) PortalCacheFilename(url string) (string, error) {
+func (portal *PortalCache) PortalCacheFilename(url string) (filename string,err error) {
 	var folder string
+	var crypto bool = portal.UseCryptoCache
+  var KEY_SIZE int = 4
 
 	if matched := reAllScans.FindStringSubmatch(url); matched != nil {
 		folder = "tenable/scans/"
 
 	} else if matched := rePlugin.FindStringSubmatch(url); matched != nil {
-		folder = "tenable/plugins/" + matched[1] + "/"
+		plugin := matched[1]
+		if crypto {
+			pkey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, plugin)))
+			plugin = fmt.Sprintf("%x", pkey[:KEY_SIZE])
+		}
+		folder = "tenable/plugins/" + plugin + "/"
 
 	} else if matched := reCurrentScan.FindStringSubmatch(url); matched != nil {
-		folder = "tenable/scans/" + matched[1] + "/"
+		scan := matched[1]
+		if crypto {
+			skey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, scan)))
+			scan = fmt.Sprintf("%x", skey[:KEY_SIZE])
+		}
+		folder = "tenable/scans/" + scan + "/"
 
 	} else if matched := reHistoryScan.FindStringSubmatch(url); matched != nil {
-		folder = "tenable/scans/" + matched[1] + "/history_id=" + matched[2] + "/"
+		scan := matched[1]
+		history := matched[2]
+		if crypto {
+			skey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, scan)))
+			scan = fmt.Sprintf("%x", skey[:KEY_SIZE])	
+			hkey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, scan)))
+			history = fmt.Sprintf("%x", hkey[:KEY_SIZE])
+		}
+		folder = "tenable/scans/" + scan + "/history_id=" + history + "/"
 
 	} else if matched := reHostScan.FindStringSubmatch(url); matched != nil {
-		folder = "tenable/scans/" + matched[1] + "/history_id=" + matched[3] + "/hosts/" + matched[2] + "/"
+    scan := matched[1]
+    host := matched[2]
+    history := matched[3]
+    if crypto {
+      skey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, scan)))
+      scan = fmt.Sprintf("%x", skey[:KEY_SIZE])  
+      hkey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, host)))
+      host = fmt.Sprintf("%x", hkey[:KEY_SIZE])  
+      histkey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, scan)))
+      history = fmt.Sprintf("%x", histkey[:KEY_SIZE])
+    }
+		folder = "tenable/scans/" + scan + "/history_id=" + history + "/hosts/" + host + "/"
 
 	} else {
 		err := errors.New("Falied to matched regex for Cache: " + url)
@@ -61,17 +92,17 @@ func (portal *PortalCache) PortalCacheFilename(url string) (string, error) {
 	}
 
 	shaKey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, url)))
-	shaKeyHex := fmt.Sprintf("%x.dat", shaKey[:16])
+	shaKeyHex := fmt.Sprintf("%x.dat", shaKey[:KEY_SIZE])
 
-	var filename string = portal.CacheFolder + folder + shaKeyHex
+	filename = portal.CacheFolder + folder + shaKeyHex
 
-	err := os.MkdirAll(portal.CacheFolder+folder, 0777)
+	err = os.MkdirAll(portal.CacheFolder+folder, 0777)
 	if err != nil {
-		portal.Log.Errorf("%s", err)
-		return "", err
+		portal.Log.Errorf("Cannot create cache folder '%s%s' - %s", portal.CacheFolder, folder, err)
+		return filename, err
 	}
 
-	return filename, nil
+	return filename, err
 }
 func (portal *PortalCache) PortalCacheSet(cacheFilename string, store []byte) error {
 	if portal.UseCryptoCache {
@@ -154,7 +185,7 @@ func NewPortalCache(config *tio.BaseConfig) *PortalCache {
 	p.CacheKeyBytes = []byte(fmt.Sprintf("%s", string(p.CacheKey)))
 
 	if !p.CacheDisabled {
-		err := os.MkdirAll(config.CacheFolder+"/portal/", 0777)
+		err := os.MkdirAll(config.CacheFolder+"/", 0777)
 		if err != nil {
 			config.Logger.Errorf("%s", err)
 			return nil
