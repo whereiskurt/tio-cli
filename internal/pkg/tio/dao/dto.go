@@ -46,10 +46,9 @@ type ScanHistoryDetail struct {
 	ScanEndUnix   string `json:"scanEndUnix"`
 	ScanDuration  string `json:"scanDuration"`
 
-	HostPlugins []PluginDetailSummary `json:"plugins"`
-
-	HostCount string                  `json:"hostCount"`
-	Hosts     []HostScanDetailSummary `json:"hosts"`
+	Host       map[string]HostScanDetailSummary `json:"hostMap"`
+	HostPlugin map[string]PluginDetailSummary   `json:"hostPluginMap"`
+	HostCount  string                           `json:"hostCount"`
 }
 
 type HostScanDetailSummary struct {
@@ -59,20 +58,17 @@ type HostScanDetailSummary struct {
 
 type HostScanDetail struct {
 	HostScanDetailSummary
-
-	HostFQDN             string `json:"hostFQDN"`
-	HostIP               string `json:"hostIP"`
-	HostNetBIOS          string `json:"hostNetBIOS"` //Windows only, but prevelant.
-	HostMACAddresses     string `json:"hostMACAddresses"`
-	HostOperatingSystems string `json:"hostOperatingSystems"`
-
-	HostScanStart     string `json:"hostScanStart"`
-	HostScanStartUnix string `json:"hostScanStartUnix"`
-	HostScanEnd       string `json:"hostScanEnd"`
-	HostScanEndUnix   string `json:"hostScanEndUnix"`
-	HostScanDuration  string `json:"hostScanDuration"`
-
-	HostPlugins []PluginDetailSummary `json:"hostPlugins"`
+	HostFQDN             string                         `json:"hostFQDN"`
+	HostIP               string                         `json:"hostIP"`
+	HostNetBIOS          string                         `json:"hostNetBIOS"` //Windows only, but prevelant.
+	HostMACAddresses     string                         `json:"hostMACAddresses"`
+	HostOperatingSystems string                         `json:"hostOperatingSystems"`
+	HostScanStart        string                         `json:"hostScanStart"`
+	HostScanStartUnix    string                         `json:"hostScanStartUnix"`
+	HostScanEnd          string                         `json:"hostScanEnd"`
+	HostScanEndUnix      string                         `json:"hostScanEndUnix"`
+	HostScanDuration     string                         `json:"hostScanDuration"`
+	HostPlugin           map[string]PluginDetailSummary `json:"hostPluginMap"`
 }
 
 type PluginDetailSummary struct {
@@ -81,7 +77,7 @@ type PluginDetailSummary struct {
 	Family   string `"json:pluginFamily"`
 	Count    string `"json:pluginCount"`
 	Severity string `"json:severityTypeId"`
-  Detail PluginDetail
+	Detail   PluginDetail
 }
 
 type PluginDetail struct {
@@ -89,7 +85,7 @@ type PluginDetail struct {
 	FunctionName          string `"json:functionName"`
 	PluginPublicationDate string `"json:pluginPublicationDate"`
 	PatchPublicationDate  string `"json:patchPublicationDate"`
-	Attributes            []PluginDetailAttribute
+	Attribute             map[string]PluginDetailAttribute
 }
 type PluginDetailAttribute struct {
 	Name  string `json:"name"`

@@ -58,7 +58,7 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 	record.Scan.CreationDate = string(scan.CreationDate)
 	record.Scan.LastModifiedDate = string(scan.LastModifiedDate)
 	record.Scan.Status = scan.Status
-	record.Scan.Enabled = fmt.Sprintf("%t", scan.Enabled)
+	record.Scan.Enabled = fmt.Sprintf("%s", scan.Enabled)
 	record.Scan.RRules = scan.RRules
 	record.Scan.Timezone = scan.Timezone
 	record.Scan.StartTime = scan.StartTime
@@ -115,6 +115,8 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 		hist.ScanEndUnix = fmt.Sprintf("%s", string(end))
 		hist.ScanDuration = fmt.Sprintf("%v", unixScanEnd.Sub(unixScanStart))
 
+		hist.Host = make(map[string]HostScanDetailSummary)
+
 		for _, host := range histDetails.Hosts {
 			var retHost HostScanDetailSummary
 
@@ -123,7 +125,7 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 			retHost.ScanDetail.Scan.ScanId = scanId
 			retHost.ScanDetail.HistoryId = historyId
 			retHost.ScanDetail.HistoryIndex = fmt.Sprintf("%v", i)
-			hist.Hosts = append(hist.Hosts, retHost)
+			hist.Host[hostId] = retHost
 
 			critsHist, _ := strconv.Atoi(hist.PluginCriticalCount)
 			critsHost, _ := strconv.Atoi(string(host.SeverityCritical))
@@ -141,6 +143,7 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 			hist.PluginTotalCount = fmt.Sprintf("%v", lowHist+lowHost+mediumHist+mediumHost+highHist+highHost+critsHist+critsHost)
 		}
 
+		hist.HostPlugin = make(map[string]PluginDetailSummary)
 		for _, vuln := range histDetails.Vulnerabilities {
 			var retPlugin PluginDetailSummary
 
@@ -150,7 +153,7 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 			retPlugin.Count = string(vuln.Count)
 			retPlugin.Severity = string(vuln.Severity)
 
-			hist.HostPlugins = append(hist.HostPlugins, retPlugin)
+			hist.HostPlugin[string(vuln.PluginId)] = retPlugin
 		}
 
 		record.ScanHistoryDetails = append(record.ScanHistoryDetails, *hist)
@@ -181,16 +184,17 @@ func (trans *Translator) fromHostDetailSummary(hsd HostScanDetailSummary, hd ten
 
 	host.HostScanDuration = fmt.Sprintf("%v", tmEnd.Sub(tmStart))
 
+	host.HostPlugin = make(map[string]PluginDetailSummary)
 	for _, v := range hd.Vulnerabilities {
 		//This is a Plugin Skelton, more details from GetPlugin are needed.
 		var p PluginDetailSummary
-		
+
 		p.PluginId = string(v.PluginId)
 		p.Name = v.PluginName
 		p.Family = v.PluginFamily
 		p.Count = string(v.Count)
 		p.Severity = string(v.Severity)
-		host.HostPlugins = append(host.HostPlugins, p)
+		host.HostPlugin[p.PluginId] = p
 	}
 
 	return host, nil

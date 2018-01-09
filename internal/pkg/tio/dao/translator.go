@@ -113,7 +113,7 @@ func (trans *Translator) ShouldSkipScanId(scanId string) (skip bool) {
 		skip = true
 	}
 
-	if len(trans.IncludeScanId) > 1 {
+	if len(trans.IncludeScanId) > 0 {
 		_, include := trans.IncludeScanId[scanId]
 		if !include {
 			skip = true
@@ -211,11 +211,11 @@ func (trans *Translator) GoGetHostDetails(out chan HostScanDetail, concurrentWor
 				}
 
 				for _, hist := range sd.ScanHistoryDetails {
-					if len(hist.Hosts) < 1 {
+					if len(hist.Host) < 1 {
 						continue
 					}
 
-					for _, h := range hist.Hosts {
+					for _, h := range hist.Host {
 						record, err := trans.GetHostDetail(sd.Scan, h, h.ScanDetail)
 						if err != nil {
 							trans.Errorf("%s", err)
@@ -224,8 +224,6 @@ func (trans *Translator) GoGetHostDetails(out chan HostScanDetail, concurrentWor
 
 						record.ScanDetail = hist
 						record.ScanDetail.Scan = sd.Scan
-
-						record.ScanDetail.Hosts = nil //This prevents some recursive outputs later.
 
 						out <- record
 					}
