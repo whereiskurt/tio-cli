@@ -229,7 +229,6 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
             v.ScanDetail.Scan = sd.Scan
 
             hist.Host[k] = v
-
           }
         }
 
