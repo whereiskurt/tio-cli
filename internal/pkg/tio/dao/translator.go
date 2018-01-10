@@ -195,7 +195,7 @@ func (trans *Translator) GetScan(scanId string) (scan Scan, err error) {
 	return scan, err
 }
 
-func (trans *Translator) GoGetHostDetails(out chan HostScanDetailSummary, concurrentWorkers int) (err error) {
+func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorkers int) (err error) {
 	var chanScanDetails = make(chan ScanHistory, 2)
 
 	defer close(out)
@@ -210,25 +210,30 @@ func (trans *Translator) GoGetHostDetails(out chan HostScanDetailSummary, concur
 					continue
 				}
 
+        //For each history in the scan
 				for _, hist := range sd.ScanHistoryDetails {
 					if len(hist.Host) < 1 {
 						continue
 					}
 
-					for _, h := range hist.Host {
-						record, err := trans.GetHostDetail(sd.Scan, h, h.ScanDetail)
+          //For each host in the history
+					for k, v := range hist.Host {
+						record, err := trans.GetHostDetail(sd.Scan, v, v.ScanDetail)
 						if err != nil {
 							trans.Warnf("%s", err)
 							continue
 						}
+            
+            v.HostDetail = record
+            v.ScanDetail = hist
+            v.ScanDetail.Scan = sd.Scan
 
-            h.HostDetail = record
-						h.ScanDetail = hist
-						h.ScanDetail.Scan = sd.Scan
+            hist.Host[k] = v
 
-						out <- h
-					}
-				}
+          }
+        }
+
+				out <- sd
 
 			}
 
