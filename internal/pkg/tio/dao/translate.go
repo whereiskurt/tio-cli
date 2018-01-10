@@ -248,7 +248,6 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
 
 	return err
 }
-
 func (trans *Translator) GetHostDetail(scan Scan, hsd HostScanDetailSummary, scanDetail ScanHistoryDetail) (record HostScanDetail, err error) {
 
 	scanId := scan.ScanId

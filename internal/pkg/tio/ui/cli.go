@@ -234,4 +234,28 @@ func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail) {
   }
 }
 
+func (cli *CommandLineInterface) DrawVulnTable(rec dao.ScanHistoryDetail) {
+  table := tablewriter.NewWriter(os.Stdout)
+  table.SetHeader([]string{"ID", "Name", "Family,", "SEV", "#"})
+  table.SetColumnAlignment([]int{tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
+  table.SetAutoWrapText(false)
 
+  data := [][]string{}  
+  for _, p := range rec.HostPlugin {
+    sev, _ := strconv.ParseInt(p.Severity, 10, 64)
+    var sevWord[] string = []string{"INFO", "LOW", CMED+"MED"+RESET, CHIGH +"HIGH"+RESET, CCRIT+"CRIT"+RESET }
+    if len(p.Name) > 45 {
+      p.Name = p.Name[:45]
+    }
+    outRec := []string{p.PluginId, p.Name, p.Family, sevWord[sev], p.Count}
+    data = append(data, outRec)
+  }
+
+  if len(data) > 0 {
+    table.AppendBulk(data)
+    table.Render()
+  } else {
+    fmt.Println(BOLD +"---> NONE!"+RESET )
+  }
+
+}
