@@ -195,7 +195,7 @@ func (trans *Translator) GetScan(scanId string) (scan Scan, err error) {
 	return scan, err
 }
 
-func (trans *Translator) GoGetHostDetails(out chan HostScanDetail, concurrentWorkers int) (err error) {
+func (trans *Translator) GoGetHostDetails(out chan HostScanDetailSummary, concurrentWorkers int) (err error) {
 	var chanScanDetails = make(chan ScanHistory, 2)
 
 	defer close(out)
@@ -218,14 +218,15 @@ func (trans *Translator) GoGetHostDetails(out chan HostScanDetail, concurrentWor
 					for _, h := range hist.Host {
 						record, err := trans.GetHostDetail(sd.Scan, h, h.ScanDetail)
 						if err != nil {
-							trans.Errorf("%s", err)
+							trans.Warnf("%s", err)
 							continue
 						}
 
-						record.ScanDetail = hist
-						record.ScanDetail.Scan = sd.Scan
+            h.HostDetail = record
+						h.ScanDetail = hist
+						h.ScanDetail.Scan = sd.Scan
 
-						out <- record
+						out <- h
 					}
 				}
 
@@ -244,10 +245,10 @@ func (trans *Translator) GoGetHostDetails(out chan HostScanDetail, concurrentWor
 	return err
 }
 
-func (trans *Translator) GetHostDetail(scan Scan, host HostScanDetailSummary, scanDetail ScanHistoryDetail) (record HostScanDetail, err error) {
+func (trans *Translator) GetHostDetail(scan Scan, hsd HostScanDetailSummary, scanDetail ScanHistoryDetail) (record HostScanDetail, err error) {
 
 	scanId := scan.ScanId
-	hostId := host.HostId
+	hostId := hsd.HostId
 	historyId := scanDetail.HistoryId
 
 	hd, err := trans.getTenableHostDetail(scanId, hostId, historyId)
@@ -256,8 +257,8 @@ func (trans *Translator) GetHostDetail(scan Scan, host HostScanDetailSummary, sc
 		return record, err
 	}
 
-	record, err = trans.fromHostDetailSummary(host, hd)
-
+	record, err = trans.fromHostDetailSummary(hsd, hd)
+  
 	return record, err
 }
 

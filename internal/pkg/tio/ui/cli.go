@@ -168,7 +168,7 @@ func (cli *CommandLineInterface) DrawRunHistory(r dao.ScanHistory) {
 			h.PluginHighCount = CHIGH + h.PluginHighCount + RESET
 		}
 		if h.PluginMediumCount != "0" {
-			h.PluginMediumCount = CCNT + h.PluginMediumCount + RESET
+			h.PluginMediumCount = CMED + h.PluginMediumCount + RESET
 		}
 
 		vulnStr := fmt.Sprintf("%v,%v,%v,%v", h.PluginCriticalCount, h.PluginHighCount, h.PluginMediumCount, h.PluginLowCount)
@@ -182,3 +182,56 @@ func (cli *CommandLineInterface) DrawRunHistory(r dao.ScanHistory) {
 	table.AppendBulk(data)
 	table.Render()
 }
+
+
+func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail) {
+  if len(r.Host) == 0 {
+    return
+  }
+
+  table := tablewriter.NewWriter(os.Stdout)
+  table.SetHeader([]string{"ID", "IP", "Names", "#CRIT/H/M/L", "OS"})
+  table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
+
+  data := [][]string{}
+
+  for _, h := range r.Host {
+    //Only draw CRIT and HIGH hosts.
+    if h.PluginHighCount != "0" || h.PluginCriticalCount != "0" {
+
+      name := strings.Join([]string{h.HostDetail.FQDN, h.HostDetail.NetBIOS}, " ")
+      if name == " " {
+        name ="[UNKNOWN]"
+      }
+      if len(h.HostDetail.OperatingSystems) > 30 {
+        h.HostDetail.OperatingSystems = h.HostDetail.OperatingSystems[:30]
+      }
+      os := h.HostDetail.OperatingSystems
+
+      if  h.PluginCriticalCount != "0" {
+         h.PluginCriticalCount = CCRIT  +  h.PluginCriticalCount + RESET 
+      }
+      if  h.PluginHighCount != "0" {
+         h.PluginHighCount = CHIGH  +  h.PluginHighCount + RESET 
+      }
+      if  h.PluginMediumCount != "0" {
+         h.PluginMediumCount = CMED   +  h.PluginMediumCount + RESET 
+      }
+
+      vulnStr := fmt.Sprintf("%v,%v,%v,%v", h.PluginCriticalCount,h.PluginHighCount,h.PluginMediumCount,h.PluginLowCount)
+      if vulnStr == ",,," {
+        vulnStr = "-"
+      }
+      data = append(data,[]string{h.HostId, h.HostDetail.IP, name, vulnStr, os})
+
+    }
+  }
+  if len(data) > 0 {
+    table.AppendBulk(data)
+    table.Render()
+  } else {
+    fmt.Println(BOLD +"---> NONE!"+RESET )
+  }
+}
+
+

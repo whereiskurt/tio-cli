@@ -119,14 +119,8 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 
 		for _, host := range histDetails.Hosts {
 			var retHost HostScanDetailSummary
-
 			var hostId = string(host.Id)
-			retHost.HostId = hostId
-			retHost.ScanDetail.Scan.ScanId = scanId
-			retHost.ScanDetail.HistoryId = historyId
-			retHost.ScanDetail.HistoryIndex = fmt.Sprintf("%v", i)
-			hist.Host[hostId] = retHost
-
+			
 			critsHist, _ := strconv.Atoi(hist.PluginCriticalCount)
 			critsHost, _ := strconv.Atoi(string(host.SeverityCritical))
 			highHist, _ := strconv.Atoi(hist.PluginHighCount)
@@ -135,7 +129,21 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 			mediumHost, _ := strconv.Atoi(string(host.SeverityMedium))
 			lowHist, _ := strconv.Atoi(hist.PluginLowCount)
 			lowHost, _ := strconv.Atoi(string(host.SeverityLow))
+			
+			retHost.HostId = hostId
+			retHost.ScanDetail.Scan.ScanId = scanId
+			retHost.ScanDetail.HistoryId = historyId
+			retHost.ScanDetail.HistoryIndex = fmt.Sprintf("%v", i)
 
+			retHost.PluginCriticalCount = fmt.Sprintf("%v", critsHost)
+			retHost.PluginHighCount = fmt.Sprintf("%v", highHost)
+			retHost.PluginMediumCount = fmt.Sprintf("%v", mediumHost)
+			retHost.PluginLowCount = fmt.Sprintf("%v", lowHost)
+			retHost.PluginTotalCount = fmt.Sprintf("%v", lowHost+mediumHost+highHost+critsHost)
+			
+			hist.Host[hostId] = retHost
+
+			//Running COUNT for the historical
 			hist.PluginCriticalCount = fmt.Sprintf("%v", critsHist+critsHost)
 			hist.PluginHighCount = fmt.Sprintf("%v", highHist+highHost)
 			hist.PluginMediumCount = fmt.Sprintf("%v", mediumHist+mediumHost)
@@ -166,25 +174,23 @@ func (trans *Translator) fromHostDetailSummary(hsd HostScanDetailSummary, hd ten
 
 	tz := trans.GetScannerTZ(hsd.ScanDetail.Scan)
 
-	host.HostScanDetailSummary = hsd
-	host.HostId = hsd.HostId
-	host.HostIP = hd.Info.HostIP
-	host.HostFQDN = hd.Info.FQDN
-	host.HostNetBIOS = hd.Info.NetBIOS
-	host.HostMACAddresses = strings.Replace(hd.Info.MACAddress, "\n", ",", -1)
-	host.HostOperatingSystems = strings.Join(hd.Info.OperatingSystem, ",")
+	host.IP = hd.Info.HostIP
+	host.FQDN = hd.Info.FQDN
+	host.NetBIOS = hd.Info.NetBIOS
+	host.MACAddresses = strings.Replace(hd.Info.MACAddress, "\n", ",", -1)
+	host.OperatingSystems = strings.Join(hd.Info.OperatingSystem, ",")
 
 	tmStart, start, err := trans.UnixDateWithTZ(string(hd.Info.HostStart), tz)
-	host.HostScanStartUnix = fmt.Sprintf("%v", tmStart.In(time.Local).Unix())
-	host.HostScanStart = start
+	host.ScanStartUnix = fmt.Sprintf("%v", tmStart.In(time.Local).Unix())
+	host.ScanStart = start
 
 	tmEnd, end, err := trans.UnixDateWithTZ(string(hd.Info.HostEnd), tz)
-	host.HostScanEndUnix = fmt.Sprintf("%v", tmEnd.In(time.Local).Unix())
-	host.HostScanEnd = end
+	host.ScanEndUnix = fmt.Sprintf("%v", tmEnd.In(time.Local).Unix())
+	host.ScanEnd = end
 
-	host.HostScanDuration = fmt.Sprintf("%v", tmEnd.Sub(tmStart))
+	host.ScanDuration = fmt.Sprintf("%v", tmEnd.Sub(tmStart))
 
-	host.HostPlugin = make(map[string]PluginDetailSummary)
+	host.Plugin = make(map[string]PluginDetailSummary)
 	for _, v := range hd.Vulnerabilities {
 		//This is a Plugin Skelton, more details from GetPlugin are needed.
 		var p PluginDetailSummary
@@ -194,9 +200,9 @@ func (trans *Translator) fromHostDetailSummary(hsd HostScanDetailSummary, hd ten
 		p.Family = v.PluginFamily
 		p.Count = string(v.Count)
 		p.Severity = string(v.Severity)
-		host.HostPlugin[p.PluginId] = p
+		host.Plugin[p.PluginId] = p
 	}
-
+	hsd.HostDetail = host
 	return host, nil
 }
 

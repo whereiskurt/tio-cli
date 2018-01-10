@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio"
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio/api/tenable"
-	"github.com/whereiskurt/tio-cli/internal/pkg/tio/util"
+	"github.com/whereiskurt/tio-cli/internal/pkg/tio/obfu"
 	"io/ioutil"
 	"os"
 	"regexp"
