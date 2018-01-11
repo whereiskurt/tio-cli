@@ -267,14 +267,14 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
 
           //For each host in the history
 					for hostKey, host := range hist.Host {
-            if trans.ShouldSkipAssetId(host.HostId) {
+            record, err := trans.GetHostDetail(sd.Scan, host, host.ScanDetail)
+            if err != nil {
+              trans.Warnf("Couldn't retrieve host details. Removing host from list: %s", err)
               delete(sd.ScanHistoryDetails[h].Host, hostKey)
               continue
             }
 
-            record, err := trans.GetHostDetail(sd.Scan, host, host.ScanDetail)
-            if err != nil {
-              trans.Warnf("Couldn't retrieve host details. Removing host from list: %s", err)
+            if trans.ShouldSkipAssetId(host.HostId) {
               delete(sd.ScanHistoryDetails[h].Host, hostKey)
               continue
             }
@@ -283,6 +283,7 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
             for k, p := range record.Plugin {
               if trans.ShouldSkipPluginId(string(p.PluginId)) {
                 delete(record.Plugin, k)
+                delete(hist.HostPlugin, k)
                 skipPlugin = true
                 continue 
               }
@@ -295,14 +296,6 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
             host.HostDetail = record
             sd.ScanHistoryDetails[h].Host[hostKey] = host
           }
-
-          for hostPluginKey, _ := range hist.HostPlugin {
-            if trans.ShouldSkipPluginId(hostPluginKey) {
-              delete(hist.HostPlugin, hostPluginKey)
-              continue
-            }
-          }
-
         }
 				out <- sd
 			}

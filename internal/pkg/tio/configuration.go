@@ -22,6 +22,7 @@ type BaseConfig struct {
 	CacheDisabled      bool
 	UseCryptoCache     bool
 	QuietMode          bool
+	OfflineMode          bool
 	NoColourMode       bool
 	DisplayVersionMode bool
 	LogFilename        string

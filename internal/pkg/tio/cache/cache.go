@@ -21,7 +21,8 @@ type PortalCache struct {
 	CacheDisabled  bool
 	CacheFolder    string
 	CacheKey       string
-	UseCryptoCache bool
+  UseCryptoCache bool
+	OfflineMode    bool
 
 	CacheKeyBytes []byte
 
@@ -35,6 +36,34 @@ var rePlugin = regexp.MustCompile("^.+?/plugins/plugin/(\\d+)$")
 var reCurrentScan = regexp.MustCompile("^.+?/scans/(\\d+)$")
 var reHistoryScan = regexp.MustCompile("^.+?/scans/(\\d+)\\?history_id=(\\d+)$")
 var reHostScan = regexp.MustCompile("^.+?/scans/(\\d+)\\/hosts/(\\d+)\\?history_id=(\\d+)$")
+
+
+func NewPortalCache(config *tio.BaseConfig) *PortalCache {
+  p := new(PortalCache)
+  p.Portal = tenable.NewPortal(config)
+
+  p.Stats = tio.NewStatistics()
+
+  p.CacheFolder = config.CacheFolder
+  p.CacheKey = config.CacheKey
+  p.UseCryptoCache = config.UseCryptoCache
+  p.CacheDisabled = config.CacheDisabled
+  p.OfflineMode = config.OfflineMode
+
+  p.Log = config.Logger
+
+  p.CacheKeyBytes = []byte(fmt.Sprintf("%s", string(p.CacheKey)))
+
+  if !p.CacheDisabled {
+    err := os.MkdirAll(config.CacheFolder+"/", 0777)
+    if err != nil {
+      config.Logger.Errorf("%s", err)
+      return nil
+    }
+  }
+
+  return p
+}
 
 func (portal *PortalCache) PortalCacheFilename(url string) (filename string,err error) {
 	var folder string
@@ -152,6 +181,11 @@ func (portal *PortalCache) Get(url string) ([]byte, error) {
 	if err == nil {
 		return dat, err
 	}
+
+  if portal.OfflineMode == true {
+
+  }
+
 	portal.Log.Debugf("Cache: MISSED: GET '%s' not in local cache.", url)
 
 	//TODO: Add some 'soft retry' concepts here.
@@ -170,30 +204,6 @@ func (portal *PortalCache) Get(url string) ([]byte, error) {
 	return body, nil
 }
 
-func NewPortalCache(config *tio.BaseConfig) *PortalCache {
-	p := new(PortalCache)
-	p.Portal = tenable.NewPortal(config)
-
-	p.Stats = tio.NewStatistics()
-
-	p.CacheFolder = config.CacheFolder
-	p.CacheKey = config.CacheKey
-	p.UseCryptoCache = config.UseCryptoCache
-	p.CacheDisabled = config.CacheDisabled
-	p.Log = config.Logger
-
-	p.CacheKeyBytes = []byte(fmt.Sprintf("%s", string(p.CacheKey)))
-
-	if !p.CacheDisabled {
-		err := os.MkdirAll(config.CacheFolder+"/", 0777)
-		if err != nil {
-			config.Logger.Errorf("%s", err)
-			return nil
-		}
-	}
-
-	return p
-}
 
 func NewTranslatorCache(config *tio.BaseConfig) *TranslatorCache {
 	t := new(TranslatorCache)
