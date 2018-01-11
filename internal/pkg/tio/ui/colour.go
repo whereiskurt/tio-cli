@@ -17,8 +17,10 @@ var CNEVER = ansi.ColorCode("black:white+h")
 
 var CCRIT = ansi.ColorCode("white+h:red+b")
 var CHIGH = ansi.ColorCode("red+h:black+b")
-var CMED = ansi.ColorCode("black:yellow+h")
-var CCNT = ansi.ColorCode("black:white+h")
+var CMED = ansi.ColorCode("black+bh:yellow+h")
+var CLOW = ansi.ColorCode("white+bh:black")
+var CINFO = ansi.ColorCode("white:black+b")
+var CCNT = ansi.ColorCode("black:white+b")
 
 func DisableColour() {
 	BOLD = ""

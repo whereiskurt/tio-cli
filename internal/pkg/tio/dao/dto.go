@@ -26,6 +26,19 @@ type ScanHistory struct {
 	ScanHistoryDetails []ScanHistoryDetail
 }
 
+type HostPluginExposure struct {
+  Host HostScanDetailSummary
+  Plugin PluginDetailSummary
+  FirstScan ScanHistoryDetail
+  LastScan ScanHistoryDetail
+  DaysSinceFirstDetection string `json:"daysSinceFirstDetection"`
+  DaysSinceLastDetection string `json:"DaysSinceLastDetection"`
+  VulnerableStatus string `json:"VulnerableStatus"`
+  DurationStatus string `json:"DurationStatus"`
+  IsVulnerable bool `json:"IsVulnerable"`
+  IsPatched bool `json:"IsPatched"`
+}
+
 type ScanHistoryDetail struct {
 	Scan Scan
 

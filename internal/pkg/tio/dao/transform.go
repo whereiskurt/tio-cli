@@ -152,16 +152,26 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 		}
 
 		hist.HostPlugin = make(map[string]PluginDetailSummary)
+		skipped := false
 		for _, vuln := range histDetails.Vulnerabilities {
 			var retPlugin PluginDetailSummary
+
+			if trans.ShouldSkipPluginId(string(vuln.PluginId)) {
+				skipped = true
+				continue
+			}
 
 			retPlugin.PluginId = string(vuln.PluginId)
 			retPlugin.Name = vuln.Name
 			retPlugin.Family = vuln.Family
 			retPlugin.Count = string(vuln.Count)
 			retPlugin.Severity = string(vuln.Severity)
-
+ 
 			hist.HostPlugin[string(vuln.PluginId)] = retPlugin
+		}
+
+		if skipped && len(hist.HostPlugin) == 0 { 
+			continue 
 		}
 
 		record.ScanHistoryDetails = append(record.ScanHistoryDetails, *hist)
@@ -191,10 +201,9 @@ func (trans *Translator) fromHostDetailSummary(hsd HostScanDetailSummary, hd ten
 	host.ScanDuration = fmt.Sprintf("%v", tmEnd.Sub(tmStart))
 
 	host.Plugin = make(map[string]PluginDetailSummary)
-	for _, v := range hd.Vulnerabilities {
-		//This is a Plugin Skelton, more details from GetPlugin are needed.
-		var p PluginDetailSummary
 
+	for _, v := range hd.Vulnerabilities {
+		var p PluginDetailSummary
 		p.PluginId = string(v.PluginId)
 		p.Name = v.PluginName
 		p.Family = v.PluginFamily
@@ -202,7 +211,7 @@ func (trans *Translator) fromHostDetailSummary(hsd HostScanDetailSummary, hd ten
 		p.Severity = string(v.Severity)
 		host.Plugin[p.PluginId] = p
 	}
-	hsd.HostDetail = host
+
 	return host, nil
 }
 

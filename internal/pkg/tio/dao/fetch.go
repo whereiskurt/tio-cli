@@ -22,7 +22,7 @@ func (trans *Translator) getTenableHostDetail(scanId string, hostId string, hist
 
 	raw, err := trans.PortalCache.Get(portalUrl)
 	if err != nil {
-		trans.Errorf("Couldn't HTTP GET tenable.HostDetails for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
+		trans.Warnf("Couldn't HTTP GET tenable.HostDetails for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
 		return hd, err
 	}
 	err = json.Unmarshal([]byte(string(raw)), &hd)
@@ -31,7 +31,7 @@ func (trans *Translator) getTenableHostDetail(scanId string, hostId string, hist
 		hd, err := trans.getTenableHostDetailPastVersion(scanId, hostId, historyId, raw)
 
 		if err != nil {
-			trans.Errorf("Failed to unmarshal Legacy tenable.HostDetail for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
+			trans.Warnf("Failed to unmarshal Legacy tenable.HostDetail for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
 			return hd, err
 		}
     
@@ -45,7 +45,7 @@ func (trans *Translator) getTenableHostDetailPastVersion(scanId string, hostId s
 	var legacy tenable.HostDetailLegacyV2
 	err = json.Unmarshal([]byte(string(raw)), &legacy)
 	if err != nil {	
-    trans.Errorf("Failed to unmarshal tenable.HostDetailLegacyV2 for  [Scan:%s Host:%s History:%s] - %s", scanId, hostId, historyId, err)
+    trans.Warnf("Failed to unmarshal tenable.HostDetailLegacyV2 for  [Scan:%s Host:%s History:%s] - %s", scanId, hostId, historyId, err)
     return hd, err
   }
   hd.Info.OperatingSystem = append(hd.Info.OperatingSystem, legacy.Info.OperatingSystem)
@@ -55,13 +55,13 @@ func (trans *Translator) getTenableHostDetailPastVersion(scanId string, hostId s
 
   unixStart, err := time.Parse(time.ANSIC, legacy.Info.HostStart)
   if err != nil {
-    trans.Errorf("Failed to parse '%s' as time.ANSIC - start/end/duration inaccurate for [Scan:%s History:%s Host:%s.]", legacy.Info.HostStart, scanId, historyId, hostId)
+    trans.Warnf("Failed to parse '%s' as time.ANSIC - start/end/duration inaccurate for [Scan:%s History:%s Host:%s.]", legacy.Info.HostStart, scanId, historyId, hostId)
     return hd, err
   }
 
   unixEnd, err := time.Parse(time.ANSIC, legacy.Info.HostEnd)
   if err != nil {
-    trans.Errorf("Failed to parse '%s' as time.ANSIC - start/end/duration inaccurate for [Scan:%s History:%s Host:%s.]", legacy.Info.HostEnd, scanId, historyId, hostId)
+    trans.Warnf("Failed to parse '%s' as time.ANSIC - start/end/duration inaccurate for [Scan:%s History:%s Host:%s.]", legacy.Info.HostEnd, scanId, historyId, hostId)
     return hd, err
   }
 
@@ -87,13 +87,13 @@ func (trans *Translator) getTenableScanList() (retScanList tenable.ScanList, err
 
 	raw, err := trans.PortalCache.Get(portalUrl)
 	if err != nil {
-		trans.Errorf("Couldn't get tenable.ScanList from PortalCache: %s", err)
+		trans.Warnf("Couldn't get tenable.ScanList from PortalCache: %s", err)
 		return retScanList, err
 	}
 
 	err = json.Unmarshal([]byte(string(raw)), &retScanList)
 	if err != nil {
-		trans.Errorf("Couldn't unmarshal tenable.ScanList: %s", err)
+		trans.Warnf("Couldn't unmarshal tenable.ScanList: %s", err)
 		return retScanList, err
 	}
 
@@ -118,12 +118,12 @@ func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (
 
 	raw, err := trans.PortalCache.Get(portalUrl)
 	if err != nil {
-		trans.Errorf("Couldn't get tenable.ScanDetail from PortalCache: %s", err)
+		trans.Warnf("Couldn't get tenable.ScanDetail from PortalCache: %s", err)
 		return scanDetail, err
 	}
 	err = json.Unmarshal([]byte(string(raw)), &scanDetail)
 	if err != nil {
-		trans.Errorf("Couldn't unmarshal tenable.ScanList: %s", err)
+		trans.Warnf("Couldn't unmarshal tenable.ScanList: %s", err)
 	}
 
 	//Sort histories by creation date DESC, to get offset history_id
