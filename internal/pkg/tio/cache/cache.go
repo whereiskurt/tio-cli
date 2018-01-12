@@ -21,7 +21,7 @@ type PortalCache struct {
 	CacheDisabled  bool
 	CacheFolder    string
 	CacheKey       string
-  UseCryptoCache bool
+	UseCryptoCache bool
 	OfflineMode    bool
 
 	CacheKeyBytes []byte
@@ -37,38 +37,37 @@ var reCurrentScan = regexp.MustCompile("^.+?/scans/(\\d+)$")
 var reHistoryScan = regexp.MustCompile("^.+?/scans/(\\d+)\\?history_id=(\\d+)$")
 var reHostScan = regexp.MustCompile("^.+?/scans/(\\d+)\\/hosts/(\\d+)\\?history_id=(\\d+)$")
 
-
 func NewPortalCache(config *tio.BaseConfig) *PortalCache {
-  p := new(PortalCache)
-  p.Portal = tenable.NewPortal(config)
+	p := new(PortalCache)
+	p.Portal = tenable.NewPortal(config)
 
-  p.Stats = tio.NewStatistics()
+	p.Stats = tio.NewStatistics()
 
-  p.CacheFolder = config.CacheFolder
-  p.CacheKey = config.CacheKey
-  p.UseCryptoCache = config.UseCryptoCache
-  p.CacheDisabled = config.CacheDisabled
-  p.OfflineMode = config.OfflineMode
+	p.CacheFolder = config.CacheFolder
+	p.CacheKey = config.CacheKey
+	p.UseCryptoCache = config.UseCryptoCache
+	p.CacheDisabled = config.CacheDisabled
+	p.OfflineMode = config.OfflineMode
 
-  p.Log = config.Logger
+	p.Log = config.Logger
 
-  p.CacheKeyBytes = []byte(fmt.Sprintf("%s", string(p.CacheKey)))
+	p.CacheKeyBytes = []byte(fmt.Sprintf("%s", string(p.CacheKey)))
 
-  if !p.CacheDisabled {
-    err := os.MkdirAll(config.CacheFolder+"/", 0777)
-    if err != nil {
-      config.Logger.Errorf("%s", err)
-      return nil
-    }
-  }
+	if !p.CacheDisabled {
+		err := os.MkdirAll(config.CacheFolder+"/", 0777)
+		if err != nil {
+			config.Logger.Errorf("%s", err)
+			return nil
+		}
+	}
 
-  return p
+	return p
 }
 
-func (portal *PortalCache) PortalCacheFilename(url string) (filename string,err error) {
+func (portal *PortalCache) PortalCacheFilename(url string) (filename string, err error) {
 	var folder string
 	var crypto bool = portal.UseCryptoCache
-  var KEY_SIZE int = 4
+	var KEY_SIZE int = 4
 
 	if matched := reAllScans.FindStringSubmatch(url); matched != nil {
 		folder = "tenable/scans/"
@@ -94,24 +93,24 @@ func (portal *PortalCache) PortalCacheFilename(url string) (filename string,err 
 		history := matched[2]
 		if crypto {
 			skey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, scan)))
-			scan = fmt.Sprintf("%x", skey[:KEY_SIZE])	
+			scan = fmt.Sprintf("%x", skey[:KEY_SIZE])
 			hkey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, scan)))
 			history = fmt.Sprintf("%x", hkey[:KEY_SIZE])
 		}
 		folder = "tenable/scans/" + scan + "/history_id=" + history + "/"
 
 	} else if matched := reHostScan.FindStringSubmatch(url); matched != nil {
-    scan := matched[1]
-    host := matched[2]
-    history := matched[3]
-    if crypto {
-      skey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, scan)))
-      scan = fmt.Sprintf("%x", skey[:KEY_SIZE])  
-      hkey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, host)))
-      host = fmt.Sprintf("%x", hkey[:KEY_SIZE])  
-      histkey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, scan)))
-      history = fmt.Sprintf("%x", histkey[:KEY_SIZE])
-    }
+		scan := matched[1]
+		host := matched[2]
+		history := matched[3]
+		if crypto {
+			skey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, scan)))
+			scan = fmt.Sprintf("%x", skey[:KEY_SIZE])
+			hkey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, host)))
+			host = fmt.Sprintf("%x", hkey[:KEY_SIZE])
+			histkey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, scan)))
+			history = fmt.Sprintf("%x", histkey[:KEY_SIZE])
+		}
 		folder = "tenable/scans/" + scan + "/history_id=" + history + "/hosts/" + host + "/"
 
 	} else {
@@ -164,46 +163,47 @@ func (portal *PortalCache) PortalCacheGet(cacheFilename string) ([]byte, error) 
 	return decDat, nil
 }
 
-func (portal *PortalCache) Get(url string) ([]byte, error) {
+func (portal *PortalCache) Get(url string) (body []byte, filename string, err error) {
 
 	if portal.CacheDisabled == true {
-		bytes, err := portal.Portal.Get(url)
-		return bytes, err
+		body, err = portal.Portal.Get(url)
+		return body, filename, err
 	}
 
-	cacheFilename, err := portal.PortalCacheFilename(url)
+	filename, err = portal.PortalCacheFilename(url)
 	if err != nil {
 		portal.Log.Errorf("%s", err)
-		return nil, err
+		return body, filename, err
 	}
 
-	dat, err := portal.PortalCacheGet(cacheFilename)
+	body, err = portal.PortalCacheGet(filename)
 	if err == nil {
-		return dat, err
+		return body, filename, err
 	}
 
-  if portal.OfflineMode == true {
-
-  }
+	if portal.OfflineMode == true {
+		err = errors.New("Cache MISSED in '--offlineMode'")
+		portal.Log.Infof("%s", err)
+		return body, filename, err
+	}
 
 	portal.Log.Debugf("Cache: MISSED: GET '%s' not in local cache.", url)
 
 	//TODO: Add some 'soft retry' concepts here.
-	body, err := portal.Portal.Get(url)
+	body, err = portal.Portal.Get(url)
 	if err != nil {
-		return nil, err
+		return body, filename, err
 	}
 
-	cacheErr := portal.PortalCacheSet(cacheFilename, body)
-	if cacheErr != nil {
-		portal.Log.Debugf(fmt.Sprintf("Failed to store in cache. Error: %s", cacheErr))
-		return nil, cacheErr
+	err = portal.PortalCacheSet(filename, body)
+	if err != nil {
+		portal.Log.Debugf(fmt.Sprintf("Failed to store in cache. Error: %s", err))
+		return body, filename, err
 
 	}
 	portal.Log.Debugf("Cache: STORE: GET '%s' is now in local cache.", url)
-	return body, nil
+	return body, filename, err
 }
-
 
 func NewTranslatorCache(config *tio.BaseConfig) *TranslatorCache {
 	t := new(TranslatorCache)

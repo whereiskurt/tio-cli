@@ -8,6 +8,9 @@ import (
 	"time"
 )
 
+var TM_FORMAT_NOTZ = "Mon Jan _2 15:04:05 2006"
+var TM_FORMAT_TZ string = "2006-01-_2 15:04:05 -0700 MST"
+
 func (trans *Translator) fromScanList(scanList tenable.ScanList) []Scan {
 	var scans []Scan
 
@@ -71,7 +74,7 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 
 		historyId, err := trans.getTenableHistoryId(scanId, i)
 		if err != nil {
-			trans.Errorf("%s", err)
+			trans.Errorf("HistoryID not available for scan '%s' offset '%d' - %s", scanId, i, err)
 			return record, err
 		}
 
@@ -120,7 +123,7 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 		for _, host := range histDetails.Hosts {
 			var retHost HostScanDetailSummary
 			var hostId = string(host.Id)
-			
+
 			critsHist, _ := strconv.Atoi(hist.PluginCriticalCount)
 			critsHost, _ := strconv.Atoi(string(host.SeverityCritical))
 			highHist, _ := strconv.Atoi(hist.PluginHighCount)
@@ -129,7 +132,7 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 			mediumHost, _ := strconv.Atoi(string(host.SeverityMedium))
 			lowHist, _ := strconv.Atoi(hist.PluginLowCount)
 			lowHost, _ := strconv.Atoi(string(host.SeverityLow))
-			
+
 			retHost.HostId = hostId
 			retHost.ScanDetail.Scan.ScanId = scanId
 			retHost.ScanDetail.HistoryId = historyId
@@ -140,7 +143,7 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 			retHost.PluginMediumCount = fmt.Sprintf("%v", mediumHost)
 			retHost.PluginLowCount = fmt.Sprintf("%v", lowHost)
 			retHost.PluginTotalCount = fmt.Sprintf("%v", lowHost+mediumHost+highHost+critsHost)
-			
+
 			hist.Host[hostId] = retHost
 
 			//Running COUNT for the historical
@@ -152,12 +155,11 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 		}
 
 		hist.HostPlugin = make(map[string]PluginDetailSummary)
-		skipped := false
+
 		for _, vuln := range histDetails.Vulnerabilities {
 			var retPlugin PluginDetailSummary
 
 			if trans.ShouldSkipPluginId(string(vuln.PluginId)) {
-				skipped = true
 				continue
 			}
 
@@ -166,12 +168,8 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 			retPlugin.Family = vuln.Family
 			retPlugin.Count = string(vuln.Count)
 			retPlugin.Severity = string(vuln.Severity)
- 
-			hist.HostPlugin[string(vuln.PluginId)] = retPlugin
-		}
 
-		if skipped && len(hist.HostPlugin) == 0 { 
-			continue 
+			hist.HostPlugin[string(vuln.PluginId)] = retPlugin
 		}
 
 		record.ScanHistoryDetails = append(record.ScanHistoryDetails, *hist)
@@ -190,11 +188,11 @@ func (trans *Translator) fromHostDetailSummary(hsd HostScanDetailSummary, hd ten
 	host.MACAddresses = strings.Replace(hd.Info.MACAddress, "\n", ",", -1)
 	host.OperatingSystems = strings.Join(hd.Info.OperatingSystem, ",")
 
-	tmStart, start, err := trans.UnixDateWithTZ(string(hd.Info.HostStart), tz)
+	start, tmStart, err := trans.fromNoTZ(string(hd.Info.HostStart), tz)
 	host.ScanStartUnix = fmt.Sprintf("%v", tmStart.In(time.Local).Unix())
 	host.ScanStart = start
 
-	tmEnd, end, err := trans.UnixDateWithTZ(string(hd.Info.HostEnd), tz)
+	end, tmEnd, err := trans.fromNoTZ(string(hd.Info.HostEnd), tz)
 	host.ScanEndUnix = fmt.Sprintf("%v", tmEnd.In(time.Local).Unix())
 	host.ScanEnd = end
 
@@ -215,29 +213,22 @@ func (trans *Translator) fromHostDetailSummary(hsd HostScanDetailSummary, hd ten
 	return host, nil
 }
 
-func (trans *Translator) GetScannerTZ(scan Scan) (scannerTZ string) {
-	//TODO: Actually do the look-up and it is fails return defaultTZ
-	//scan.ScannerName
-	scannerTZ = trans.Config.Base.DefaultTimezone
-	return scannerTZ
-}
-
-func (trans *Translator) UnixDateWithTZ(date string, scannerTZ string) (unix time.Time, startWithTZ string, err error) {
-	var TZ_FORMAT string = "2006-01-_2 15:04:05 -0700 MST"
-
-	unix, err = time.Parse(time.ANSIC, date)
+func (trans *Translator) fromNoTZ(dts string, setTZ string) (withTZ string, unix time.Time, err error) {
+	unix, err = time.Parse(TM_FORMAT_NOTZ, dts)
 	if err != nil {
-		trans.Warnf("Couldn't parse time.ANSIC for '%v' as integer.", date)
-		return unix, startWithTZ, err
+		trans.Warnf("Couldn't parse time.ANSIC for '%v' as integer.", dts)
+		return withTZ, unix, err
 	}
 
-	startWithTZ = strings.Replace(fmt.Sprintf("%v", unix), "+0000 UTC", scannerTZ, -1)
-	tmTZ, err := time.Parse(TZ_FORMAT, startWithTZ)
+	//Render UNIX time (which is UTC 0) and add timezone from scanner.
+	//The scanner captured the UNIX time, without a TZ.
+	withTZ = strings.Replace(fmt.Sprintf("%v", unix), "+0000 UTC", setTZ, -1)
+	tmTZ, err := time.Parse(TM_FORMAT_TZ, withTZ)
 
 	if err != nil {
-		trans.Warnf("Couldn't parse Unix date for '%v' as integer.", date)
-		return unix, startWithTZ, err
+		trans.Warnf("Couldn't parse Unix date '%v' with timezone '%s'.", unix, setTZ)
+		return withTZ, unix, err
 	}
-
-	return unix, fmt.Sprintf("%v", tmTZ), err
+	withTZ = fmt.Sprintf("%v", tmTZ)
+	return withTZ, unix, err
 }

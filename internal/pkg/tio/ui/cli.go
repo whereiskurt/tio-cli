@@ -80,9 +80,9 @@ func (cli *CommandLineInterface) DrawShortTable(recs []dao.ScanHistory) {
 			if lastRun.PluginHighCount != "" && lastRun.PluginHighCount != "0" {
 				lastRun.PluginHighCount = CHIGH + lastRun.PluginHighCount + RESET
 			}
-      if lastRun.PluginMediumCount != "" && lastRun.PluginMediumCount != "0" {
-        lastRun.PluginMediumCount = CMED + lastRun.PluginMediumCount + RESET
-      }
+			if lastRun.PluginMediumCount != "" && lastRun.PluginMediumCount != "0" {
+				lastRun.PluginMediumCount = CMED + lastRun.PluginMediumCount + RESET
+			}
 			if lastRun.PluginLowCount != "" && lastRun.PluginLowCount != "0" {
 				lastRun.PluginLowCount = CLOW + lastRun.PluginLowCount + RESET
 			}
@@ -173,9 +173,9 @@ func (cli *CommandLineInterface) DrawRunHistory(r dao.ScanHistory) {
 		if h.PluginMediumCount != "0" {
 			h.PluginMediumCount = CMED + h.PluginMediumCount + RESET
 		}
-    if h.PluginLowCount != "0" {
-      h.PluginLowCount = CLOW + h.PluginLowCount + RESET
-    }
+		if h.PluginLowCount != "0" {
+			h.PluginLowCount = CLOW + h.PluginLowCount + RESET
+		}
 		vulnStr := fmt.Sprintf("%v,%v,%v,%v", h.PluginCriticalCount, h.PluginHighCount, h.PluginMediumCount, h.PluginLowCount)
 		if vulnStr == ",,," {
 			vulnStr = "0,0,0,0"
@@ -189,76 +189,76 @@ func (cli *CommandLineInterface) DrawRunHistory(r dao.ScanHistory) {
 }
 
 func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail) {
-  if len(r.Host) == 0 {
-    return
-  }
+	if len(r.Host) == 0 {
+		return
+	}
 
-  table := tablewriter.NewWriter(os.Stdout)
-  table.SetHeader([]string{"ID", "IP", "Names", "#CRIT/H/M/L", "OS"})
-  table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"ID", "IP", "Names", "#CRIT/H/M/L", "OS"})
+	table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
 
-  data := [][]string{}
+	data := [][]string{}
 
-  for _, h := range r.Host {
-    name := strings.Join([]string{h.HostDetail.FQDN, h.HostDetail.NetBIOS}, " ")
-    if name == " " {
-      name ="[UNKNOWN]"
-    }
-    if len(h.HostDetail.OperatingSystems) > 30 {
-      h.HostDetail.OperatingSystems = h.HostDetail.OperatingSystems[:30]
-    }
-    os := h.HostDetail.OperatingSystems
+	for _, h := range r.Host {
+		name := strings.Join([]string{h.HostDetail.FQDN, h.HostDetail.NetBIOS}, " ")
+		if name == " " {
+			name = "[UNKNOWN]"
+		}
+		if len(h.HostDetail.OperatingSystems) > 30 {
+			h.HostDetail.OperatingSystems = h.HostDetail.OperatingSystems[:30]
+		}
+		os := h.HostDetail.OperatingSystems
 
-    if  h.PluginCriticalCount != "0" {
-       h.PluginCriticalCount = CCRIT  +  h.PluginCriticalCount + RESET 
-    }
-    if  h.PluginHighCount != "0" {
-       h.PluginHighCount = CHIGH  +  h.PluginHighCount + RESET 
-    }
-    if  h.PluginMediumCount != "0" {
-       h.PluginMediumCount = CMED   +  h.PluginMediumCount + RESET 
-    }     
-    if h.PluginLowCount != "0" {
-      h.PluginLowCount = CLOW + h.PluginLowCount + RESET
-     }
+		if h.PluginCriticalCount != "0" {
+			h.PluginCriticalCount = CCRIT + h.PluginCriticalCount + RESET
+		}
+		if h.PluginHighCount != "0" {
+			h.PluginHighCount = CHIGH + h.PluginHighCount + RESET
+		}
+		if h.PluginMediumCount != "0" {
+			h.PluginMediumCount = CMED + h.PluginMediumCount + RESET
+		}
+		if h.PluginLowCount != "0" {
+			h.PluginLowCount = CLOW + h.PluginLowCount + RESET
+		}
 
-    vulnStr := fmt.Sprintf("%v,%v,%v,%v", h.PluginCriticalCount,h.PluginHighCount,h.PluginMediumCount,h.PluginLowCount)
-    if vulnStr == ",,," {
-      vulnStr = "-"
-    }
-    data = append(data,[]string{h.HostId, h.HostDetail.IP, name, vulnStr, os})
+		vulnStr := fmt.Sprintf("%v,%v,%v,%v", h.PluginCriticalCount, h.PluginHighCount, h.PluginMediumCount, h.PluginLowCount)
+		if vulnStr == ",,," {
+			vulnStr = "-"
+		}
+		data = append(data, []string{h.HostId, h.HostDetail.IP, name, vulnStr, os})
 
-  }
-  if len(data) > 0 {
-    table.AppendBulk(data)
-    table.Render()
-  } else {
-    fmt.Println(BOLD +"---> NONE!"+RESET )
-  }
+	}
+	if len(data) > 0 {
+		table.AppendBulk(data)
+		table.Render()
+	} else {
+		fmt.Println(BOLD + "---> NONE!" + RESET)
+	}
 }
 
-func (cli *CommandLineInterface) DrawVulnTable(rec dao.ScanHistoryDetail) {
-  table := tablewriter.NewWriter(os.Stdout)
-  table.SetHeader([]string{"ID", "Name", "Family,", "SEV", "#"})
-  table.SetColumnAlignment([]int{tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
-  table.SetAutoWrapText(false)
+func (cli *CommandLineInterface) DrawScanVulnTable(rec dao.ScanHistoryDetail) {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"ID", "Name", "Family,", "SEV", "#"})
+	table.SetColumnAlignment([]int{tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
+	table.SetAutoWrapText(false)
 
-  data := [][]string{}  
-  for _, p := range rec.HostPlugin {
-    sev, _ := strconv.ParseInt(p.Severity, 10, 64)
-    var sevWord[] string = []string{CINFO+"INFO"+RESET, CLOW+"LOW"+RESET, CMED+"MED"+RESET, CHIGH +"HIGH"+RESET, CCRIT+"CRIT"+RESET }
-    if len(p.Name) > 45 {
-      p.Name = p.Name[:45]
-    }
-    outRec := []string{p.PluginId, p.Name, p.Family, sevWord[sev], p.Count}
-    data = append(data, outRec)
-  }
+	data := [][]string{}
+	for _, p := range rec.HostPlugin {
+		sev, _ := strconv.ParseInt(p.Severity, 10, 64)
+		var sevWord []string = []string{CINFO + "INFO" + RESET, CLOW + "LOW" + RESET, CMED + "MED" + RESET, CHIGH + "HIGH" + RESET, CCRIT + "CRIT" + RESET}
+		if len(p.Name) > 45 {
+			p.Name = p.Name[:45]
+		}
+		outRec := []string{p.PluginId, p.Name, p.Family, sevWord[sev], p.Count}
+		data = append(data, outRec)
+	}
 
-  if len(data) > 0 {
-    table.AppendBulk(data)
-    table.Render()
-  } else {
-    fmt.Println(BOLD +"---> NONE!"+RESET )
-  }
+	if len(data) > 0 {
+		table.AppendBulk(data)
+		table.Render()
+	} else {
+		fmt.Println(BOLD + "---> NONE!" + RESET)
+	}
 
 }

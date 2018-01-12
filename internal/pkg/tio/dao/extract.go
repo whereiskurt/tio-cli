@@ -20,7 +20,7 @@ func (trans *Translator) getTenableHostDetail(scanId string, hostId string, hist
 		return hd, nil
 	}
 
-	raw, err := trans.PortalCache.Get(portalUrl)
+	raw, _, err := trans.PortalCache.Get(portalUrl)
 	if err != nil {
 		trans.Warnf("Couldn't HTTP GET tenable.HostDetails for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
 		return hd, err
@@ -34,39 +34,38 @@ func (trans *Translator) getTenableHostDetail(scanId string, hostId string, hist
 			trans.Warnf("Failed to unmarshal Legacy tenable.HostDetail for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
 			return hd, err
 		}
-    
+
 	}
 	trans.Memcache.Set(memcacheKey, hd, time.Minute*60)
 
 	return hd, nil
 }
-
 func (trans *Translator) getTenableHostDetailPastVersion(scanId string, hostId string, historyId string, raw []byte) (hd tenable.HostDetail, err error) {
 	var legacy tenable.HostDetailLegacyV2
 	err = json.Unmarshal([]byte(string(raw)), &legacy)
-	if err != nil {	
-    trans.Warnf("Failed to unmarshal tenable.HostDetailLegacyV2 for  [Scan:%s Host:%s History:%s] - %s", scanId, hostId, historyId, err)
-    return hd, err
-  }
-  hd.Info.OperatingSystem = append(hd.Info.OperatingSystem, legacy.Info.OperatingSystem)
-  hd.Info.FQDN = legacy.Info.FQDN
-  hd.Info.NetBIOS = legacy.Info.NetBIOS
-  hd.Vulnerabilities = legacy.Vulnerabilities
+	if err != nil {
+		trans.Warnf("Failed to unmarshal tenable.HostDetailLegacyV2 for  [Scan:%s Host:%s History:%s] - %s", scanId, hostId, historyId, err)
+		return hd, err
+	}
+	hd.Info.OperatingSystem = append(hd.Info.OperatingSystem, legacy.Info.OperatingSystem)
+	hd.Info.FQDN = legacy.Info.FQDN
+	hd.Info.NetBIOS = legacy.Info.NetBIOS
+	hd.Vulnerabilities = legacy.Vulnerabilities
 
-  unixStart, err := time.Parse(time.ANSIC, legacy.Info.HostStart)
-  if err != nil {
-    trans.Warnf("Failed to parse '%s' as time.ANSIC - start/end/duration inaccurate for [Scan:%s History:%s Host:%s.]", legacy.Info.HostStart, scanId, historyId, hostId)
-    return hd, err
-  }
+	unixStart, err := time.Parse(time.ANSIC, legacy.Info.HostStart)
+	if err != nil {
+		trans.Warnf("Failed to parse '%s' as time.ANSIC - start/end/duration inaccurate for [Scan:%s History:%s Host:%s.]", legacy.Info.HostStart, scanId, historyId, hostId)
+		return hd, err
+	}
 
-  unixEnd, err := time.Parse(time.ANSIC, legacy.Info.HostEnd)
-  if err != nil {
-    trans.Warnf("Failed to parse '%s' as time.ANSIC - start/end/duration inaccurate for [Scan:%s History:%s Host:%s.]", legacy.Info.HostEnd, scanId, historyId, hostId)
-    return hd, err
-  }
+	unixEnd, err := time.Parse(time.ANSIC, legacy.Info.HostEnd)
+	if err != nil {
+		trans.Warnf("Failed to parse '%s' as time.ANSIC - start/end/duration inaccurate for [Scan:%s History:%s Host:%s.]", legacy.Info.HostEnd, scanId, historyId, hostId)
+		return hd, err
+	}
 
-  hd.Info.HostStart = json.Number(unixStart.Format(time.ANSIC))
-  hd.Info.HostEnd = json.Number(unixEnd.Format(time.ANSIC))
+	hd.Info.HostStart = json.Number(unixStart.Format(time.ANSIC))
+	hd.Info.HostEnd = json.Number(unixEnd.Format(time.ANSIC))
 
 	return hd, err
 }
@@ -85,7 +84,7 @@ func (trans *Translator) getTenableScanList() (retScanList tenable.ScanList, err
 
 	trans.Stats.Count("GetTenableScanList.Memcached")
 
-	raw, err := trans.PortalCache.Get(portalUrl)
+	raw, _, err := trans.PortalCache.Get(portalUrl)
 	if err != nil {
 		trans.Warnf("Couldn't get tenable.ScanList from PortalCache: %s", err)
 		return retScanList, err
@@ -116,7 +115,7 @@ func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (
 		return scanDetail, nil
 	}
 
-	raw, err := trans.PortalCache.Get(portalUrl)
+	raw, _, err := trans.PortalCache.Get(portalUrl)
 	if err != nil {
 		trans.Warnf("Couldn't get tenable.ScanDetail from PortalCache: %s", err)
 		return scanDetail, err
@@ -162,7 +161,7 @@ func (trans *Translator) getTenableHistoryId(scanId string, previousOffset int) 
 	trans.Stats.Count("GetTenableHistoryId")
 
 	var portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId
-	raw, err := trans.PortalCache.Get(portalUrl)
+	raw, _, err := trans.PortalCache.Get(portalUrl)
 	if err != nil {
 		trans.Errorf("Couldn't get tenable.ScanDetail from PortalCache: %s", err)
 		return retHistoryId, err

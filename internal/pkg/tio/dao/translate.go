@@ -15,19 +15,22 @@ import (
 type Translator struct {
 	Config *tio.VulnerabilityConfig
 
-	TranslatorCache  *cache.TranslatorCache
-	PortalCache      *cache.PortalCache
-	Memcache         *ccache.Cache
-	ThreadSafe       *sync.Mutex
+	TranslatorCache *cache.TranslatorCache
+	PortalCache     *cache.PortalCache
+	Memcache        *ccache.Cache
+	ThreadSafe      *sync.Mutex
+
 	Workers          map[string]*sync.WaitGroup
-  IgnoreScanId     map[string]bool
-  IncludeScanId    map[string]bool
-	IgnorePluginId     map[string]bool
-	IncludePluginId    map[string]bool
+	IgnoreScanId     map[string]bool
+	IncludeScanId    map[string]bool
+	IgnorePluginId   map[string]bool
+	IncludePluginId  map[string]bool
 	IgnoreHistoryId  map[string]bool
 	IncludeHistoryId map[string]bool
 	IgnoreAssetId    map[string]bool
 	IncludeAssetId   map[string]bool
+
+	Anonymizer *Anonymizer
 
 	Debug func(string)
 	Info  func(string)
@@ -55,6 +58,8 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 	t.Workers["detail"] = new(sync.WaitGroup)
 	t.Workers["plugin"] = new(sync.WaitGroup)
 
+	t.Anonymizer = NewAnonymizer()
+
 	t.Stats = tio.NewStatistics()
 
 	t.Debug = config.Base.Logger.Debug
@@ -70,8 +75,8 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 	t.IgnoreScanId = make(map[string]bool)
 	t.IncludeHistoryId = make(map[string]bool)
 	t.IgnoreHistoryId = make(map[string]bool)
-  t.IncludeAssetId = make(map[string]bool)
-  t.IgnoreAssetId = make(map[string]bool)
+	t.IncludeAssetId = make(map[string]bool)
+	t.IgnoreAssetId = make(map[string]bool)
 	t.IncludePluginId = make(map[string]bool)
 	t.IgnorePluginId = make(map[string]bool)
 
@@ -100,21 +105,21 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 			t.IncludeAssetId[id] = true
 		}
 	}
-  for _, id := range strings.Split(t.Config.IgnoreAssetId, ",") {
-    if id != "" {
-      t.IgnoreAssetId[id] = true
-    }
-  }
+	for _, id := range strings.Split(t.Config.IgnoreAssetId, ",") {
+		if id != "" {
+			t.IgnoreAssetId[id] = true
+		}
+	}
 	for _, id := range strings.Split(t.Config.IgnorePluginId, ",") {
 		if id != "" {
 			t.IgnorePluginId[id] = true
 		}
 	}
-  for _, id := range strings.Split(t.Config.PluginId, ",") {
-    if id != "" {
-      t.IncludePluginId[id] = true
-    }
-  }
+	for _, id := range strings.Split(t.Config.PluginId, ",") {
+		if id != "" {
+			t.IncludePluginId[id] = true
+		}
+	}
 
 	return t
 }
@@ -137,38 +142,37 @@ func (trans *Translator) ShouldSkipScanId(scanId string) (skip bool) {
 }
 
 func (trans *Translator) ShouldSkipAssetId(AssetId string) (skip bool) {
-  skip = false
+	skip = false
 
-  _, ignore := trans.IgnoreAssetId[AssetId]
-  if ignore {
-    skip = true
-  }
+	_, ignore := trans.IgnoreAssetId[AssetId]
+	if ignore {
+		skip = true
+	}
 
-  if len(trans.IncludeAssetId) > 0 {
-    _, include := trans.IncludeAssetId[AssetId]
-    if !include {
-      skip = true
-    }
-  }
-  return skip
+	if len(trans.IncludeAssetId) > 0 {
+		_, include := trans.IncludeAssetId[AssetId]
+		if !include {
+			skip = true
+		}
+	}
+	return skip
 }
 
-
 func (trans *Translator) ShouldSkipPluginId(pluginId string) (skip bool) {
-  skip = false
+	skip = false
 
-  _, ignore := trans.IgnorePluginId[pluginId]
-  if ignore {
-    skip = true
-  }
+	_, ignore := trans.IgnorePluginId[pluginId]
+	if ignore {
+		skip = true
+	}
 
-  if len(trans.IncludePluginId) > 0 {
-    _, include := trans.IncludePluginId[pluginId]
-    if !include {
-      skip = true
-    }
-  }
-  return skip
+	if len(trans.IncludePluginId) > 0 {
+		_, include := trans.IncludePluginId[pluginId]
+		if !include {
+			skip = true
+		}
+	}
+	return skip
 }
 
 func (trans *Translator) ShouldSkipHistoryId(historyId string) (skip bool) {
@@ -259,44 +263,44 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
 					continue
 				}
 
-        //For each history in the scan
+				//For each history in the scan
 				for h, hist := range sd.ScanHistoryDetails {
 					if len(hist.Host) < 1 {
 						continue
 					}
 
-          //For each host in the history
+					//For each host in the history
 					for hostKey, host := range hist.Host {
-            record, err := trans.GetHostDetail(sd.Scan, host, host.ScanDetail)
-            if err != nil {
-              trans.Warnf("Couldn't retrieve host details. Removing host from list: %s", err)
-              delete(sd.ScanHistoryDetails[h].Host, hostKey)
-              continue
-            }
+						record, err := trans.GetHostDetail(sd.Scan, host, host.ScanDetail)
+						if err != nil {
+							trans.Warnf("Couldn't retrieve host details. Removing host from list: %s", err)
+							delete(sd.ScanHistoryDetails[h].Host, hostKey)
+							continue
+						}
 
-            if trans.ShouldSkipAssetId(host.HostId) {
-              delete(sd.ScanHistoryDetails[h].Host, hostKey)
-              continue
-            }
-            
-            skipPlugin := false
-            for k, p := range record.Plugin {
-              if trans.ShouldSkipPluginId(string(p.PluginId)) {
-                delete(record.Plugin, k)
-                delete(hist.HostPlugin, k)
-                skipPlugin = true
-                continue 
-              }
-            }
-            if skipPlugin && len(record.Plugin) == 0 {
-              delete(sd.ScanHistoryDetails[h].Host, hostKey)
-              continue 
-            }
+						if trans.ShouldSkipAssetId(host.HostId) {
+							delete(sd.ScanHistoryDetails[h].Host, hostKey)
+							continue
+						}
 
-            host.HostDetail = record
-            sd.ScanHistoryDetails[h].Host[hostKey] = host
-          }
-        }
+						skipPlugin := false
+						for k, p := range record.Plugin {
+							if trans.ShouldSkipPluginId(string(p.PluginId)) {
+								delete(record.Plugin, k)
+								delete(hist.HostPlugin, k)
+								skipPlugin = true
+								continue
+							}
+						}
+						if skipPlugin && len(record.Plugin) == 0 {
+							delete(sd.ScanHistoryDetails[h].Host, hostKey)
+							continue
+						}
+
+						host.HostDetail = record
+						sd.ScanHistoryDetails[h].Host[hostKey] = host
+					}
+				}
 				out <- sd
 			}
 
@@ -326,7 +330,7 @@ func (trans *Translator) GetHostDetail(scan Scan, hsd HostScanDetailSummary, sca
 
 	record, err = trans.fromHostDetailSummary(hsd, hd)
 
-  hsd.HostDetail = record
+	hsd.HostDetail = record
 
 	return record, err
 }
@@ -385,4 +389,11 @@ func (trans *Translator) GetScanDetail(scanId string, previousOffset int) (recor
 	record, err = trans.fromScanDetail(scanId, scanDetail)
 
 	return record, err
+}
+
+func (trans *Translator) GetScannerTZ(scan Scan) (scannerTZ string) {
+	//TODO: Actually do the look-up and it is fails return defaultTZ
+	//scan.ScannerName
+	scannerTZ = trans.Config.Base.DefaultTimezone
+	return scannerTZ
 }
