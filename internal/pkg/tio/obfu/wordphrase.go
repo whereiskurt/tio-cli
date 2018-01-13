@@ -14,7 +14,8 @@ var src = rand.NewSource(1)
 var r *rand.Rand = rand.New(src)
 
 var aoff = 0
-var noff = 0
+var woff = 0
+var fqdnoff = 0
 
 var animalP []int = nil
 var namesP []int = nil
@@ -40,24 +41,21 @@ func Animal() string {
 	return animal
 }
 
-func Word() string {
-	noff = noff + 1
-	name := names[namesP[noff%len(namesP)]]
-	return name
+func Word() (word string)  {
+	woff = woff + 1
+	word = names[namesP[woff%len(namesP)]]
+	return word
 }
 
-var fqdnoff = 0
-
-func Hostname(FQDN string) string {
+func Hostname(fqdn string) (hostname string) {
 	fqdnoff = fqdnoff + 1
-
 	hostnum := fqdnoff / len(animals)
-	host := Animal()
-	host = strings.Replace(host, " ", "", -1)
-	host = strings.Replace(host, ",", "", -1)
-	host = strings.Replace(host, ".", "", -1)
 
-	hostname := strings.ToLower(fmt.Sprintf("%s%02d.%s", Animal(), hostnum, FQDN))
+	animal := Animal()
+	animal = strings.Replace(animal, ",", "", -1)
+	animal = strings.Replace(animal, ".", "", -1)
+
+	hostname = strings.ToLower(fmt.Sprintf("%s%02d.%s", Animal(), hostnum, fqdn))
 
 	return hostname
 }

@@ -58,8 +58,6 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 	t.Workers["detail"] = new(sync.WaitGroup)
 	t.Workers["plugin"] = new(sync.WaitGroup)
 
-	t.Anonymizer = NewAnonymizer()
-
 	t.Stats = tio.NewStatistics()
 
 	t.Debug = config.Base.Logger.Debug
@@ -126,6 +124,10 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 
 func (trans *Translator) ShouldSkipScanId(scanId string) (skip bool) {
 	skip = false
+
+	if trans.Anonymizer != nil {
+		scanId = trans.Anonymizer.DeAnonScanId(scanId)
+	}
 
 	_, ignore := trans.IgnoreScanId[scanId]
 	if ignore {
@@ -215,7 +217,9 @@ func (trans *Translator) GetScans() (scans []Scan, err error) {
 
 	return scans, nil
 }
+
 func (trans *Translator) GetScan(scanId string) (scan Scan, err error) {
+
 	var memcacheKey = "translator:GetScan:" + scanId
 
 	item := trans.Memcache.Get(memcacheKey)

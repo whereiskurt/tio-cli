@@ -69,10 +69,10 @@ type ScanDetailVulnerabilities struct {
 	Severity json.Number `json:"severity"`
 }
 type ScanDetailHistory struct {
+	HistoryId        json.Number `json:"history_id"`
 	UUID             string      `json:"uuid"`
 	ScanType         string      `json:"type"`
 	Status           string      `json:"status"`
-	HistoryId        json.Number `json:"history_id"`
 	LastModifiedDate json.Number `json:"last_modification_date"`
 	CreationDate     json.Number `json:"creation_date"`
 }

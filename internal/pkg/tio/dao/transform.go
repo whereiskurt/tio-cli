@@ -15,12 +15,12 @@ func (trans *Translator) fromScanList(scanList tenable.ScanList) []Scan {
 	var scans []Scan
 
 	for _, s := range scanList.Scans {
-		scanId := string(s.Id)
 
-		if trans.ShouldSkipScanId(scanId) {
+		if trans.ShouldSkipScanId(string(s.Id)) {
 			continue
 		}
 
+		scanId := string(s.Id)
 		scan := new(Scan)
 		scan.ScanId = scanId
 		scan.UUID = s.UUID
@@ -87,7 +87,7 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 			trans.Errorf("%s", err)
 			return record, err
 		}
-
+		
 		hist.HistoryId = fmt.Sprintf("%v", histDetails.History[i].HistoryId)
 		hist.HostCount = fmt.Sprintf("%v", len(histDetails.Hosts))
 		hist.LastModifiedDate = string(histDetails.History[i].LastModifiedDate)
