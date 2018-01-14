@@ -145,7 +145,7 @@ func (portal *PortalCache) PortalCachePurge(cacheFilename string) (err error) {
 
 func (portal *PortalCache) PortalCacheSet(cacheFilename string, store []byte) error {
 	if portal.UseCryptoCache {
-		encDat, err := util.Encrypt(store, portal.CacheKeyBytes)
+		encDat, err := obfu.Encrypt(store, portal.CacheKeyBytes)
 		if err != nil {
 			return err
 		}
@@ -165,7 +165,7 @@ func (portal *PortalCache) PortalCacheGet(cacheFilename string) ([]byte, error) 
 		return dat, nil
 	}
 
-	decDat, decErr := util.Decrypt(dat, portal.CacheKeyBytes)
+	decDat, decErr := obfu.Decrypt(dat, portal.CacheKeyBytes)
 	if decErr != nil {
 		portal.Log.Errorf("Cache: Failed to decrypt: %s", decErr)
 		return nil, decErr

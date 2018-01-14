@@ -1,4 +1,4 @@
-package util
+package obfu
 
 import (
 	"fmt"
@@ -13,9 +13,9 @@ import (
 var src = rand.NewSource(1)
 var r *rand.Rand = rand.New(src)
 
-var aoff = 0
-var woff = 0
-var fqdnoff = 0
+var aoff = 1
+var woff = 1
+var fqdnoff = 1
 
 var animalP []int = nil
 var namesP []int = nil
@@ -35,9 +35,9 @@ func init() {
 	return
 }
 
-func Animal() string {
+func Animal() (animal string) {
 	aoff = aoff + 1
-	animal := animals[animalP[aoff%len(animalP)]]
+	animal = animals[animalP[aoff%len(animalP)]]
 	return animal
 }
 
@@ -60,9 +60,9 @@ func Hostname(fqdn string) (hostname string) {
 	return hostname
 }
 
-func PopularEnglishAnimalPhrase() string {
-	randAnimalPhrase := fmt.Sprintf("%v %v %v %v", Animal(), Animal(), strings.Title(Word()), Animal())
-	return randAnimalPhrase
+func PopularEnglishAnimalPhrase() (phase string) {
+	phase = fmt.Sprintf("%v %v %v %v", Animal(), Animal(), strings.Title(Word()), Animal())
+	return phase
 }
 
 func FakeIpv4() string {

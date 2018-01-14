@@ -49,8 +49,7 @@ func (trans *Translator) getTenableHostDetail(scanId string, hostId string, hist
 
 
   if trans.Anonymizer != nil {
-    trans.Warnf("Anonymizing tenable.HostDetail...")
-    trans.Anonymizer.AnonymizeHostDetail(scanId, historyId, hd)
+    trans.Anonymizer.AnonymizeHostDetail(scanId, historyId, &hd)
     backToRaw, err := json.Marshal(hd)
 
     if err != nil {
@@ -144,11 +143,10 @@ func (trans *Translator) getTenableScanList() (retScanList tenable.ScanList, err
 	}
 
 	if trans.Anonymizer != nil {
-		trans.Anonymizer.AnonymizeScanList(retScanList)
+		trans.Anonymizer.AnonymizeScanList(&retScanList)
 
 		backToRaw, err := json.Marshal(retScanList)
 		if err == nil {
-			trans.Warnf("Anonymized written back to: %s", cacheFilename)
 			trans.PortalCache.PortalCacheSet(cacheFilename, backToRaw)
 		} 		
 	}
@@ -203,7 +201,7 @@ func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (
 	})
 
 	if trans.Anonymizer != nil {
-		trans.Anonymizer.AnonymizeScanDetail(scanDetail)
+		trans.Anonymizer.AnonymizeScanDetail(scanId, &scanDetail)
 		backToRaw, err := json.Marshal(scanDetail)
 		if err == nil {
 			scanId = trans.Anonymizer.AnonScanId(scanId)
@@ -261,29 +259,6 @@ func (trans *Translator) getTenableHistoryId(scanId string, previousOffset int) 
 		return retHistoryId, err
 	}
 
-
-	if trans.Anonymizer != nil {
-		trans.Anonymizer.AnonymizeScanDetail(scanDetail)
-
-		backToRaw, err := json.Marshal(scanDetail)
-		if err == nil {
-			trans.PortalCache.PortalCacheSet(cacheFilename, backToRaw)
-
-			scanId = trans.Anonymizer.AnonScanId(scanId)
-			portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId 
-			newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
-			trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
-
-      err = os.Remove(cacheFilename)
-      if err == nil {
-        folder := path.Dir(cacheFilename)
-        err = os.Remove(folder)
-      }
-
-		} 		
-	}
-
-
 	if len(scanDetail.History) == 0 {
 		err := errors.New(fmt.Sprintf("No scan history for scan %s offset %d", scanId, previousOffset))
 		return retHistoryId, err
@@ -307,6 +282,26 @@ func (trans *Translator) getTenableHistoryId(scanId string, previousOffset int) 
 		}
 		return iv > jv
 	})
+
+
+  if trans.Anonymizer != nil {
+    trans.Anonymizer.AnonymizeScanDetail(scanId, &scanDetail)
+
+    backToRaw, err := json.Marshal(scanDetail)
+    if err == nil {
+      trans.PortalCache.PortalCacheSet(cacheFilename, backToRaw)
+
+      scanId = trans.Anonymizer.AnonScanId(scanId)
+      portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId 
+      newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
+      trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
+
+      os.Remove(cacheFilename)
+      folder := path.Dir(cacheFilename)
+      os.Remove(folder)
+      
+    }     
+  }
 
 	retHistoryId = string(scanDetail.History[previousOffset].HistoryId)
 

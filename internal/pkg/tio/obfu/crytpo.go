@@ -1,4 +1,4 @@
-package util
+package obfu
 
 import (
     "crypto/aes"

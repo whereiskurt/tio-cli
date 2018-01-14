@@ -214,11 +214,17 @@ func (trans *Translator) fromHostDetailSummary(hsd HostScanDetailSummary, hd ten
 }
 
 func (trans *Translator) fromNoTZ(dts string, setTZ string) (withTZ string, unix time.Time, err error) {
-	unix, err = time.Parse(TM_FORMAT_NOTZ, dts)
-	if err != nil {
-		trans.Warnf("Couldn't parse time.ANSIC for '%v' as integer.", dts)
-		return withTZ, unix, err
-	}
+
+  dtsInt, err := strconv.ParseInt(dts, 10, 64)
+  if err == nil {
+    unix = time.Unix(dtsInt, 0)
+  } else {
+  	unix, err = time.Parse(TM_FORMAT_NOTZ, dts)
+  	if err != nil {
+  		trans.Warnf("Couldn't parse time.ANSIC for '%v' as integer.", dts)    
+  		return withTZ, unix, err
+  	}
+  }
 
 	//Render UNIX time (which is UTC 0) and add timezone from scanner.
 	//The scanner captured the UNIX time, without a TZ.

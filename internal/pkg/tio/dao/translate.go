@@ -30,7 +30,7 @@ type Translator struct {
 	IgnoreAssetId    map[string]bool
 	IncludeAssetId   map[string]bool
 
-	Anonymizer *Anonymizer
+	Anonymizer *Anonymizer 
 
 	Debug func(string)
 	Info  func(string)
@@ -59,7 +59,8 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 	t.Workers["plugin"] = new(sync.WaitGroup)
 
 	t.Stats = tio.NewStatistics()
-
+	t.Anonymizer = nil
+	
 	t.Debug = config.Base.Logger.Debug
 	t.Debugf = config.Base.Logger.Debugf
 	t.Info = config.Base.Logger.Info
