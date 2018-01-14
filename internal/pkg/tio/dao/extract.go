@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio/api/tenable"
   "sort"
-  "os"
-	"path"
 	"strconv"
 	"time"
 )
@@ -30,7 +28,7 @@ func (trans *Translator) getTenableHostDetail(scanId string, hostId string, hist
 		return hd, nil
 	}
 
-	raw, cacheFilename, err := trans.PortalCache.Get(portalUrl)
+	raw, _, err := trans.PortalCache.Get(portalUrl)
 	if err != nil {
 		trans.Warnf("Couldn't HTTP GET tenable.HostDetails for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
 		return hd, err
@@ -64,20 +62,16 @@ func (trans *Translator) getTenableHostDetail(scanId string, hostId string, hist
       newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
       trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
 
-      err = os.Remove(cacheFilename)
-      if err == nil {
-        folder := path.Dir(cacheFilename)
-        err = os.Remove(folder)
-       
-        parent := path.Dir(folder)
-        err = os.Remove(parent)
-        
-        parent = path.Dir(parent)
-        err = os.Remove(parent)
+      // err = os.Remove(cacheFilename)
+      // folder := path.Dir(cacheFilename)
+      // os.Remove(folder)
+      // parent := path.Dir(folder)
+      // os.Remove(parent)
+      // parent = path.Dir(parent)
+      // os.Remove(parent)
+      // parent = path.Dir(parent)
+      // os.Remove(parent)
 
-        parent = path.Dir(parent)
-        err = os.Remove(parent)
-      }
     }
   }
 
@@ -177,7 +171,7 @@ func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (
 		return scanDetail, nil
 	}
 
-	raw, cacheFilename, err := trans.PortalCache.Get(portalUrl)
+	raw, _, err := trans.PortalCache.Get(portalUrl)
 	if err != nil {
 		trans.Warnf("Couldn't get tenable.ScanDetail from PortalCache: %s", err)
 		return scanDetail, err
@@ -210,13 +204,11 @@ func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (
 			newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
 			trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
 
-			err = os.Remove(cacheFilename)
-			if err == nil {
-				folder := path.Dir(cacheFilename)
-        err = os.Remove(folder)
-        parent := path.Dir(folder)
-        err = os.Remove(parent)
-			}
+			//os.Remove(cacheFilename)
+			//folder := path.Dir(cacheFilename)
+      //os.Remove(folder)
+      //parent := path.Dir(folder)
+      //os.Remove(parent)
 
 		} 		
 	}
@@ -296,9 +288,9 @@ func (trans *Translator) getTenableHistoryId(scanId string, previousOffset int) 
       newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
       trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
 
-      os.Remove(cacheFilename)
-      folder := path.Dir(cacheFilename)
-      os.Remove(folder)
+      //os.Remove(cacheFilename)
+      //folder := path.Dir(cacheFilename)
+      //os.Remove(folder)
       
     }     
   }

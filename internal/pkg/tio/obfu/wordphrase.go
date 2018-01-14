@@ -49,7 +49,7 @@ func Word() (word string)  {
 
 func Hostname(fqdn string) (hostname string) {
 	fqdnoff = fqdnoff + 1
-	hostnum := fqdnoff / len(animals)
+	hostnum := (fqdnoff / len(animals))+1
 
 	animal := Animal()
 	animal = strings.Replace(animal, ",", "", -1)
