@@ -42,7 +42,7 @@ func NewAnonymizer(config *tio.VulnerabilityConfig) (a *Anonymizer) {
 
   a.RemappedId = make(map[string]map[string]string)
 
-  a.CountScanId = 696968
+  a.CountScanId = 0
   a.CountHistoryId = 0
   a.CountHostId = 0
 
@@ -57,9 +57,34 @@ func NewAnonymizer(config *tio.VulnerabilityConfig) (a *Anonymizer) {
 	return a
 }
 
+func (a *Anonymizer) AnonHostId(scan string, historyId string, hostId string) (value string) {
+  value, ok := a.RemappedId["hostId.real"][hostId]
+  if ok {
+    return value
+  } 
+  a.CountHostId = a.CountHostId + 1
+  value = fmt.Sprintf("%d", a.CountHostId)
+  a.RemappedId["hostId.real"][hostId]  = value
+  a.RemappedId["hostId.obfu"][value]  = hostId
+  return value
+}
+func (a *Anonymizer) DeAnonHostId(scan string, historyId string, hostId string) (value string) {
+  value, ok := a.RemappedId["hostId.obfu"][hostId]
+  if !ok {
+    return hostId
+  }
+  return value
+}
+
 func (a *Anonymizer) AnonScanId(key string) (value string) {
+  value, ok := a.RemappedId["scanId.real"][key]
+  if ok {
+    return value
+  } 
+
   a.CountScanId = a.CountScanId + 1
   value = fmt.Sprintf("%d", a.CountScanId)
+  //value = fmt.Sprintf("%s", key)
   a.RemappedId["scanId.real"][key]  = value
   a.RemappedId["scanId.obfu"][value]  = key
   return value
@@ -88,11 +113,9 @@ func (a *Anonymizer) AnonHistoryId(key string) (value string) {
 
   return value
 }
-
 func (a *Anonymizer) DeAnonHistoryId(key string) (value string) {
   value, ok := a.RemappedId["historyId.obfu"][key]
   if !ok {
-    a.Warnf("Failed lookup for: %v", key)
     return key
   }
   return value
@@ -107,13 +130,34 @@ func (a *Anonymizer) AnonymizeScanList(scans tenable.ScanList) {
 }
 
 func (a *Anonymizer) AnonymizeScanDetail(sd tenable.ScanDetail) {
+  scanId := fmt.Sprintf("%v", sd.Info.Id)
+  sd.Info.Id = json.Number(a.AnonScanId(scanId))
 
-  sd.Info.Id = json.Number(a.AnonScanId(string(sd.Info.Id)))
   for i, _ := range sd.History {
-    historyId := fmt.Sprintf("%v", sd.History[i].HistoryId)
-    sd.History[i].HistoryId = json.Number( a.AnonHistoryId( historyId ))
-    a.Errorf("History id overwritten: %v with %v", historyId, sd.History[i].HistoryId )
+    hid := fmt.Sprintf("%v", sd.History[i].HistoryId)
+    sd.History[i].HistoryId = json.Number( a.AnonHistoryId( hid ))
   }
 
+  var historyId string
+  if len(sd.History) > 0 {
+    historyId = string(sd.History[0].HistoryId)
+  }
+  for i, _ := range sd.Hosts {
+    hostId := fmt.Sprintf("%v", sd.Hosts[i].Id)
+    sd.Hosts[i].Id = json.Number( a.AnonHostId(scanId, historyId, hostId ))
+  }
+
+  return
+}
+
+func (a *Anonymizer) AnonymizeHostDetail(scanId string, historyId string, hd tenable.HostDetail) {
+  for i, _ := range hd.Vulnerabilities {
+    hostId := fmt.Sprintf("%v", hd.Vulnerabilities[i].HostId)
+    hd.Vulnerabilities[i].HostId = json.Number( a.AnonHostId(scanId, historyId, hostId ))
+  }
+  //hd.Info.HostIP = "192.168.0.1"
+  //hd.Hosts[i].HostIP = "192.168.0.1"
+  //hd.Hosts[i].NetBIOS = "192.168.0.1"
+  //hd.Hosts[i].FQDN = "192.168.0.1"
   return
 }

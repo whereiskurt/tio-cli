@@ -4,6 +4,8 @@ package tenable
 
 import (
 	"encoding/json"
+  "fmt"
+  "time"
 )
 
 //https://cloud.tenable.com/api#/resources/scans/
@@ -85,14 +87,42 @@ type HostDetail struct {
 	Vulnerabilities []HostDetailVulnerabilities
 }
 type HostDetailInfo struct {
-	HostStart       json.Number `json:"host_start"` //becoming a number
-	HostEnd         json.Number `json:"host_end"`   //becoming a number
-	OperatingSystem []string    `json:"operating-system"` //becoming an array
-	MACAddress      string      `json:"mac-address"`
-	FQDN            string      `json:"host-fqdn"`
-	NetBIOS         string      `json:"netbios-name"`
-	HostIP          string      `json:"host-ip"`
+  HostStart       json.Number `json:"host_start"` //becoming a number
+  HostEnd         json.Number `json:"host_end"`   //becoming a number
+  OperatingSystem []string    `json:"operating-system"` //becoming an array
+  MACAddress      string      `json:"mac-address"`
+  FQDN            string      `json:"host-fqdn"`
+  NetBIOS         string      `json:"netbios-name"`
+  HostIP          string      `json:"host-ip"`
 }
+
+//NOTE: This is needed for Marshal'ing back un-modified HotDetail object.
+//      I think there is some type confusion where it treats the json.Numbers
+//      as Date Strings... not sure what's up or why this is necessary entirely.
+//
+//
+func (hdi HostDetailInfo) MarshalJSON() ([]byte, error) {
+  var TM_FORMAT_NOTZ = "Mon Jan _2 15:04:05 2006"
+
+  type Alias HostDetailInfo 
+
+  stm, _ := time.Parse(TM_FORMAT_NOTZ, fmt.Sprintf("%s", hdi.HostStart))
+  etm, _ := time.Parse(TM_FORMAT_NOTZ, fmt.Sprintf("%s", hdi.HostEnd))
+
+  start := json.Number(fmt.Sprintf("%d", stm.Unix()))
+  end := json.Number(fmt.Sprintf("%d", etm.Unix()))
+
+  return json.Marshal(&struct {
+    HostStart json.Number `json:"host_start"` //becoming a number
+    HostEnd   json.Number `json:"host_end"`   //becoming a number
+    Alias
+  }{
+    HostStart: json.Number(start),
+    HostEnd:   json.Number(end),
+    Alias:     (Alias)(hdi),
+  })
+}
+
 
 type HostDetailLegacyV2 struct {
 	Info            HostDetailInfoLegacyV2

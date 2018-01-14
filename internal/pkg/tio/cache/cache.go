@@ -9,6 +9,7 @@ import (
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio/obfu"
 	"io/ioutil"
 	"os"
+	"path"
 	"regexp"
 )
 
@@ -132,6 +133,16 @@ func (portal *PortalCache) PortalCacheFilename(url string) (filename string, err
 
 	return filename, err
 }
+func (portal *PortalCache) PortalCachePurge(cacheFilename string) (err error) {
+	err = os.Remove(cacheFilename)
+	if err == nil {
+		folder := path.Dir(cacheFilename)
+		portal.Log.Errorf("Removing: %s and folder %s", cacheFilename,folder)
+		err = os.Remove(folder)
+	}
+	return err
+}
+
 func (portal *PortalCache) PortalCacheSet(cacheFilename string, store []byte) error {
 	if portal.UseCryptoCache {
 		encDat, err := util.Encrypt(store, portal.CacheKeyBytes)

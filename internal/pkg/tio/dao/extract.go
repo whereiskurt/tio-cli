@@ -5,12 +5,22 @@ import (
 	"errors"
 	"fmt"
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio/api/tenable"
-	"sort"
+  "sort"
+  "os"
+	"path"
 	"strconv"
 	"time"
 )
 
+
 func (trans *Translator) getTenableHostDetail(scanId string, hostId string, historyId string) (hd tenable.HostDetail, err error) {
+
+  if trans.Anonymizer != nil {
+    scanId = trans.Anonymizer.DeAnonScanId(scanId)
+    historyId = trans.Anonymizer.DeAnonHistoryId(historyId)
+    hostId = trans.Anonymizer.DeAnonHostId(scanId, historyId, hostId)
+  }
+
 	var portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId + "/hosts/" + hostId + "?history_id=" + string(historyId)
 
 	var memcacheKey = portalUrl
@@ -20,27 +30,64 @@ func (trans *Translator) getTenableHostDetail(scanId string, hostId string, hist
 		return hd, nil
 	}
 
-	raw, _, err := trans.PortalCache.Get(portalUrl)
+	raw, cacheFilename, err := trans.PortalCache.Get(portalUrl)
 	if err != nil {
 		trans.Warnf("Couldn't HTTP GET tenable.HostDetails for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
 		return hd, err
 	}
 	err = json.Unmarshal([]byte(string(raw)), &hd)
-	if err != nil {
+  if err != nil {
+    trans.Warnf("Legacy unmarshall for tenable.HostDetail...")
 
-		hd, err := trans.getTenableHostDetailPastVersion(scanId, hostId, historyId, raw)
+    hd, err := trans.marshalTenableHostDetailOld(scanId, hostId, historyId, raw)
 
-		if err != nil {
-			trans.Warnf("Failed to unmarshal Legacy tenable.HostDetail for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
-			return hd, err
-		}
+    if err != nil {
+      trans.Warnf("Failed to unmarshal Legacy tenable.HostDetail for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
+      return hd, err
+    }
+  }
 
-	}
+
+  if trans.Anonymizer != nil {
+    trans.Warnf("Anonymizing tenable.HostDetail...")
+    trans.Anonymizer.AnonymizeHostDetail(scanId, historyId, hd)
+    backToRaw, err := json.Marshal(hd)
+
+    if err != nil {
+      trans.Warnf("FAILED TO marshal back anonymized tenable.HostDetail: %s", err)
+    } else {
+      scanId = trans.Anonymizer.AnonScanId(scanId)
+      historyId = trans.Anonymizer.AnonHistoryId(historyId)
+      hostId = trans.Anonymizer.AnonHostId(scanId, historyId, hostId)
+
+      portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId + "/hosts/" + hostId + "?history_id=" + string(historyId)
+      
+      newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
+      trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
+
+      err = os.Remove(cacheFilename)
+      if err == nil {
+        folder := path.Dir(cacheFilename)
+        err = os.Remove(folder)
+       
+        parent := path.Dir(folder)
+        err = os.Remove(parent)
+        
+        parent = path.Dir(parent)
+        err = os.Remove(parent)
+
+        parent = path.Dir(parent)
+        err = os.Remove(parent)
+      }
+    }
+  }
+
+
 	trans.Memcache.Set(memcacheKey, hd, time.Minute*60)
 
 	return hd, nil
 }
-func (trans *Translator) getTenableHostDetailPastVersion(scanId string, hostId string, historyId string, raw []byte) (hd tenable.HostDetail, err error) {
+func (trans *Translator) marshalTenableHostDetailOld(scanId string, hostId string, historyId string, raw []byte) (hd tenable.HostDetail, err error) {
 	var legacy tenable.HostDetailLegacyV2
 	err = json.Unmarshal([]byte(string(raw)), &legacy)
 	if err != nil {
@@ -114,7 +161,6 @@ func (trans *Translator) getTenableScanList() (retScanList tenable.ScanList, err
 
 func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (scanDetail tenable.ScanDetail, err error) {
 
-
 	if trans.Anonymizer != nil {
 		scanId = trans.Anonymizer.DeAnonScanId(scanId)
 		historyId = trans.Anonymizer.DeAnonHistoryId(historyId)
@@ -143,14 +189,6 @@ func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (
 		trans.Warnf("Couldn't unmarshal tenable.ScanList: %s", err)
 	}
 
-	if trans.Anonymizer != nil {
-		trans.Anonymizer.AnonymizeScanDetail(scanDetail)
-		backToRaw, err := json.Marshal(scanDetail)
-		if err == nil {
-			trans.PortalCache.PortalCacheSet(cacheFilename, backToRaw)
-		} 		
-	}
-
 	//Sort histories by creation date DESC, to get offset history_id
 	sort.Slice(scanDetail.History, func(i, j int) bool {
 		iv, iverr := strconv.ParseInt(string(scanDetail.History[i].CreationDate), 10, 64)
@@ -163,6 +201,27 @@ func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (
 		}
 		return iv > jv
 	})
+
+	if trans.Anonymizer != nil {
+		trans.Anonymizer.AnonymizeScanDetail(scanDetail)
+		backToRaw, err := json.Marshal(scanDetail)
+		if err == nil {
+			scanId = trans.Anonymizer.AnonScanId(scanId)
+			historyId = trans.Anonymizer.AnonHistoryId(historyId)
+			portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId + "?history_id=" + historyId
+			newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
+			trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
+
+			err = os.Remove(cacheFilename)
+			if err == nil {
+				folder := path.Dir(cacheFilename)
+        err = os.Remove(folder)
+        parent := path.Dir(folder)
+        err = os.Remove(parent)
+			}
+
+		} 		
+	}
 
 	return scanDetail, nil
 }
@@ -208,8 +267,19 @@ func (trans *Translator) getTenableHistoryId(scanId string, previousOffset int) 
 
 		backToRaw, err := json.Marshal(scanDetail)
 		if err == nil {
-			trans.Warnf("Anonymized written back to: %s", cacheFilename)
 			trans.PortalCache.PortalCacheSet(cacheFilename, backToRaw)
+
+			scanId = trans.Anonymizer.AnonScanId(scanId)
+			portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId 
+			newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
+			trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
+
+      err = os.Remove(cacheFilename)
+      if err == nil {
+        folder := path.Dir(cacheFilename)
+        err = os.Remove(folder)
+      }
+
 		} 		
 	}
 
@@ -239,8 +309,6 @@ func (trans *Translator) getTenableHistoryId(scanId string, previousOffset int) 
 	})
 
 	retHistoryId = string(scanDetail.History[previousOffset].HistoryId)
-
-	trans.Errorf("Returning rethistoryID: %v", retHistoryId)
 
 	trans.Memcache.Set(memcacheKey, retHistoryId, time.Minute*60)
 	return retHistoryId, nil
