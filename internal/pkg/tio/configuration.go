@@ -65,7 +65,6 @@ func (config *BaseConfig) GetStatistics() map[string]*map[string]interface{} {
 
 type VulnerabilityConfig struct {
 	Base            *BaseConfig
-	Current         bool
 	Previous        string
 	Depth           string
 	DetailView      bool

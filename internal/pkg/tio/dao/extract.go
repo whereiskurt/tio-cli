@@ -62,16 +62,6 @@ func (trans *Translator) getTenableHostDetail(scanId string, hostId string, hist
       newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
       trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
 
-      // err = os.Remove(cacheFilename)
-      // folder := path.Dir(cacheFilename)
-      // os.Remove(folder)
-      // parent := path.Dir(folder)
-      // os.Remove(parent)
-      // parent = path.Dir(parent)
-      // os.Remove(parent)
-      // parent = path.Dir(parent)
-      // os.Remove(parent)
-
     }
   }
 
@@ -203,13 +193,6 @@ func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (
 			portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId + "?history_id=" + historyId
 			newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
 			trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
-
-			//os.Remove(cacheFilename)
-			//folder := path.Dir(cacheFilename)
-      //os.Remove(folder)
-      //parent := path.Dir(folder)
-      //os.Remove(parent)
-
 		} 		
 	}
 
@@ -287,11 +270,6 @@ func (trans *Translator) getTenableHistoryId(scanId string, previousOffset int) 
       portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId 
       newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
       trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
-
-      //os.Remove(cacheFilename)
-      //folder := path.Dir(cacheFilename)
-      //os.Remove(folder)
-      
     }     
   }
 

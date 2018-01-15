@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio/api/tenable"
 	"strconv"
-	"strings"
+  "strings"
+	"sort"
 	"time"
 )
 
@@ -172,10 +173,53 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 			hist.HostPlugin[string(vuln.PluginId)] = retPlugin
 		}
 
+    //Sort!
+ 		//histDetails.Vulnerabilities
+    //histDetails.Hosts
+
+
 		record.ScanHistoryDetails = append(record.ScanHistoryDetails, *hist)
 	}
 
 	return record, nil
+}
+
+func (trans *Translator) sortScanHistoryDetail(rec * ScanHistoryDetail) (hostKeys []string, pluginKeys[]string, err error) {
+  for k := range rec.Host {
+    hostKeys = append(hostKeys, k)
+  }
+
+  sort.Slice(hostKeys, func(i, j int) bool {
+    var iv, jv int64
+    ikey := hostKeys[i]
+    jkey := hostKeys[j]
+
+    iv, _ = strconv.ParseInt(string(rec.Host[ikey].PluginCriticalCount), 10, 64)
+    jv, _ = strconv.ParseInt(string(rec.Host[jkey].PluginCriticalCount), 10, 64)
+
+    if iv == jv { //If they are equal, HIGH
+      iv, _ = strconv.ParseInt(string(rec.Host[ikey].PluginHighCount), 10, 64)
+      jv, _ = strconv.ParseInt(string(rec.Host[jkey].PluginHighCount), 10, 64)  
+
+      if iv == jv { //If they are equal, MED
+        iv, _ = strconv.ParseInt(string(rec.Host[ikey].PluginMediumCount), 10, 64)
+        jv, _ = strconv.ParseInt(string(rec.Host[jkey].PluginMediumCount), 10, 64)  
+
+        if iv == jv { ////If they are equal, LOW
+          iv, _ = strconv.ParseInt(string(rec.Host[ikey].PluginLowCount), 10, 64)
+          jv, _ = strconv.ParseInt(string(rec.Host[jkey].PluginLowCount), 10, 64)  
+        }
+      } 
+    }
+    return iv > jv
+  })
+
+
+  for k := range rec.HostPlugin {
+    pluginKeys = append(pluginKeys, k)
+  }
+
+  return hostKeys, pluginKeys, err
 }
 
 func (trans *Translator) fromHostDetailSummary(hsd HostScanDetailSummary, hd tenable.HostDetail) (host HostScanDetail, err error) {
@@ -209,6 +253,7 @@ func (trans *Translator) fromHostDetailSummary(hsd HostScanDetailSummary, hd ten
 		p.Severity = string(v.Severity)
 		host.Plugin[p.PluginId] = p
 	}
+
 
 	return host, nil
 }

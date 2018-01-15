@@ -200,10 +200,15 @@ func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail) {
 	data := [][]string{}
 
 	for _, h := range r.Host {
-		name := strings.Join([]string{h.HostDetail.FQDN, h.HostDetail.NetBIOS}, " ")
+
+		name := h.HostDetail.FQDN
+		if name != h.HostDetail.NetBIOS {
+			name = strings.Join([]string{h.HostDetail.FQDN, h.HostDetail.NetBIOS}, " ")
+		}
 		if name == " " {
 			name = "[UNKNOWN]"
 		}
+
 		if len(h.HostDetail.OperatingSystems) > 30 {
 			h.HostDetail.OperatingSystems = h.HostDetail.OperatingSystems[:30]
 		}
@@ -227,8 +232,8 @@ func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail) {
 			vulnStr = "-"
 		}
 		data = append(data, []string{h.HostId, h.HostDetail.IP, name, vulnStr, os})
-
 	}
+  
 	if len(data) > 0 {
 		table.AppendBulk(data)
 		table.Render()

@@ -1,12 +1,12 @@
-package dao
+package tenable
 
 import (
   "encoding/json"
   "github.com/whereiskurt/tio-cli/internal/pkg/tio"
   "github.com/whereiskurt/tio-cli/internal/pkg/tio/obfu"
-  "github.com/whereiskurt/tio-cli/internal/pkg/tio/api/tenable"
   "sync"
   "fmt"
+  "math/rand"
 )
 
 type Anonymizer struct {
@@ -90,7 +90,6 @@ func (a *Anonymizer) AnonScanId(key string) (value string) {
   a.RemappedId["scanId.obfu"][value]  = key
   return value
 }
-
 func (a *Anonymizer) DeAnonScanId(key string) (value string) {
   value, ok := a.RemappedId["scanId.obfu"][key]
   if !ok {
@@ -123,7 +122,7 @@ func (a *Anonymizer) DeAnonHistoryId(key string) (value string) {
 }
 
 
-func (a *Anonymizer) AnonymizeScanList(scans * tenable.ScanList) {
+func (a *Anonymizer) AnonymizeScanList(scans * ScanList) {
   for i, _ := range scans.Scans  {
     scans.Scans[i].Id = json.Number(a.AnonScanId(string(scans.Scans[i].Id)))
     scans.Scans[i].Name = obfu.PopularEnglishAnimalPhrase()
@@ -132,41 +131,54 @@ func (a *Anonymizer) AnonymizeScanList(scans * tenable.ScanList) {
   return
 }
 
-func (a *Anonymizer) AnonymizeScanDetail(scanId string, sd * tenable.ScanDetail) {
-  //scanId := fmt.Sprintf("%v", sd.Info.Id)
+func (a *Anonymizer) AnonymizeScanDetail(scanId string, sd * ScanDetail) {
   sd.Info.Id = json.Number(a.AnonScanId(scanId))
-
-  //sd.Info.Id = json.Number(a.AnonScanId(scanId))
-
-  for i, _ := range sd.History {
-    historyId := fmt.Sprintf("%v", sd.History[i].HistoryId)
-    sd.History[i].HistoryId = json.Number( a.AnonHistoryId( historyId ))
-  }
 
   if len(sd.History) == 0 {
     return
+  }
+  for i, _ := range sd.History {
+    historyId := fmt.Sprintf("%v", sd.History[i].HistoryId)
+    sd.History[i].HistoryId = json.Number( a.AnonHistoryId( historyId ))
   }
 
   historyId := string(sd.History[0].HistoryId)
   for i, _ := range sd.Hosts {
     hostId := fmt.Sprintf("%v", sd.Hosts[i].Id)
     sd.Hosts[i].Id = json.Number( a.AnonHostId(scanId, historyId, hostId ))
-    sd.Hosts[i].HostIP = obfu.FakeIpv4()
-    
+
+    crit:=rand.Intn(50)
+    high:=rand.Intn(50)
+    med:=rand.Intn(50)
+    low:=rand.Intn(50)
+
+    sd.Hosts[i].SeverityCritical = json.Number(fmt.Sprintf("%d",crit))
+    sd.Hosts[i].SeverityHigh = json.Number(fmt.Sprintf("%d",high))
+    sd.Hosts[i].SeverityMedium = json.Number(fmt.Sprintf("%d",med))
+    sd.Hosts[i].SeverityLow = json.Number(fmt.Sprintf("%d",low))
+
+    sd.Hosts[i].SeverityTotal = json.Number(json.Number(fmt.Sprintf("%s",crit+high+med+low)))
+  }
+
+  for i, _ := range sd.Vulnerabilities {
+    sd.Vulnerabilities[i].Count = json.Number(fmt.Sprintf("%d", rand.Intn(200) )) 
   }
 
   return
 }
 
-func (a *Anonymizer) AnonymizeHostDetail(scanId string, historyId string, hd * tenable.HostDetail) {
+func (a *Anonymizer) AnonymizeHostDetail(scanId string, historyId string, hd * HostDetail) {
   for i, _ := range hd.Vulnerabilities {
     hostId := fmt.Sprintf("%v", hd.Vulnerabilities[i].HostId)
     hd.Vulnerabilities[i].HostId = json.Number( a.AnonHostId(scanId, historyId, hostId ))
+    hd.Vulnerabilities[i].Count = json.Number(fmt.Sprintf("%d", rand.Intn(50) )) 
   }
   
   hd.Info.FQDN = obfu.Hostname("example.com")
   hd.Info.NetBIOS = hd.Info.FQDN
   hd.Info.HostIP = obfu.FakeIpv4()
-
+  if len(hd.Info.OperatingSystem) == 0 {
+    hd.Info.OperatingSystem = []string{"Windows 2020"}
+  }
   return
 }

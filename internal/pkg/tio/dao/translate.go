@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/karlseguin/ccache"
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio"
+	"github.com/whereiskurt/tio-cli/internal/pkg/tio/api/tenable"
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio/cache"
 	"strconv"
 	"strings"
@@ -30,7 +31,7 @@ type Translator struct {
 	IgnoreAssetId    map[string]bool
 	IncludeAssetId   map[string]bool
 
-	Anonymizer *Anonymizer 
+	Anonymizer *tenable.Anonymizer 
 
 	Debug func(string)
 	Info  func(string)
@@ -315,7 +316,7 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
 		}()
 	}
 
-	err = trans.GoGetScanDetails(chanScanDetails, concurrentWorkers)
+	err = trans.GoGetScanHistoryDetails(chanScanDetails, concurrentWorkers)
 
 	trans.Workers["host"].Wait()
 
@@ -340,7 +341,7 @@ func (trans *Translator) GetHostDetail(scan Scan, hsd HostScanDetailSummary, sca
 	return record, err
 }
 
-func (trans *Translator) GoGetScanDetails(out chan ScanHistory, concurrentWorkers int) (err error) {
+func (trans *Translator) GoGetScanHistoryDetails(out chan ScanHistory, concurrentWorkers int) (err error) {
 	var previousOffset, _ = strconv.Atoi(trans.Config.Previous)
 
 	var scansChan = make(chan Scan)
@@ -364,7 +365,7 @@ func (trans *Translator) GoGetScanDetails(out chan ScanHistory, concurrentWorker
 		trans.Workers["detail"].Add(1)
 		go func() {
 			for s := range scansChan {
-				record, err := trans.GetScanDetail(s.ScanId, previousOffset)
+				record, err := trans.GetScanHistory(s.ScanId, previousOffset)
 				if err == nil {
 					out <- record
 				}
@@ -376,18 +377,18 @@ func (trans *Translator) GoGetScanDetails(out chan ScanHistory, concurrentWorker
 
 	return nil
 }
-func (trans *Translator) GetScanDetail(scanId string, previousOffset int) (record ScanHistory, err error) {
-	trans.Stats.Count("GetScanDetail")
+func (trans *Translator) GetScanHistory(scanId string, previousOffset int) (record ScanHistory, err error) {
+	trans.Stats.Count("GetScanHistory")
 
 	historyId, err := trans.getTenableHistoryId(scanId, previousOffset)
 	if err != nil {
-		trans.Errorf("GetScanDetail: Cannot retrieve historyid for scanid '%s' at offset '%s': %s", scanId, previousOffset, err)
+		trans.Errorf("GetScanHistory: Cannot retrieve historyid for scanid '%s' at offset '%s': %s", scanId, previousOffset, err)
 		return record, err
 	}
 	scanDetail, err := trans.getTenableScanDetail(scanId, historyId)
 
 	if err != nil {
-		trans.Errorf("GetScanDetail: Cannot retrieve Tenable Scan Detail: id:%s, histid:%s, offset:%d - %s", scanId, historyId, previousOffset, err)
+		trans.Errorf("GetScanHistory: Cannot retrieve Tenable Scan Detail: id:%s, histid:%s, offset:%d - %s", scanId, historyId, previousOffset, err)
 		return record, err
 	}
 
