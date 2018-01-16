@@ -102,3 +102,75 @@ func (trans *Translator) SortScanHostKeys(rec * ScanHistoryDetail) (hostKeys []s
   })
   return hostKeys
 }
+
+func (trans *Translator) ShouldSkipScanId(scanId string) (skip bool) {
+  skip = false
+
+  if trans.Anonymizer != nil {
+    scanId = trans.Anonymizer.DeAnonScanId(scanId)
+  }
+
+  _, ignore := trans.IgnoreScanId[scanId]
+  if ignore {
+    skip = true
+  }
+
+  if len(trans.IncludeScanId) > 0 {
+    _, include := trans.IncludeScanId[scanId]
+    if !include {
+      skip = true
+    }
+  }
+  return skip
+}
+
+func (trans *Translator) ShouldSkipAssetId(AssetId string) (skip bool) {
+  skip = false
+
+  _, ignore := trans.IgnoreAssetId[AssetId]
+  if ignore {
+    skip = true
+  }
+
+  if len(trans.IncludeAssetId) > 0 {
+    _, include := trans.IncludeAssetId[AssetId]
+    if !include {
+      skip = true
+    }
+  }
+  return skip
+}
+
+func (trans *Translator) ShouldSkipPluginId(pluginId string) (skip bool) {
+  skip = false
+
+  _, ignore := trans.IgnorePluginId[pluginId]
+  if ignore {
+    skip = true
+  }
+
+  if len(trans.IncludePluginId) > 0 {
+    _, include := trans.IncludePluginId[pluginId]
+    if !include {
+      skip = true
+    }
+  }
+  return skip
+}
+
+func (trans *Translator) ShouldSkipHistoryId(historyId string) (skip bool) {
+  skip = false
+
+  _, ignore := trans.IgnoreHistoryId[historyId]
+  if ignore {
+    skip = true
+  }
+
+  if len(trans.IgnoreHistoryId) > 0 {
+    _, include := trans.IgnoreHistoryId[historyId]
+    if !include {
+      skip = true
+    }
+  }
+  return skip
+}
