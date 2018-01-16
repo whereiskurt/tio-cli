@@ -366,6 +366,7 @@ func (trans *Translator) GoGetScanHistoryDetails(out chan ScanHistory, concurren
 		go func() {
 			for s := range scansChan {
 				record, err := trans.GetScanHistory(s.ScanId, previousOffset)
+
 				if err == nil {
 					out <- record
 				}

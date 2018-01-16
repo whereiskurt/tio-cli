@@ -242,14 +242,18 @@ func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail) {
 	}
 }
 
-func (cli *CommandLineInterface) DrawScanVulnTable(rec dao.ScanHistoryDetail) {
+func (cli *CommandLineInterface) DrawScanVulnTable(rec dao.ScanHistoryDetail, vulnKeys []string) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"ID", "Name", "Family,", "SEV", "#"})
 	table.SetColumnAlignment([]int{tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
 	table.SetAutoWrapText(false)
 
 	data := [][]string{}
-	for _, p := range rec.HostPlugin {
+
+  for _,key := range vulnKeys {
+    p := rec.HostPlugin[key]
+ //  }
+	// for _, p := range rec.HostPlugin {
 		sev, _ := strconv.ParseInt(p.Severity, 10, 64)
 		var sevWord []string = []string{CINFO + "INFO" + RESET, CLOW + "LOW" + RESET, CMED + "MED" + RESET, CHIGH + "HIGH" + RESET, CCRIT + "CRIT" + RESET}
 		if len(p.Name) > 45 {

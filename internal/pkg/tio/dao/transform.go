@@ -72,6 +72,8 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 
 	for i := previousOffset; i < len(detail.History) && i < depth+previousOffset; i++ {
 		var hist = new(ScanHistoryDetail)
+    
+    hist.Scan = record.Scan
 
 		historyId, err := trans.getTenableHistoryId(scanId, i)
 		if err != nil {
@@ -184,7 +186,41 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 	return record, nil
 }
 
-func (trans *Translator) sortScanHistoryDetail(rec * ScanHistoryDetail) (hostKeys []string, pluginKeys[]string, err error) {
+func (trans *Translator) SortScanPluginKeys(rec * ScanHistoryDetail) (pluginKeys []string) {
+  for k := range rec.HostPlugin {
+    pluginKeys = append(pluginKeys, k)
+  }
+
+  sort.Slice(pluginKeys, func(i, j int) bool {
+    var iv, jv int64
+
+    ikey := pluginKeys[i]
+    jkey := pluginKeys[j]
+
+    iv, _ = strconv.ParseInt(string(rec.HostPlugin[ikey].Severity), 10, 64)
+    jv, _ = strconv.ParseInt(string(rec.HostPlugin[jkey].Severity), 10, 64)
+    
+    if iv == jv { //If they are equal, sort lexi by name (ASC)
+
+      iv, _ = strconv.ParseInt(string(rec.HostPlugin[ikey].Count), 10, 64)
+      jv, _ = strconv.ParseInt(string(rec.HostPlugin[jkey].Count), 10, 64)
+
+      if iv == jv { //If they are equal, sort lexi by name (ASC)
+
+        iv, _ = strconv.ParseInt(string(rec.HostPlugin[ikey].PluginId), 10, 64)
+        jv, _ = strconv.ParseInt(string(rec.HostPlugin[jkey].PluginId), 10, 64)
+
+      }
+    }
+
+    return iv > jv 
+  })
+
+
+  return pluginKeys
+}
+
+func (trans *Translator) SortScanHostKeys(rec * ScanHistoryDetail) (hostKeys []string) {
   for k := range rec.Host {
     hostKeys = append(hostKeys, k)
   }
@@ -213,13 +249,7 @@ func (trans *Translator) sortScanHistoryDetail(rec * ScanHistoryDetail) (hostKey
     }
     return iv > jv
   })
-
-
-  for k := range rec.HostPlugin {
-    pluginKeys = append(pluginKeys, k)
-  }
-
-  return hostKeys, pluginKeys, err
+  return hostKeys
 }
 
 func (trans *Translator) fromHostDetailSummary(hsd HostScanDetailSummary, hd tenable.HostDetail) (host HostScanDetail, err error) {
