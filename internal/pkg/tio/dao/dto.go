@@ -27,7 +27,7 @@ type ScanHistory struct {
 }
 
 type HostPluginExposure struct {
-  Host HostScanDetailSummary
+  Host HostScanSummary
   Plugin PluginDetailSummary
   FirstScan ScanHistoryDetail
   LastScan ScanHistoryDetail
@@ -59,12 +59,12 @@ type ScanHistoryDetail struct {
 	ScanEndUnix   string `json:"scanEndUnix"`
 	ScanDuration  string `json:"scanDuration"`
 
-	Host       map[string]HostScanDetailSummary `json:"hostMap"`
+	Host       map[string]HostScanSummary `json:"hostMap"`
 	HostPlugin map[string]PluginDetailSummary   `json:"hostPluginMap"`
 	HostCount  string                           `json:"hostCount"`
 }
 
-type HostScanDetailSummary struct {
+type HostScanSummary struct {
 	HostId              string `json:"hostId"`
 	ScanDetail ScanHistoryDetail
   HostDetail HostScanDetail  

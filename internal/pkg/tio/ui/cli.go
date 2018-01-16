@@ -188,7 +188,7 @@ func (cli *CommandLineInterface) DrawRunHistory(r dao.ScanHistory) {
 	table.Render()
 }
 
-func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail) {
+func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail, hostKeys []string) {
 	if len(r.Host) == 0 {
 		return
 	}
@@ -199,7 +199,8 @@ func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail) {
 
 	data := [][]string{}
 
-	for _, h := range r.Host {
+  for _, key := range hostKeys {
+    h := r.Host[key]
 
 		name := h.HostDetail.FQDN
 		if name != h.HostDetail.NetBIOS {
