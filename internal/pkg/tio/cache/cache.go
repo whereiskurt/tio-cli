@@ -9,7 +9,6 @@ import (
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio/obfu"
 	"io/ioutil"
 	"os"
-	"path"
 	"regexp"
 )
 
@@ -120,7 +119,7 @@ func (portal *PortalCache) PortalCacheFilename(url string) (filename string, err
 		return "", err
 	}
 
-	shaKey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, url)))
+	shaKey := sha256.Sum256([]byte(fmt.Sprintf("%s", portal.CacheKey)))
 	shaKeyHex := fmt.Sprintf("%x.dat", shaKey[:KEY_SIZE])
 
 	filename = portal.CacheFolder + folder + shaKeyHex
@@ -132,15 +131,6 @@ func (portal *PortalCache) PortalCacheFilename(url string) (filename string, err
 	}
 
 	return filename, err
-}
-func (portal *PortalCache) PortalCachePurge(cacheFilename string) (err error) {
-	err = os.Remove(cacheFilename)
-	if err == nil {
-		folder := path.Dir(cacheFilename)
-		portal.Log.Errorf("Removing: %s and folder %s", cacheFilename,folder)
-		err = os.Remove(folder)
-	}
-	return err
 }
 
 func (portal *PortalCache) PortalCacheSet(cacheFilename string, store []byte) error {

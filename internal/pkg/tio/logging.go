@@ -111,7 +111,7 @@ func (log *Logger) Debug(line string) {
 	if log.IsDebugLevel {
 
 		pc := make([]uintptr, 10) // at least 1 entry needed
-		runtime.Callers(2, pc)
+		runtime.Callers(3, pc)
 		f := runtime.FuncForPC(pc[0])
 		file, codeline := f.FileLine(pc[0])
 		v := fmt.Sprintf("%s\n%s:%d", line, file, codeline)

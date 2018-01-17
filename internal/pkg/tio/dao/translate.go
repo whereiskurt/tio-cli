@@ -311,7 +311,7 @@ func (trans *Translator) GetScanHistory(scanId string, previousOffset int) (reco
 
 	historyId, err := trans.getTenableHistoryId(scanId, previousOffset)
 	if err != nil {
-		trans.Errorf("GetScanHistory: Cannot retrieve historyid for scanid '%s' at offset '%s': %s", scanId, previousOffset, err)
+		trans.Errorf("GetScanHistory: Cannot retrieve historyid for scanid '%s' at offset '%d': %s", scanId, previousOffset, err)
 		return record, err
 	}
 	scanDetail, err := trans.getTenableScanDetail(scanId, historyId)
