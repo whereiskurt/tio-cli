@@ -77,6 +77,10 @@ type VulnerabilityConfig struct {
 	IgnoreAssetId   string
 	PluginId        string
 	IgnorePluginId  string
+
+	ShouldAnon        bool
+	SyncMode          bool
+	CacheFolderWrite  string
 }
 
 func NewBaseConfig() *BaseConfig {

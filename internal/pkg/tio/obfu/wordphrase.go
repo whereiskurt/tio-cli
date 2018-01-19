@@ -2,16 +2,17 @@ package obfu
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
-	"math/rand"
+	MathRand "math/rand"
+	CryptoRand "crypto/rand"
 	"net"
 	"strings"
-	//"time"
 )
 
 //var src = rand.NewSource(time.Now().UnixNano())
-var src = rand.NewSource(1)
-var r *rand.Rand = rand.New(src)
+var src = MathRand.NewSource(1)
+var r *MathRand.Rand = MathRand.New(src)
 
 var aoff = 1
 var woff = 1
@@ -76,7 +77,7 @@ func FakeIpv4() string {
 
 func FakeMACAddress() (fake string) {
 	buf := make([]byte, 6)
-	_, err := rand.Read(buf)
+	_, err := MathRand.Read(buf)
 	if err == nil {
 		fake = fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5])
 	}
@@ -97,4 +98,18 @@ func FakePrivateIpv4(prefix []byte) string {
 	}
 
 	return net.IP(ip).To4().String()
+}
+
+// newUUID generates a random UUID according to RFC 4122
+func NewUUID() string {
+	uuid := make([]byte, 16)
+	n, err := io.ReadFull(CryptoRand.Reader, uuid)
+	if n != len(uuid) || err != nil {
+		return ""
+	}
+	// variant bits; see section 4.1.1
+	uuid[8] = uuid[8]&^0xc0 | 0x80
+	// version 4 (pseudo-random); see section 4.1.3
+	uuid[6] = uuid[6]&^0xf0 | 0x40
+	return fmt.Sprintf("%x-%x-%x-%x-%x", uuid[0:4], uuid[4:6], uuid[6:8], uuid[8:10], uuid[10:])
 }

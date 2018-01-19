@@ -34,7 +34,7 @@ type Anonymizer struct {
 	CountHostId    int
 }
 
-func NewAnonymizer(config *tio.VulnerabilityConfig, cacheFolderWrite string) (a *Anonymizer) {
+func NewAnonymizer(config *tio.VulnerabilityConfig) (a *Anonymizer) {
 	a = new(Anonymizer)
 
 	a.Debug = config.Base.Logger.Debug
@@ -46,7 +46,7 @@ func NewAnonymizer(config *tio.VulnerabilityConfig, cacheFolderWrite string) (a 
 	a.Error = config.Base.Logger.Error
 	a.Errorf = config.Base.Logger.Errorf
 
-	a.CacheFolderWrite = cacheFolderWrite
+	a.CacheFolderWrite = config.CacheFolderWrite
 
 	a.RemappedId = make(map[string]map[string]string)
 
@@ -118,7 +118,7 @@ func (a *Anonymizer) DeAnonScanId(key string) (value string) {
 
 func (a *Anonymizer) AnonHistoryId(key string) (value string) {
 
-	//Already mapped! Give same scanID same OBFU value
+	//If already mapped return same scanID same OBFU value
 	value, ok := a.RemappedId["historyId.real"][key]
 	if ok {
 		return value
@@ -134,7 +134,7 @@ func (a *Anonymizer) AnonHistoryId(key string) (value string) {
 func (a *Anonymizer) DeAnonHistoryId(key string) (value string) {
 	value, ok := a.RemappedId["historyId.obfu"][key]
 	if !ok {
-		return key
+		value = key
 	}
 	return value
 }
