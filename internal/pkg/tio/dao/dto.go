@@ -27,16 +27,16 @@ type ScanHistory struct {
 }
 
 type HostPluginExposure struct {
-  Host HostScanSummary
-  Plugin PluginDetailSummary
-  FirstScan ScanHistoryDetail
-  LastScan ScanHistoryDetail
-  DaysSinceFirstDetection string `json:"daysSinceFirstDetection"`
-  DaysSinceLastDetection string `json:"DaysSinceLastDetection"`
-  VulnerableStatus string `json:"VulnerableStatus"`
-  DurationStatus string `json:"DurationStatus"`
-  IsVulnerable bool `json:"IsVulnerable"`
-  IsPatched bool `json:"IsPatched"`
+	Host                    HostScanSummary
+	Plugin                  PluginDetailSummary
+	FirstScan               ScanHistoryDetail
+	LastScan                ScanHistoryDetail
+	DaysSinceFirstDetection string `json:"daysSinceFirstDetection"`
+	DaysSinceLastDetection  string `json:"DaysSinceLastDetection"`
+	VulnerableStatus        string `json:"VulnerableStatus"`
+	DurationStatus          string `json:"DurationStatus"`
+	IsVulnerable            bool   `json:"IsVulnerable"`
+	IsPatched               bool   `json:"IsPatched"`
 }
 
 type ScanHistoryDetail struct {
@@ -59,24 +59,24 @@ type ScanHistoryDetail struct {
 	ScanEndUnix   string `json:"scanEndUnix"`
 	ScanDuration  string `json:"scanDuration"`
 
-	Host       map[string]HostScanSummary `json:"hostMap"`
-	HostPlugin map[string]PluginDetailSummary   `json:"hostPluginMap"`
-	HostCount  string                           `json:"hostCount"`
+	Host       map[string]HostScanSummary     `json:"hostMap"`
+	HostPlugin map[string]PluginDetailSummary `json:"hostPluginMap"`
+	HostCount  string                         `json:"hostCount"`
 }
 
 type HostScanSummary struct {
 	HostId              string `json:"hostId"`
-	ScanDetail ScanHistoryDetail
-  HostDetail HostScanDetail  
-  PluginCriticalCount string `json:"pluginCriticalCount"`
-  PluginHighCount     string `json:"pluginHighCount"`
-  PluginMediumCount   string `json:"pluginMediumCount"`
-  PluginLowCount      string `json:"pluginLowCount"`
-  PluginTotalCount    string `json:"pluginTotalCount"`  
+	ScanDetail          ScanHistoryDetail
+	HostDetail          HostScanDetail
+	PluginCriticalCount string `json:"pluginCriticalCount"`
+	PluginHighCount     string `json:"pluginHighCount"`
+	PluginMediumCount   string `json:"pluginMediumCount"`
+	PluginLowCount      string `json:"pluginLowCount"`
+	PluginTotalCount    string `json:"pluginTotalCount"`
 }
 
 type HostScanDetail struct {
-  FQDN             string                         `json:"hostFQDN"`
+	FQDN             string                         `json:"hostFQDN"`
 	IP               string                         `json:"hostIP"`
 	NetBIOS          string                         `json:"hostNetBIOS"` //Windows only, but prevelant.
 	MACAddresses     string                         `json:"hostMACAddresses"`

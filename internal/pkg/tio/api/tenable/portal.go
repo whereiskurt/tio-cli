@@ -3,11 +3,12 @@ package tenable
 import (
 	"errors"
 	"fmt"
-	"github.com/whereiskurt/tio-cli/internal/pkg/tio"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/whereiskurt/tio-cli/internal/pkg/tio"
 )
 
 type Portal struct {

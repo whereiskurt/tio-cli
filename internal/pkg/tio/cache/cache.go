@@ -4,13 +4,14 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/whereiskurt/tio-cli/internal/pkg/tio"
-	"github.com/whereiskurt/tio-cli/internal/pkg/tio/api/tenable"
-	"github.com/whereiskurt/tio-cli/internal/pkg/tio/obfu"
 	"io/ioutil"
 	"os"
 	"path"
 	"regexp"
+
+	"github.com/whereiskurt/tio-cli/internal/pkg/tio"
+	"github.com/whereiskurt/tio-cli/internal/pkg/tio/api/tenable"
+	"github.com/whereiskurt/tio-cli/internal/pkg/tio/obfu"
 )
 
 type TranslatorCache struct {
@@ -136,7 +137,7 @@ func (portal *PortalCache) PortalCacheSet(cacheFilename string, store []byte) (e
 		}
 		store = encDat
 	}
-	
+
 	err = os.MkdirAll(path.Dir(cacheFilename), 0777)
 	if err != nil {
 		portal.Log.Errorf("Cannot create cache folder '%s' - %s", cacheFilename, err)

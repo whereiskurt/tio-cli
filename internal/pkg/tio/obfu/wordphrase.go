@@ -41,7 +41,7 @@ func Animal() (animal string) {
 	return animal
 }
 
-func Word() (word string)  {
+func Word() (word string) {
 	woff = woff + 1
 	word = names[namesP[woff%len(namesP)]]
 	return word
@@ -49,7 +49,7 @@ func Word() (word string)  {
 
 func Hostname(fqdn string) (hostname string) {
 	fqdnoff = fqdnoff + 1
-	hostnum := (fqdnoff / len(animals))+1
+	hostnum := (fqdnoff / len(animals)) + 1
 
 	animal := Animal()
 	animal = strings.Replace(animal, ",", "", -1)
@@ -75,12 +75,12 @@ func FakeIpv4() string {
 }
 
 func FakeMACAddress() (fake string) {
-  buf := make([]byte, 6)
-  _, err := rand.Read(buf)
-  if err == nil {
-    fake = fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5])
-  }
-  return fake
+	buf := make([]byte, 6)
+	_, err := rand.Read(buf)
+	if err == nil {
+		fake = fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5])
+	}
+	return fake
 }
 
 func FakePrivateIpv4(prefix []byte) string {
@@ -91,7 +91,7 @@ func FakePrivateIpv4(prefix []byte) string {
 	}
 
 	if len(prefix) < 3 {
-		for i, _ := range prefix {
+		for i := range prefix {
 			ip[i] = prefix[i]
 		}
 	}

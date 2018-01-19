@@ -3,14 +3,15 @@ package dao
 import (
 	"errors"
 	"fmt"
-	"github.com/karlseguin/ccache"
-	"github.com/whereiskurt/tio-cli/internal/pkg/tio"
-	"github.com/whereiskurt/tio-cli/internal/pkg/tio/api/tenable"
-	"github.com/whereiskurt/tio-cli/internal/pkg/tio/cache"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/karlseguin/ccache"
+	"github.com/whereiskurt/tio-cli/internal/pkg/tio"
+	"github.com/whereiskurt/tio-cli/internal/pkg/tio/api/tenable"
+	"github.com/whereiskurt/tio-cli/internal/pkg/tio/cache"
 )
 
 type Translator struct {
@@ -31,7 +32,7 @@ type Translator struct {
 	IgnoreAssetId    map[string]bool
 	IncludeAssetId   map[string]bool
 
-	Anonymizer *tenable.Anonymizer 
+	Anonymizer *tenable.Anonymizer
 
 	Debug func(string)
 	Info  func(string)
@@ -61,7 +62,7 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 
 	t.Stats = tio.NewStatistics()
 	t.Anonymizer = nil
-	
+
 	t.Debug = config.Base.Logger.Debug
 	t.Debugf = config.Base.Logger.Debugf
 	t.Info = config.Base.Logger.Info
@@ -125,23 +126,22 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 }
 
 func (trans *Translator) GetScans() (scans []Scan, err error) {
-  var memcacheKey = "translator:GetScans"
+	var memcacheKey = "translator:GetScans"
 
-  item := trans.Memcache.Get(memcacheKey)
-  if item != nil {
-    trans.Stats.Count("GetScans.Memcached")
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		trans.Stats.Count("GetScans.Memcached")
 
-    scans = item.Value().([]Scan)
-    return scans, nil
-  }
-  trans.Stats.Count("GetScans")
+		scans = item.Value().([]Scan)
+		return scans, nil
+	}
+	trans.Stats.Count("GetScans")
 
-  tenableScans, err := trans.getTenableScanList()
-  if err != nil {
-    trans.Errorf("GetScans: Cannot retrieve Tenable ScanList: '%s'", err)
-    return scans, err
-  }
-  
+	tenableScans, err := trans.getTenableScanList()
+	if err != nil {
+		trans.Errorf("GetScans: Cannot retrieve Tenable ScanList: '%s'", err)
+		return scans, err
+	}
 
 	scans = trans.fromScanList(tenableScans)
 	trans.Memcache.Set(memcacheKey, scans, time.Minute*60)
@@ -194,13 +194,12 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
 		go func() {
 			for sd := range chanScanDetails {
 
+				if len(sd.ScanHistoryDetails) < 1 {
+					continue
+				}
 
-        if len(sd.ScanHistoryDetails) < 1 {
-          continue
-        }
-
-        //For each history in the scan
-        for h, hist := range sd.ScanHistoryDetails {
+				//For each history in the scan
+				for h, hist := range sd.ScanHistoryDetails {
 					if len(hist.Host) < 1 {
 						continue
 					}
@@ -253,11 +252,11 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
 	return err
 }
 func (trans *Translator) GetHostDetail(host HostScanSummary) (record HostScanDetail, err error) {
-  scan := host.ScanDetail.Scan
-  scanDetail := host.ScanDetail
+	scan := host.ScanDetail.Scan
+	scanDetail := host.ScanDetail
 	scanId := scan.ScanId
 	historyId := scanDetail.HistoryId
-  hostId := host.HostId
+	hostId := host.HostId
 
 	hd, err := trans.getTenableHostDetail(scanId, hostId, historyId)
 	if err != nil {
@@ -278,35 +277,33 @@ func (trans *Translator) GoGetScanHistoryDetails(out chan ScanHistory, concurren
 	var scansChan = make(chan Scan)
 
 	defer close(out)
-  scans, err := trans.GetScans()
-  if err != nil {
-    trans.Errorf("Failed to get scans: %s", err)
-    return err
-  }
-  
-  
+	scans, err := trans.GetScans()
+	if err != nil {
+		trans.Errorf("Failed to get scans: %s", err)
+		return err
+	}
 
-  go func() {
-    for _, s := range scans {
-      scansChan <- s
-          
-    }
-    close(scansChan)
-  }()
+	go func() {
+		for _, s := range scans {
+			scansChan <- s
 
-  for i := 0; i < concurrentWorkers; i++ {
-    trans.Workers["detail"].Add(1)
-    go func() {
-      for s := range scansChan {
+		}
+		close(scansChan)
+	}()
 
-        record, err := trans.GetScanHistory(s.ScanId, previousOffset)
-        if err == nil {
-          out <- record
-        }
-      }
-      trans.Workers["detail"].Done()
-    }()
-  }
+	for i := 0; i < concurrentWorkers; i++ {
+		trans.Workers["detail"].Add(1)
+		go func() {
+			for s := range scansChan {
+
+				record, err := trans.GetScanHistory(s.ScanId, previousOffset)
+				if err == nil {
+					out <- record
+				}
+			}
+			trans.Workers["detail"].Done()
+		}()
+	}
 	trans.Workers["detail"].Wait()
 
 	return nil
@@ -340,210 +337,208 @@ func (trans *Translator) GetScannerTZ(scan Scan) (scannerTZ string) {
 
 func (trans *Translator) fromHostDetailSummary(hsd HostScanSummary, hd tenable.HostDetail) (host HostScanDetail, err error) {
 
-  tz := trans.GetScannerTZ(hsd.ScanDetail.Scan)
+	tz := trans.GetScannerTZ(hsd.ScanDetail.Scan)
 
-  host.IP = hd.Info.HostIP
-  host.FQDN = hd.Info.FQDN
-  host.NetBIOS = hd.Info.NetBIOS
-  host.MACAddresses = strings.Replace(hd.Info.MACAddress, "\n", ",", -1)
-  host.OperatingSystems = strings.Join(hd.Info.OperatingSystem, ",")
+	host.IP = hd.Info.HostIP
+	host.FQDN = hd.Info.FQDN
+	host.NetBIOS = hd.Info.NetBIOS
+	host.MACAddresses = strings.Replace(hd.Info.MACAddress, "\n", ",", -1)
+	host.OperatingSystems = strings.Join(hd.Info.OperatingSystem, ",")
 
-  start, tmStart, err := trans.FromNoTZ(string(hd.Info.HostStart), tz)
-  host.ScanStartUnix = fmt.Sprintf("%v", tmStart.In(time.Local).Unix())
-  host.ScanStart = start
+	start, tmStart, err := trans.FromNoTZ(string(hd.Info.HostStart), tz)
+	host.ScanStartUnix = fmt.Sprintf("%v", tmStart.In(time.Local).Unix())
+	host.ScanStart = start
 
-  end, tmEnd, err := trans.FromNoTZ(string(hd.Info.HostEnd), tz)
-  host.ScanEndUnix = fmt.Sprintf("%v", tmEnd.In(time.Local).Unix())
-  host.ScanEnd = end
+	end, tmEnd, err := trans.FromNoTZ(string(hd.Info.HostEnd), tz)
+	host.ScanEndUnix = fmt.Sprintf("%v", tmEnd.In(time.Local).Unix())
+	host.ScanEnd = end
 
-  host.ScanDuration = fmt.Sprintf("%v", tmEnd.Sub(tmStart))
+	host.ScanDuration = fmt.Sprintf("%v", tmEnd.Sub(tmStart))
 
-  host.Plugin = make(map[string]PluginDetailSummary)
+	host.Plugin = make(map[string]PluginDetailSummary)
 
-  for _, v := range hd.Vulnerabilities {
-    var p PluginDetailSummary
-    p.PluginId = string(v.PluginId)
-    p.Name = v.PluginName
-    p.Family = v.PluginFamily
-    p.Count = string(v.Count)
-    p.Severity = string(v.Severity)
-    host.Plugin[p.PluginId] = p
-  }
+	for _, v := range hd.Vulnerabilities {
+		var p PluginDetailSummary
+		p.PluginId = string(v.PluginId)
+		p.Name = v.PluginName
+		p.Family = v.PluginFamily
+		p.Count = string(v.Count)
+		p.Severity = string(v.Severity)
+		host.Plugin[p.PluginId] = p
+	}
 
-
-  return host, nil
+	return host, nil
 }
 
 func (trans *Translator) fromScanList(scanList tenable.ScanList) []Scan {
-  var scans []Scan
+	var scans []Scan
 
-  for _, s := range scanList.Scans {
+	for _, s := range scanList.Scans {
 
-    if trans.ShouldSkipScanId(string(s.Id)) {
-      continue
-    }
+		if trans.ShouldSkipScanId(string(s.Id)) {
+			continue
+		}
 
-    scanId := string(s.Id)
-    scan := new(Scan)
-    scan.ScanId = scanId
-    scan.UUID = s.UUID
-    scan.Name = s.Name
-    scan.Status = s.Status
-    scan.Owner = s.Owner
-    scan.UserPermissions = string(s.UserPermissions)
-    scan.Enabled = fmt.Sprintf("%v", s.Enabled)
-    scan.RRules = s.RRules
-    scan.Timezone = s.Timezone
-    scan.StartTime = s.StartTime
-    scan.CreationDate = string(s.CreationDate)
-    scan.LastModifiedDate = string(s.LastModifiedDate)
-    scan.Timestamp = string(scanList.Timestamp)
+		scanId := string(s.Id)
+		scan := new(Scan)
+		scan.ScanId = scanId
+		scan.UUID = s.UUID
+		scan.Name = s.Name
+		scan.Status = s.Status
+		scan.Owner = s.Owner
+		scan.UserPermissions = string(s.UserPermissions)
+		scan.Enabled = fmt.Sprintf("%v", s.Enabled)
+		scan.RRules = s.RRules
+		scan.Timezone = s.Timezone
+		scan.StartTime = s.StartTime
+		scan.CreationDate = string(s.CreationDate)
+		scan.LastModifiedDate = string(s.LastModifiedDate)
+		scan.Timestamp = string(scanList.Timestamp)
 
-    scans = append(scans, *scan)
-  }
+		scans = append(scans, *scan)
+	}
 
-  return scans
+	return scans
 }
 
 func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail) (record ScanHistory, err error) {
-  var previousOffset, _ = strconv.Atoi(trans.Config.Previous)
-  var depth, _ = strconv.Atoi(trans.Config.Depth)
+	var previousOffset, _ = strconv.Atoi(trans.Config.Previous)
+	var depth, _ = strconv.Atoi(trans.Config.Depth)
 
-  scan, err := trans.GetScan(scanId)
-  if err != nil {
-    trans.Errorf("%s", err)
-    return record, err
-  }
+	scan, err := trans.GetScan(scanId)
+	if err != nil {
+		trans.Errorf("%s", err)
+		return record, err
+	}
 
-  record.Scan.ScanId = scanId
-  record.Scan.UUID = scan.UUID
-  record.Scan.Name = scan.Name
-  record.Scan.PolicyName = detail.Info.PolicyName
-  record.Scan.Owner = detail.Info.Owner
-  record.Scan.Targets = detail.Info.Targets
-  record.Scan.CreationDate = string(scan.CreationDate)
-  record.Scan.LastModifiedDate = string(scan.LastModifiedDate)
-  record.Scan.Status = scan.Status
-  record.Scan.Enabled = fmt.Sprintf("%s", scan.Enabled)
-  record.Scan.RRules = scan.RRules
-  record.Scan.Timezone = scan.Timezone
-  record.Scan.StartTime = scan.StartTime
-  record.Scan.PolicyName = detail.Info.PolicyName
-  record.ScanHistoryCount = fmt.Sprintf("%v", len(detail.History))
-  record.Scan.ScannerName = detail.Info.ScannerName
+	record.Scan.ScanId = scanId
+	record.Scan.UUID = scan.UUID
+	record.Scan.Name = scan.Name
+	record.Scan.PolicyName = detail.Info.PolicyName
+	record.Scan.Owner = detail.Info.Owner
+	record.Scan.Targets = detail.Info.Targets
+	record.Scan.CreationDate = string(scan.CreationDate)
+	record.Scan.LastModifiedDate = string(scan.LastModifiedDate)
+	record.Scan.Status = scan.Status
+	record.Scan.Enabled = fmt.Sprintf("%s", scan.Enabled)
+	record.Scan.RRules = scan.RRules
+	record.Scan.Timezone = scan.Timezone
+	record.Scan.StartTime = scan.StartTime
+	record.Scan.PolicyName = detail.Info.PolicyName
+	record.ScanHistoryCount = fmt.Sprintf("%v", len(detail.History))
+	record.Scan.ScannerName = detail.Info.ScannerName
 
-  for i := previousOffset; i < len(detail.History) && i < depth+previousOffset; i++ {
-    var hist = new(ScanHistoryDetail)
-    
-    hist.Scan = record.Scan
+	for i := previousOffset; i < len(detail.History) && i < depth+previousOffset; i++ {
+		var hist = new(ScanHistoryDetail)
 
-    historyId, err := trans.getTenableHistoryId(scanId, i)
-    if err != nil {
-      trans.Errorf("HistoryID not available for scan '%s' offset '%d' - %s", scanId, i, err)
-      return record, err
-    }
+		hist.Scan = record.Scan
 
-    if trans.ShouldSkipHistoryId(historyId) {
-      continue
-    }
+		historyId, err := trans.getTenableHistoryId(scanId, i)
+		if err != nil {
+			trans.Errorf("HistoryID not available for scan '%s' offset '%d' - %s", scanId, i, err)
+			return record, err
+		}
 
-    histDetails, err := trans.getTenableScanDetail(scanId, historyId)
-    if err != nil {
-      trans.Errorf("%s", err)
-      return record, err
-    }
-    
-    hist.HistoryId = fmt.Sprintf("%v", histDetails.History[i].HistoryId)
-    hist.HostCount = fmt.Sprintf("%v", len(histDetails.Hosts))
-    hist.LastModifiedDate = string(histDetails.History[i].LastModifiedDate)
-    hist.CreationDate = string(histDetails.History[i].CreationDate)
-    hist.Status = histDetails.History[i].Status
+		if trans.ShouldSkipHistoryId(historyId) {
+			continue
+		}
 
-    start := histDetails.Info.Start
-    end := histDetails.Info.End
+		histDetails, err := trans.getTenableScanDetail(scanId, historyId)
+		if err != nil {
+			trans.Errorf("%s", err)
+			return record, err
+		}
 
-    rawScanStart, errParseStart := strconv.ParseInt(string(start), 10, 64)
-    if errParseStart != nil {
-      rawScanStart = int64(0)
-      trans.Warnf("hist.Start: Failed to parse value '%s' for scan '%s':id:%s:histid:%s (status: %s). Setting to zero.", string(start), record.Scan.Name, record.Scan.ScanId, historyId, hist.Status)
-    }
+		hist.HistoryId = fmt.Sprintf("%v", histDetails.History[i].HistoryId)
+		hist.HostCount = fmt.Sprintf("%v", len(histDetails.Hosts))
+		hist.LastModifiedDate = string(histDetails.History[i].LastModifiedDate)
+		hist.CreationDate = string(histDetails.History[i].CreationDate)
+		hist.Status = histDetails.History[i].Status
 
-    rawScanEnd, errParseEnd := strconv.ParseInt(string(end), 10, 64)
-    if errParseEnd != nil {
-      rawScanEnd = rawScanStart
-      trans.Warnf("hist.End: Failed to parse value '%s' for scan name:'%s':id:%s:histid:%s (status: %s). Setting to %s", string(end), record.Scan.Name, record.Scan.ScanId, historyId, hist.Status, string(start))
-    }
+		start := histDetails.Info.Start
+		end := histDetails.Info.End
 
-    unixScanStart := time.Unix(rawScanStart, 0)
-    unixScanEnd := time.Unix(rawScanEnd, 0)
+		rawScanStart, errParseStart := strconv.ParseInt(string(start), 10, 64)
+		if errParseStart != nil {
+			rawScanStart = int64(0)
+			trans.Warnf("hist.Start: Failed to parse value '%s' for scan '%s':id:%s:histid:%s (status: %s). Setting to zero.", string(start), record.Scan.Name, record.Scan.ScanId, historyId, hist.Status)
+		}
 
-    hist.ScanStart = fmt.Sprintf("%v", unixScanStart)
-    hist.ScanStartUnix = fmt.Sprintf("%s", string(start))
-    hist.ScanEnd = fmt.Sprintf("%v", unixScanEnd)
-    hist.ScanEndUnix = fmt.Sprintf("%s", string(end))
-    hist.ScanDuration = fmt.Sprintf("%v", unixScanEnd.Sub(unixScanStart))
+		rawScanEnd, errParseEnd := strconv.ParseInt(string(end), 10, 64)
+		if errParseEnd != nil {
+			rawScanEnd = rawScanStart
+			trans.Warnf("hist.End: Failed to parse value '%s' for scan name:'%s':id:%s:histid:%s (status: %s). Setting to %s", string(end), record.Scan.Name, record.Scan.ScanId, historyId, hist.Status, string(start))
+		}
 
-    hist.Host = make(map[string]HostScanSummary)
+		unixScanStart := time.Unix(rawScanStart, 0)
+		unixScanEnd := time.Unix(rawScanEnd, 0)
 
-    for _, host := range histDetails.Hosts {
-      var retHost HostScanSummary
-      var hostId = string(host.Id)
+		hist.ScanStart = fmt.Sprintf("%v", unixScanStart)
+		hist.ScanStartUnix = fmt.Sprintf("%s", string(start))
+		hist.ScanEnd = fmt.Sprintf("%v", unixScanEnd)
+		hist.ScanEndUnix = fmt.Sprintf("%s", string(end))
+		hist.ScanDuration = fmt.Sprintf("%v", unixScanEnd.Sub(unixScanStart))
 
-      critsHist, _ := strconv.Atoi(hist.PluginCriticalCount)
-      critsHost, _ := strconv.Atoi(string(host.SeverityCritical))
-      highHist, _ := strconv.Atoi(hist.PluginHighCount)
-      highHost, _ := strconv.Atoi(string(host.SeverityHigh))
-      mediumHist, _ := strconv.Atoi(hist.PluginMediumCount)
-      mediumHost, _ := strconv.Atoi(string(host.SeverityMedium))
-      lowHist, _ := strconv.Atoi(hist.PluginLowCount)
-      lowHost, _ := strconv.Atoi(string(host.SeverityLow))
+		hist.Host = make(map[string]HostScanSummary)
 
-      retHost.HostId = hostId
-      retHost.ScanDetail.Scan.ScanId = scanId
-      retHost.ScanDetail.HistoryId = historyId
-      retHost.ScanDetail.HistoryIndex = fmt.Sprintf("%v", i)
+		for _, host := range histDetails.Hosts {
+			var retHost HostScanSummary
+			var hostId = string(host.Id)
 
-      retHost.PluginCriticalCount = fmt.Sprintf("%v", critsHost)
-      retHost.PluginHighCount = fmt.Sprintf("%v", highHost)
-      retHost.PluginMediumCount = fmt.Sprintf("%v", mediumHost)
-      retHost.PluginLowCount = fmt.Sprintf("%v", lowHost)
-      retHost.PluginTotalCount = fmt.Sprintf("%v", lowHost+mediumHost+highHost+critsHost)
+			critsHist, _ := strconv.Atoi(hist.PluginCriticalCount)
+			critsHost, _ := strconv.Atoi(string(host.SeverityCritical))
+			highHist, _ := strconv.Atoi(hist.PluginHighCount)
+			highHost, _ := strconv.Atoi(string(host.SeverityHigh))
+			mediumHist, _ := strconv.Atoi(hist.PluginMediumCount)
+			mediumHost, _ := strconv.Atoi(string(host.SeverityMedium))
+			lowHist, _ := strconv.Atoi(hist.PluginLowCount)
+			lowHost, _ := strconv.Atoi(string(host.SeverityLow))
 
-      hist.Host[hostId] = retHost
+			retHost.HostId = hostId
+			retHost.ScanDetail.Scan.ScanId = scanId
+			retHost.ScanDetail.HistoryId = historyId
+			retHost.ScanDetail.HistoryIndex = fmt.Sprintf("%v", i)
 
-      //Running COUNT for the historical
-      hist.PluginCriticalCount = fmt.Sprintf("%v", critsHist+critsHost)
-      hist.PluginHighCount = fmt.Sprintf("%v", highHist+highHost)
-      hist.PluginMediumCount = fmt.Sprintf("%v", mediumHist+mediumHost)
-      hist.PluginLowCount = fmt.Sprintf("%v", lowHist+lowHost)
-      hist.PluginTotalCount = fmt.Sprintf("%v", lowHist+lowHost+mediumHist+mediumHost+highHist+highHost+critsHist+critsHost)
-    }
+			retHost.PluginCriticalCount = fmt.Sprintf("%v", critsHost)
+			retHost.PluginHighCount = fmt.Sprintf("%v", highHost)
+			retHost.PluginMediumCount = fmt.Sprintf("%v", mediumHost)
+			retHost.PluginLowCount = fmt.Sprintf("%v", lowHost)
+			retHost.PluginTotalCount = fmt.Sprintf("%v", lowHost+mediumHost+highHost+critsHost)
 
-    hist.HostPlugin = make(map[string]PluginDetailSummary)
+			hist.Host[hostId] = retHost
 
-    for _, vuln := range histDetails.Vulnerabilities {
-      var retPlugin PluginDetailSummary
+			//Running COUNT for the historical
+			hist.PluginCriticalCount = fmt.Sprintf("%v", critsHist+critsHost)
+			hist.PluginHighCount = fmt.Sprintf("%v", highHist+highHost)
+			hist.PluginMediumCount = fmt.Sprintf("%v", mediumHist+mediumHost)
+			hist.PluginLowCount = fmt.Sprintf("%v", lowHist+lowHost)
+			hist.PluginTotalCount = fmt.Sprintf("%v", lowHist+lowHost+mediumHist+mediumHost+highHist+highHost+critsHist+critsHost)
+		}
 
-      if trans.ShouldSkipPluginId(string(vuln.PluginId)) {
-        continue
-      }
+		hist.HostPlugin = make(map[string]PluginDetailSummary)
 
-      retPlugin.PluginId = string(vuln.PluginId)
-      retPlugin.Name = vuln.Name
-      retPlugin.Family = vuln.Family
-      retPlugin.Count = string(vuln.Count)
-      retPlugin.Severity = string(vuln.Severity)
+		for _, vuln := range histDetails.Vulnerabilities {
+			var retPlugin PluginDetailSummary
 
-      hist.HostPlugin[string(vuln.PluginId)] = retPlugin
-    }
+			if trans.ShouldSkipPluginId(string(vuln.PluginId)) {
+				continue
+			}
 
-    //Sort!
-    //histDetails.Vulnerabilities
-    //histDetails.Hosts
+			retPlugin.PluginId = string(vuln.PluginId)
+			retPlugin.Name = vuln.Name
+			retPlugin.Family = vuln.Family
+			retPlugin.Count = string(vuln.Count)
+			retPlugin.Severity = string(vuln.Severity)
 
+			hist.HostPlugin[string(vuln.PluginId)] = retPlugin
+		}
 
-    record.ScanHistoryDetails = append(record.ScanHistoryDetails, *hist)
-  }
+		//Sort!
+		//histDetails.Vulnerabilities
+		//histDetails.Hosts
 
-  return record, nil
+		record.ScanHistoryDetails = append(record.ScanHistoryDetails, *hist)
+	}
+
+	return record, nil
 }

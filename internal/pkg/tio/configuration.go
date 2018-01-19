@@ -22,14 +22,14 @@ type BaseConfig struct {
 	CacheDisabled      bool
 	UseCryptoCache     bool
 	QuietMode          bool
-	OfflineMode          bool
+	OfflineMode        bool
 	NoColourMode       bool
 	DisplayVersionMode bool
 	LogFilename        string
 	LogFolder          string
 	LogFileAppend      bool
 
-	DefaultTimezone   string
+	DefaultTimezone string
 
 	OutputFilename   string
 	OutputFolder     string

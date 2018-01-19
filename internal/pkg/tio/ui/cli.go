@@ -2,14 +2,15 @@ package ui
 
 import (
 	"fmt"
-	"github.com/olekukonko/tablewriter"
-	"github.com/whereiskurt/tio-cli/internal/pkg/tio"
-	"github.com/whereiskurt/tio-cli/internal/pkg/tio/dao"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/olekukonko/tablewriter"
+	"github.com/whereiskurt/tio-cli/internal/pkg/tio"
+	"github.com/whereiskurt/tio-cli/internal/pkg/tio/dao"
 )
 
 type CommandLineInterface struct {
@@ -199,8 +200,8 @@ func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail, hostKeys []s
 
 	data := [][]string{}
 
-  for _, key := range hostKeys {
-    h := r.Host[key]
+	for _, key := range hostKeys {
+		h := r.Host[key]
 
 		name := h.HostDetail.FQDN
 		if name != h.HostDetail.NetBIOS {
@@ -234,7 +235,7 @@ func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail, hostKeys []s
 		}
 		data = append(data, []string{h.HostId, h.HostDetail.IP, name, vulnStr, os})
 	}
-  
+
 	if len(data) > 0 {
 		table.AppendBulk(data)
 		table.Render()
@@ -251,10 +252,10 @@ func (cli *CommandLineInterface) DrawScanVulnTable(rec dao.ScanHistoryDetail, vu
 
 	data := [][]string{}
 
-  for _,key := range vulnKeys {
-    p := rec.HostPlugin[key]
- //  }
-	// for _, p := range rec.HostPlugin {
+	for _, key := range vulnKeys {
+		p := rec.HostPlugin[key]
+		//  }
+		// for _, p := range rec.HostPlugin {
 		sev, _ := strconv.ParseInt(p.Severity, 10, 64)
 		var sevWord []string = []string{CINFO + "INFO" + RESET, CLOW + "LOW" + RESET, CMED + "MED" + RESET, CHIGH + "HIGH" + RESET, CCRIT + "CRIT" + RESET}
 		if len(p.Name) > 45 {
