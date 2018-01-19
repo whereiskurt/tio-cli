@@ -77,7 +77,6 @@ func (a *Anonymizer) AnonHostId(scanId string, historyId string, hostId string) 
   value, ok := a.RemappedId["hostId.real"][ key ]
   
   if ok {
-    a.Errorf("FOUND AnonHostId key '%s' value: %v",key,value)
     return value
   } 
   a.CountHostId = a.CountHostId + 1
@@ -85,17 +84,14 @@ func (a *Anonymizer) AnonHostId(scanId string, historyId string, hostId string) 
   a.RemappedId["hostId.real"][key]  = value
   a.RemappedId["hostId.obfu"][value]  = hostId
 
-  a.Errorf("STORE AnonHostId key '%s' value: %v",key,value)
   return value
 }
 func (a *Anonymizer) DeAnonHostId(hostId string) (value string) {
   key := fmt.Sprintf("%v", hostId)
   value, ok := a.RemappedId["hostId.obfu"][key]
   if !ok {
-    a.Errorf("NOT FOUND DeAnonHostId key '%s'",key)
     return hostId
   }
-  a.Errorf("FOUND DeAnonHostId key '%s' value: %v",key,value)
   return value
 }
 
@@ -107,7 +103,6 @@ func (a *Anonymizer) AnonScanId(key string) (value string) {
 
   a.CountScanId = a.CountScanId + 1
   value = fmt.Sprintf("%d", a.CountScanId)
-  //value = fmt.Sprintf("%s", key)
   a.RemappedId["scanId.real"][key]  = value
   a.RemappedId["scanId.obfu"][value]  = key
   return value
@@ -154,6 +149,17 @@ func (a *Anonymizer) AnonymizeScanList(scans * ScanList) {
 
 func (a *Anonymizer) AnonymizeScanDetail(scanId string, sd * ScanDetail) {
   sd.Info.Id = json.Number(a.AnonScanId(scanId))
+  sd.Info.UUID = obfu.NewUUID()
+  
+  sd.Info.ScannerName = fmt.Sprintf("Scanner '%s'", strings.Title(obfu.Word()))
+  sd.Info.PolicyName = fmt.Sprintf("Policy '%s'", strings.Title(obfu.Word()))
+  sd.Info.Owner = fmt.Sprintf("ScanOwner@%s", obfu.Hostname("example.com"))
+
+  t:=[]string{}
+  for _,_ = range strings.Split(sd.Info.Targets, ",") {
+    t = append(t,obfu.FakeIpv4())
+  }
+  sd.Info.Targets = strings.Join(t, ",")
 
   if len(sd.History) == 0 {
     return
@@ -161,6 +167,7 @@ func (a *Anonymizer) AnonymizeScanDetail(scanId string, sd * ScanDetail) {
   for i, _ := range sd.History {
     historyId := fmt.Sprintf("%v", sd.History[i].HistoryId)
     sd.History[i].HistoryId = json.Number( a.AnonHistoryId( historyId ))
+    sd.History[i].UUID = obfu.NewUUID()
   }
 
   for i, _ := range sd.Hosts {
@@ -168,6 +175,7 @@ func (a *Anonymizer) AnonymizeScanDetail(scanId string, sd * ScanDetail) {
     hostId := a.AnonHostId(scanId, historyId, fmt.Sprintf("%v", sd.Hosts[i].Id))
 
     sd.Hosts[i].Id = json.Number(hostId)
+    sd.Hosts[i].HostIP = obfu.FakeIpv4()
 
     crit:=rand.Intn(50)
     high:=rand.Intn(50)
@@ -184,21 +192,25 @@ func (a *Anonymizer) AnonymizeScanDetail(scanId string, sd * ScanDetail) {
 
   for i, _ := range sd.Vulnerabilities {
     sd.Vulnerabilities[i].Count = json.Number(fmt.Sprintf("%d", rand.Intn(200) )) 
+    sd.Vulnerabilities[i].HostName = obfu.FakeIpv4()
   }
 
   return
 }
 
 func (a *Anonymizer) AnonymizeHostDetail(scanId string, historyId string, hd * HostDetail) {
+  hd.Info.FQDN = obfu.Hostname("example.com")
+  hd.Info.NetBIOS = hd.Info.FQDN
+  hd.Info.HostIP = obfu.FakeIpv4()
+  hd.Info.MACAddress = obfu.FakeMACAddress()
+
   for i, _ := range hd.Vulnerabilities {
     hostId := fmt.Sprintf("%v", hd.Vulnerabilities[i].HostId)
     hd.Vulnerabilities[i].HostId = json.Number( a.AnonHostId(scanId, historyId, hostId ))
     hd.Vulnerabilities[i].Count = json.Number(fmt.Sprintf("%d", rand.Intn(50) )) 
+    hd.Vulnerabilities[i].HostName = hd.Info.HostIP //as per the Tenable output!
   }
-  
-  hd.Info.FQDN = obfu.Hostname("example.com")
-  hd.Info.NetBIOS = hd.Info.FQDN
-  hd.Info.HostIP = obfu.FakeIpv4()
+ 
   if len(hd.Info.OperatingSystem) == 0 {
     hd.Info.OperatingSystem = []string{"Windows 2020"}
   }

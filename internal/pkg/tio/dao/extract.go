@@ -12,7 +12,7 @@ import (
 
 
 func (trans *Translator) getTenableHostDetail(scanId string, hostId string, historyId string) (hd tenable.HostDetail, err error) {
-  trans.Errorf("---->getTenableHostDetail: scan:%v,hist:%v,host:%v", scanId,historyId,hostId)
+
   if trans.Anonymizer != nil {
     scanId = trans.Anonymizer.DeAnonScanId(scanId)
     historyId = trans.Anonymizer.DeAnonHistoryId(historyId)
@@ -50,21 +50,21 @@ func (trans *Translator) getTenableHostDetail(scanId string, hostId string, hist
     backToRaw, err := json.Marshal(hd)
     if err != nil {
       trans.Warnf("FAILED TO marshal back anonymized tenable.HostDetail: %s", err)
-    } else {
-      scanId = trans.Anonymizer.AnonScanId(scanId)
-      historyId = trans.Anonymizer.AnonHistoryId(historyId)
-      hostId = trans.Anonymizer.AnonHostId(scanId, historyId, hostId)
+      return hd, err
+    } 
 
-      portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId + "/hosts/" + hostId + "?history_id=" + historyId
-      
-      newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
-      newCacheFilename = trans.Anonymizer.RewriteCacheFilename(newCacheFilename)
+    scanId = trans.Anonymizer.AnonScanId(scanId)
+    historyId = trans.Anonymizer.AnonHistoryId(historyId)
+    hostId = trans.Anonymizer.AnonHostId(scanId, historyId, hostId)
 
-      trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
+    portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId + "/hosts/" + hostId + "?history_id=" + historyId
+    
+    newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
+    newCacheFilename = trans.Anonymizer.RewriteCacheFilename(newCacheFilename)
 
-    }
+    trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
+  
   }
-
 
 	trans.Memcache.Set(memcacheKey, hd, time.Minute*60)
 
@@ -246,12 +246,12 @@ func (trans *Translator) getTenableHistoryId(scanId string, previousOffset int) 
   }
 
   if len(scanDetail.History) == 0 {
-    err := errors.New(fmt.Sprintf("No scan history for scan %s offset %d", scanId, previousOffset))
+    err := errors.New(fmt.Sprintf("Cannot get historyId. No past scans for scanId:%s", scanId))
     return retHistoryId, err
   }
 
   if previousOffset > len(scanDetail.History)-1 {
-    err := errors.New(fmt.Sprintf("Cannot get history id for offset - %d bigger than %d", previousOffset, len(scanDetail.History)-1))
+    err := errors.New(fmt.Sprintf("Not enough run histories.  Cannot get offset - %d bigger than %d for scanId: %s", previousOffset, len(scanDetail.History)-1, scanId))
     trans.Errorf("%s", err)
     return retHistoryId, err
   }

@@ -74,6 +74,15 @@ func FakeIpv4() string {
 	return net.IP(ip).To4().String()
 }
 
+func FakeMACAddress() (fake string) {
+  buf := make([]byte, 6)
+  _, err := rand.Read(buf)
+  if err == nil {
+    fake = fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5])
+  }
+  return fake
+}
+
 func FakePrivateIpv4(prefix []byte) string {
 	size := 4
 	ip := make([]byte, size)

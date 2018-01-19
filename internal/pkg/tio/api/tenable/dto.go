@@ -66,6 +66,7 @@ type ScanDetailVulnerabilities struct {
 	Id       json.Number `json:"vuln_index"`
 	PluginId json.Number `json:"plugin_id"`
 	Name     string      `json:"plugin_name"`
+	HostName string      `json:"hostname"`
 	Family   string      `json:"plugin_family"`
 	Count    json.Number `json:"count"`
 	Severity json.Number `json:"severity"`
@@ -99,8 +100,6 @@ type HostDetailInfo struct {
 //NOTE: This is needed for Marshal'ing back un-modified HotDetail object.
 //      I think there is some type confusion where it treats the json.Numbers
 //      as Date Strings... not sure what's up or why this is necessary entirely.
-//
-//
 func (hdi HostDetailInfo) MarshalJSON() ([]byte, error) {
   var TM_FORMAT_NOTZ = "Mon Jan _2 15:04:05 2006"
 
