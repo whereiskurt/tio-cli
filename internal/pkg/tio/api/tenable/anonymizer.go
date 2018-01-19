@@ -6,6 +6,8 @@ import (
   "github.com/whereiskurt/tio-cli/internal/pkg/tio/obfu"
   "sync"
   "fmt"
+  "os"
+  "strings"
   "math/rand"
 )
 
@@ -24,12 +26,14 @@ type Anonymizer struct {
 
   RemappedId map[string]map[string]string
 
+  CacheFolderWrite string
+
   CountScanId int
   CountHistoryId int
   CountHostId int
 }
 
-func NewAnonymizer(config *tio.VulnerabilityConfig) (a *Anonymizer) {
+func NewAnonymizer(config *tio.VulnerabilityConfig, cacheFolderWrite string) (a *Anonymizer) {
 	a = new(Anonymizer)
 
   a.Debug = config.Base.Logger.Debug
@@ -41,6 +45,8 @@ func NewAnonymizer(config *tio.VulnerabilityConfig) (a *Anonymizer) {
   a.Error = config.Base.Logger.Error
   a.Errorf = config.Base.Logger.Errorf
 
+  a.CacheFolderWrite = cacheFolderWrite
+
   a.RemappedId = make(map[string]map[string]string)
 
   a.CountScanId = 0
@@ -49,7 +55,6 @@ func NewAnonymizer(config *tio.VulnerabilityConfig) (a *Anonymizer) {
 
   a.RemappedId["scanId.real"] = make(map[string]string)
   a.RemappedId["scanId.obfu"] = make(map[string]string)
-
   a.RemappedId["hostId.real"] = make(map[string]string)
   a.RemappedId["hostId.obfu"] = make(map[string]string)
   a.RemappedId["historyId.real"] = make(map[string]string)
@@ -58,22 +63,39 @@ func NewAnonymizer(config *tio.VulnerabilityConfig) (a *Anonymizer) {
 	return a
 }
 
-func (a *Anonymizer) AnonHostId(scan string, historyId string, hostId string) (value string) {
-  value, ok := a.RemappedId["hostId.real"][hostId]
+func (a *Anonymizer) RewriteCacheFilename(cacheFilename string) (newCacheFilename string) {
+  parts := strings.Split(cacheFilename, string(os.PathSeparator))
+
+  newCacheFilename = strings.Join(parts[1:len(parts)], string(os.PathSeparator))
+  newCacheFilename = a.CacheFolderWrite + string(os.PathSeparator) + newCacheFilename
+
+  return newCacheFilename
+}
+
+func (a *Anonymizer) AnonHostId(scanId string, historyId string, hostId string) (value string) {
+  key := fmt.Sprintf("%v|%v|%v", scanId, historyId, hostId)
+  value, ok := a.RemappedId["hostId.real"][ key ]
+  
   if ok {
+    a.Errorf("FOUND AnonHostId key '%s' value: %v",key,value)
     return value
   } 
   a.CountHostId = a.CountHostId + 1
   value = fmt.Sprintf("%d", a.CountHostId)
-  a.RemappedId["hostId.real"][hostId]  = value
+  a.RemappedId["hostId.real"][key]  = value
   a.RemappedId["hostId.obfu"][value]  = hostId
+
+  a.Errorf("STORE AnonHostId key '%s' value: %v",key,value)
   return value
 }
-func (a *Anonymizer) DeAnonHostId(scan string, historyId string, hostId string) (value string) {
-  value, ok := a.RemappedId["hostId.obfu"][hostId]
+func (a *Anonymizer) DeAnonHostId(hostId string) (value string) {
+  key := fmt.Sprintf("%v", hostId)
+  value, ok := a.RemappedId["hostId.obfu"][key]
   if !ok {
+    a.Errorf("NOT FOUND DeAnonHostId key '%s'",key)
     return hostId
   }
+  a.Errorf("FOUND DeAnonHostId key '%s' value: %v",key,value)
   return value
 }
 
@@ -121,7 +143,6 @@ func (a *Anonymizer) DeAnonHistoryId(key string) (value string) {
   return value
 }
 
-
 func (a *Anonymizer) AnonymizeScanList(scans * ScanList) {
   for i, _ := range scans.Scans  {
     scans.Scans[i].Id = json.Number(a.AnonScanId(string(scans.Scans[i].Id)))
@@ -142,10 +163,11 @@ func (a *Anonymizer) AnonymizeScanDetail(scanId string, sd * ScanDetail) {
     sd.History[i].HistoryId = json.Number( a.AnonHistoryId( historyId ))
   }
 
-  historyId := string(sd.History[0].HistoryId)
   for i, _ := range sd.Hosts {
-    hostId := fmt.Sprintf("%v", sd.Hosts[i].Id)
-    sd.Hosts[i].Id = json.Number( a.AnonHostId(scanId, historyId, hostId ))
+    historyId := a.AnonHistoryId(string(sd.History[0].HistoryId))
+    hostId := a.AnonHostId(scanId, historyId, fmt.Sprintf("%v", sd.Hosts[i].Id))
+
+    sd.Hosts[i].Id = json.Number(hostId)
 
     crit:=rand.Intn(50)
     high:=rand.Intn(50)
@@ -157,7 +179,7 @@ func (a *Anonymizer) AnonymizeScanDetail(scanId string, sd * ScanDetail) {
     sd.Hosts[i].SeverityMedium = json.Number(fmt.Sprintf("%d",med))
     sd.Hosts[i].SeverityLow = json.Number(fmt.Sprintf("%d",low))
 
-    sd.Hosts[i].SeverityTotal = json.Number(json.Number(fmt.Sprintf("%s",crit+high+med+low)))
+    sd.Hosts[i].SeverityTotal = json.Number(json.Number(fmt.Sprintf("%d",crit+high+med+low)))
   }
 
   for i, _ := range sd.Vulnerabilities {

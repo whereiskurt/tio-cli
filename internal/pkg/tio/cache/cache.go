@@ -9,6 +9,7 @@ import (
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio/obfu"
 	"io/ioutil"
 	"os"
+	"path"
 	"regexp"
 )
 
@@ -124,16 +125,10 @@ func (portal *PortalCache) PortalCacheFilename(url string) (filename string, err
 
 	filename = portal.CacheFolder + folder + shaKeyHex
 
-	err = os.MkdirAll(portal.CacheFolder+folder, 0777)
-	if err != nil {
-		portal.Log.Errorf("Cannot create cache folder '%s%s' - %s", portal.CacheFolder, folder, err)
-		return filename, err
-	}
-
 	return filename, err
 }
 
-func (portal *PortalCache) PortalCacheSet(cacheFilename string, store []byte) error {
+func (portal *PortalCache) PortalCacheSet(cacheFilename string, store []byte) (err error) {
 	if portal.UseCryptoCache {
 		encDat, err := obfu.Encrypt(store, portal.CacheKeyBytes)
 		if err != nil {
@@ -141,7 +136,14 @@ func (portal *PortalCache) PortalCacheSet(cacheFilename string, store []byte) er
 		}
 		store = encDat
 	}
-	err := ioutil.WriteFile(cacheFilename, store, 0644)
+	
+	err = os.MkdirAll(path.Dir(cacheFilename), 0777)
+	if err != nil {
+		portal.Log.Errorf("Cannot create cache folder '%s' - %s", cacheFilename, err)
+		return err
+	}
+
+	err = ioutil.WriteFile(cacheFilename, store, 0644)
 	return err
 }
 func (portal *PortalCache) PortalCacheGet(cacheFilename string) ([]byte, error) {
@@ -188,7 +190,7 @@ func (portal *PortalCache) Get(url string) (body []byte, filename string, err er
 		return body, filename, err
 	}
 
-	portal.Log.Debugf("Cache: MISSED: GET '%s' not in local cache.", url)
+	portal.Log.Debugf("Cache: MISSED: GET '%s' and '%s' not in local cache.", url, filename)
 
 	//TODO: Add some 'soft retry' concepts here.
 	body, err = portal.Portal.Get(url)

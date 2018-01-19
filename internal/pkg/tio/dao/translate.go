@@ -125,22 +125,23 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 }
 
 func (trans *Translator) GetScans() (scans []Scan, err error) {
-	var memcacheKey = "translator:GetScans"
+  var memcacheKey = "translator:GetScans"
 
-	item := trans.Memcache.Get(memcacheKey)
-	if item != nil {
-		trans.Stats.Count("GetScans.Memcached")
+  item := trans.Memcache.Get(memcacheKey)
+  if item != nil {
+    trans.Stats.Count("GetScans.Memcached")
 
-		scans = item.Value().([]Scan)
-		return scans, nil
-	}
-	trans.Stats.Count("GetScans")
+    scans = item.Value().([]Scan)
+    return scans, nil
+  }
+  trans.Stats.Count("GetScans")
 
-	tenableScans, err := trans.getTenableScanList()
-	if err != nil {
-		trans.Errorf("GetScans: Cannot retrieve Tenable ScanList: '%s'", err)
-		return scans, err
-	}
+  tenableScans, err := trans.getTenableScanList()
+  if err != nil {
+    trans.Errorf("GetScans: Cannot retrieve Tenable ScanList: '%s'", err)
+    return scans, err
+  }
+  
 
 	scans = trans.fromScanList(tenableScans)
 	trans.Memcache.Set(memcacheKey, scans, time.Minute*60)
@@ -193,12 +194,13 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
 		go func() {
 			for sd := range chanScanDetails {
 
-				if len(sd.ScanHistoryDetails) < 1 {
-					continue
-				}
 
-				//For each history in the scan
-				for h, hist := range sd.ScanHistoryDetails {
+        if len(sd.ScanHistoryDetails) < 1 {
+          continue
+        }
+
+        //For each history in the scan
+        for h, hist := range sd.ScanHistoryDetails {
 					if len(hist.Host) < 1 {
 						continue
 					}
@@ -276,32 +278,35 @@ func (trans *Translator) GoGetScanHistoryDetails(out chan ScanHistory, concurren
 	var scansChan = make(chan Scan)
 
 	defer close(out)
+  scans, err := trans.GetScans()
+  if err != nil {
+    trans.Errorf("Failed to get scans: %s", err)
+    return err
+  }
+  
+  
 
-	scans, err := trans.GetScans()
-	if err != nil {
-		trans.Errorf("Failed to get scans: %s", err)
-		return err
-	}
+  go func() {
+    for _, s := range scans {
+      scansChan <- s
+          
+    }
+    close(scansChan)
+  }()
 
-	go func() {
-		for _, s := range scans {
-			scansChan <- s
-		}
-		close(scansChan)
-	}()
+  for i := 0; i < concurrentWorkers; i++ {
+    trans.Workers["detail"].Add(1)
+    go func() {
+      for s := range scansChan {
 
-	for i := 0; i < concurrentWorkers; i++ {
-		trans.Workers["detail"].Add(1)
-		go func() {
-			for s := range scansChan {
-				record, err := trans.GetScanHistory(s.ScanId, previousOffset)
-				if err == nil {
-					out <- record
-				}
-			}
-			trans.Workers["detail"].Done()
-		}()
-	}
+        record, err := trans.GetScanHistory(s.ScanId, previousOffset)
+        if err == nil {
+          out <- record
+        }
+      }
+      trans.Workers["detail"].Done()
+    }()
+  }
 	trans.Workers["detail"].Wait()
 
 	return nil
