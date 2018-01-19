@@ -11,6 +11,47 @@ import (
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio/api/tenable"
 )
 
+func (trans *Translator) getTenableScanList() (sl tenable.ScanList, err error) {
+	var portalUrl = trans.Config.Base.BaseUrl + "/scans"
+	var memcacheKey = portalUrl
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		trans.Stats.Count("GetTenableScanList.Memcached")
+
+		sl = item.Value().(tenable.ScanList)
+		return sl, nil
+	}
+
+	trans.Stats.Count("GetTenableScanList.Memcached")
+
+	raw, cacheFilename, err := trans.PortalCache.Get(portalUrl)
+	if err != nil {
+		trans.Warnf("Couldn't get tenable.ScanList from PortalCache: %s", err)
+		return sl, err
+	}
+
+	err = json.Unmarshal([]byte(string(raw)), &sl)
+	if err != nil {
+		trans.Warnf("Couldn't unmarshal tenable.ScanList: %s", err)
+		return sl, err
+	}
+
+	if trans.Anonymizer != nil {
+		trans.Anonymizer.AnonymizeScanList(&sl)
+
+		backToRaw, err := json.Marshal(sl)
+		if err == nil {
+
+			newCacheFilename := trans.Anonymizer.RewriteCacheFilename(cacheFilename)
+			trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
+		}
+	}
+
+	trans.Memcache.Set(memcacheKey, sl, time.Minute*60)
+
+	return sl, nil
+}
+
 func (trans *Translator) getTenableHostDetail(scanId string, hostId string, historyId string) (hd tenable.HostDetail, err error) {
 
 	if trans.Anonymizer != nil {
@@ -97,46 +138,6 @@ func (trans *Translator) marshalTenableHostDetailOld(scanId string, hostId strin
 	return hd, err
 }
 
-func (trans *Translator) getTenableScanList() (sl tenable.ScanList, err error) {
-	var portalUrl = trans.Config.Base.BaseUrl + "/scans"
-	var memcacheKey = portalUrl
-	item := trans.Memcache.Get(memcacheKey)
-	if item != nil {
-		trans.Stats.Count("GetTenableScanList.Memcached")
-
-		sl = item.Value().(tenable.ScanList)
-		return sl, nil
-	}
-
-	trans.Stats.Count("GetTenableScanList.Memcached")
-
-	raw, cacheFilename, err := trans.PortalCache.Get(portalUrl)
-	if err != nil {
-		trans.Warnf("Couldn't get tenable.ScanList from PortalCache: %s", err)
-		return sl, err
-	}
-
-	err = json.Unmarshal([]byte(string(raw)), &sl)
-	if err != nil {
-		trans.Warnf("Couldn't unmarshal tenable.ScanList: %s", err)
-		return sl, err
-	}
-
-	if trans.Anonymizer != nil {
-		trans.Anonymizer.AnonymizeScanList(&sl)
-
-		backToRaw, err := json.Marshal(sl)
-		if err == nil {
-
-			newCacheFilename := trans.Anonymizer.RewriteCacheFilename(cacheFilename)
-			trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
-		}
-	}
-
-	trans.Memcache.Set(memcacheKey, sl, time.Minute*60)
-
-	return sl, nil
-}
 
 func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (scanDetail tenable.ScanDetail, err error) {
 

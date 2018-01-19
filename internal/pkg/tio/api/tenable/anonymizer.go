@@ -13,8 +13,9 @@ import (
 )
 
 type Anonymizer struct {
-	Worker *sync.WaitGroup
-
+	Workers *sync.WaitGroup
+ 	ThreadSafe map[string]*sync.Mutex
+  
 	Debug func(string)
 	Info  func(string)
 	Warn  func(string)
@@ -61,6 +62,13 @@ func NewAnonymizer(config *tio.VulnerabilityConfig) (a *Anonymizer) {
 	a.RemappedId["historyId.real"] = make(map[string]string)
 	a.RemappedId["historyId.obfu"] = make(map[string]string)
 
+	a.ThreadSafe = make(map[string]*sync.Mutex)
+	a.ThreadSafe["scan"] = new(sync.Mutex)
+	a.ThreadSafe["hist"] = new(sync.Mutex)
+	a.ThreadSafe["host"] = new(sync.Mutex)
+
+	a.Workers = new(sync.WaitGroup)
+
 	return a
 }
 
@@ -74,6 +82,9 @@ func (a *Anonymizer) RewriteCacheFilename(cacheFilename string) (newCacheFilenam
 }
 
 func (a *Anonymizer) AnonHostId(scanId string, historyId string, hostId string) (value string) {
+	a.ThreadSafe["host"].Lock()
+	defer a.ThreadSafe["host"].Unlock()
+
 	key := fmt.Sprintf("%v|%v|%v", scanId, historyId, hostId)
 	value, ok := a.RemappedId["hostId.real"][key]
 
@@ -84,19 +95,25 @@ func (a *Anonymizer) AnonHostId(scanId string, historyId string, hostId string) 
 	value = fmt.Sprintf("%d", a.CountHostId)
 	a.RemappedId["hostId.real"][key] = value
 	a.RemappedId["hostId.obfu"][value] = hostId
-
+	
 	return value
 }
 func (a *Anonymizer) DeAnonHostId(hostId string) (value string) {
+	a.ThreadSafe["host"].Lock()
+	defer a.ThreadSafe["host"].Unlock()
+
 	key := fmt.Sprintf("%v", hostId)
 	value, ok := a.RemappedId["hostId.obfu"][key]
 	if !ok {
-		return hostId
+		value = hostId
 	}
 	return value
 }
 
 func (a *Anonymizer) AnonScanId(key string) (value string) {
+	a.ThreadSafe["scan"].Lock()
+	defer a.ThreadSafe["scan"].Unlock()
+
 	value, ok := a.RemappedId["scanId.real"][key]
 	if ok {
 		return value
@@ -106,17 +123,23 @@ func (a *Anonymizer) AnonScanId(key string) (value string) {
 	value = fmt.Sprintf("%d", a.CountScanId)
 	a.RemappedId["scanId.real"][key] = value
 	a.RemappedId["scanId.obfu"][value] = key
+
 	return value
 }
 func (a *Anonymizer) DeAnonScanId(key string) (value string) {
+	a.ThreadSafe["scan"].Lock()
+	defer a.ThreadSafe["scan"].Unlock()
+
 	value, ok := a.RemappedId["scanId.obfu"][key]
 	if !ok {
-		return key
+		value = key
 	}
 	return value
 }
 
 func (a *Anonymizer) AnonHistoryId(key string) (value string) {
+	a.ThreadSafe["hist"].Lock()
+	defer a.ThreadSafe["hist"].Unlock()
 
 	//If already mapped return same scanID same OBFU value
 	value, ok := a.RemappedId["historyId.real"][key]
@@ -132,6 +155,9 @@ func (a *Anonymizer) AnonHistoryId(key string) (value string) {
 	return value
 }
 func (a *Anonymizer) DeAnonHistoryId(key string) (value string) {
+	a.ThreadSafe["hist"].Lock()
+	defer a.ThreadSafe["hist"].Unlock()
+
 	value, ok := a.RemappedId["historyId.obfu"][key]
 	if !ok {
 		value = key
