@@ -3,7 +3,6 @@ package tio
 import (
 	"fmt"
 	"os"
-	"runtime"
 	"strconv"
 	"sync"
 	"time"
@@ -109,14 +108,14 @@ func (log *Logger) Debugf(format string, args ...interface{}) {
 
 func (log *Logger) Debug(line string) {
 	if log.IsDebugLevel {
-
-		pc := make([]uintptr, 10) // at least 1 entry needed
-		runtime.Callers(3, pc)
-		f := runtime.FuncForPC(pc[0])
-		file, codeline := f.FileLine(pc[0])
-		v := fmt.Sprintf("%s\n%s:%d", line, file, codeline)
-
-		log.Write("DEBUG", v)
+		// pc := make([]uintptr, 10) // at least 1 entry needed
+		// runtime.Callers(3, pc)
+		// f := runtime.FuncForPC(pc[0])
+		// file, codeline := f.FileLine(pc[0])
+		// v := fmt.Sprintf("%s\n%s:%d", line, file, codeline)
+		// 
+		// log.Write("DEBUG", v)
+		log.Write("DEBUG", line)
 	}
 	return
 }

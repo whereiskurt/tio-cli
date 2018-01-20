@@ -1,7 +1,6 @@
 package tio
 
 import (
-	//	"fmt"
 	"os"
 	"reflect"
 )
@@ -56,6 +55,7 @@ func (config *BaseConfig) GetStatistics() map[string]*map[string]interface{} {
 }
 
 // func (config *BaseConfig) String() string {
+//  //Use this to mask the Access/Secret/CacheKeys from outputs
 // 	return fmt.Sprintf("BaseConfig: BLAHBLAHLBAH")
 // }
 
@@ -80,6 +80,8 @@ type VulnerabilityConfig struct {
 
 	ShouldAnon        bool
 	SyncMode          bool
+	PurgeMode          bool
+
 	CacheFolderWrite  string
 }
 

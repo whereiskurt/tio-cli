@@ -1,5 +1,10 @@
 package dao
 
+import (
+  "fmt"
+  "strings"
+)
+
 type Scan struct {
 	ScanId      string `json:"id"`
 	UUID        string `json:"uuid"`
@@ -19,6 +24,14 @@ type Scan struct {
 	PolicyName       string `json:"policy_name"`
 	Timestamp        string `json:"timestamp"`
 }
+
+func (s *Scan) CSV() string {
+    return strings.Join([]string { s.ScanId, "'"+s.Name+"'", "'"+s.Status+"'","'"+s.Owner+"'", "'"+s.Targets+"'", "'"+s.ScannerName+"'", "'"+s.Enabled+"'", "'"+s.RRules+"'", "'"+s.LastModifiedDate+"'", "'"+s.PolicyName+"'", }, ",")
+}
+func (s *Scan) CSVHeader() string {
+    return fmt.Sprintf("ScanId,Name,Status,Owner,Targets,ScannerName,Enabled,RRules,LastModifiedDate,PolicyName")
+}
+
 
 type ScanHistory struct {
 	Scan               Scan
@@ -59,10 +72,18 @@ type ScanHistoryDetail struct {
 	ScanEndUnix   string `json:"scanEndUnix"`
 	ScanDuration  string `json:"scanDuration"`
 
+	HostCount  string                         `json:"hostCount"`
 	Host       map[string]HostScanSummary     `json:"hostMap"`
 	HostPlugin map[string]PluginDetailSummary `json:"hostPluginMap"`
-	HostCount  string                         `json:"hostCount"`
 }
+
+func (s *ScanHistoryDetail) CSV() string {
+    return strings.Join([]string {s.Scan.CSV(), s.HistoryId,s.HistoryIndex,s.Status,s.CreationDate,s.LastModifiedDate,s.PluginCriticalCount,s.PluginHighCount,s.PluginMediumCount,s.PluginLowCount,s.PluginTotalCount,"'"+s.ScanStart+"'",s.ScanStartUnix,"'"+s.ScanEnd+"'",s.ScanEndUnix,"'"+s.ScanDuration+"'",s.HostCount}, ",")
+}
+func (s *ScanHistoryDetail) CSVHeader() string {
+    return fmt.Sprintf("%s,%s", s.Scan.CSVHeader(), "HistoryId,HistoryIndex,Status,CreationDate,LastModifiedDate,PluginCriticalCount,PluginHighCount,PluginMediumCount,PluginLowCount,PluginTotalCount,ScanStart,ScanStartUnix,ScanEnd,ScanEndUnix,ScanDuration,HostCount")
+}
+
 
 type HostScanSummary struct {
 	HostId              string `json:"hostId"`

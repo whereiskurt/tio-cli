@@ -17,6 +17,7 @@ type CommandLineInterface struct {
 	Config            *tio.BaseConfig
 	Workers           *sync.WaitGroup
 	ConcurrentWorkers int
+	Output *os.File
 }
 
 func NewCommandLineInterface(config *tio.BaseConfig) *CommandLineInterface {
@@ -26,11 +27,18 @@ func NewCommandLineInterface(config *tio.BaseConfig) *CommandLineInterface {
 	c.Workers = new(sync.WaitGroup)
 	c.ConcurrentWorkers, _ = strconv.Atoi(config.ConcurrentWorkers)
 
+	c.Output = config.Output
+
 	if c.Config.NoColourMode {
 		DisableColour()
 	}
 
 	return c
+}
+
+func (cli *CommandLineInterface) Println(line string) {
+	fmt.Fprintln(cli.Output, line)
+	return
 }
 
 func UnixTimePretty(unix string) string {
@@ -47,7 +55,7 @@ func UnixTimePretty(unix string) string {
 
 func (cli *CommandLineInterface) DrawShortTable(recs []dao.ScanHistory) {
 
-	table := tablewriter.NewWriter(os.Stdout)
+	table := tablewriter.NewWriter(cli.Output)
 
 	table.SetHeader([]string{"ID", "Name", "Status", "#Hosts", "#CRIT/H/M/L", "LastRun", "#Hists."})
 	table.SetColumnAlignment([]int{tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
@@ -108,7 +116,7 @@ func (cli *CommandLineInterface) DrawShortTable(recs []dao.ScanHistory) {
 }
 
 func (cli *CommandLineInterface) DrawDashboard(recs []dao.ScanHistory) {
-	table := tablewriter.NewWriter(os.Stdout)
+	table := tablewriter.NewWriter(cli.Output)
 	table.SetHeader([]string{"CRITICAL", "HIGH", "MEDIUM", "LOW", "#HOSTS"})
 	table.SetColumnAlignment([]int{tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
 
@@ -142,7 +150,7 @@ func (cli *CommandLineInterface) DrawDashboard(recs []dao.ScanHistory) {
 
 func (cli *CommandLineInterface) DrawRunSchedule(r dao.ScanHistory) {
 
-	table := tablewriter.NewWriter(os.Stdout)
+	table := tablewriter.NewWriter(cli.Output)
 	table.SetHeader([]string{"Enabled", "RunRule", "StartTime"})
 	table.SetColumnAlignment([]int{tablewriter.ALIGN_CENTER, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
 
@@ -157,7 +165,7 @@ func (cli *CommandLineInterface) DrawRunHistory(r dao.ScanHistory) {
 		return
 	}
 
-	table := tablewriter.NewWriter(os.Stdout)
+	table := tablewriter.NewWriter(cli.Output)
 	table.SetHeader([]string{"HistoryID", "Status", "#Hosts", "#CRIT/H/M/L", "LastRun"})
 	table.SetColumnAlignment([]int{tablewriter.ALIGN_CENTER, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
 
@@ -194,7 +202,7 @@ func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail, hostKeys []s
 		return
 	}
 
-	table := tablewriter.NewWriter(os.Stdout)
+	table := tablewriter.NewWriter(cli.Output)
 	table.SetHeader([]string{"ID", "IP", "Names", "#CRIT/H/M/L", "OS"})
 	table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
 
@@ -245,7 +253,7 @@ func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail, hostKeys []s
 }
 
 func (cli *CommandLineInterface) DrawScanVulnTable(rec dao.ScanHistoryDetail, vulnKeys []string) {
-	table := tablewriter.NewWriter(os.Stdout)
+	table := tablewriter.NewWriter(cli.Output)
 	table.SetHeader([]string{"ID", "Name", "Family,", "SEV", "#"})
 	table.SetColumnAlignment([]int{tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
 	table.SetAutoWrapText(false)

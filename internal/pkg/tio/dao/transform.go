@@ -11,6 +11,9 @@ import (
 var TM_FORMAT_NOTZ = "Mon Jan _2 15:04:05 2006"
 var TM_FORMAT_TZ string = "2006-01-_2 15:04:05 -0700 MST"
 
+
+
+
 func (trans *Translator) FromNoTZ(dts string, setTZ string) (withTZ string, unix time.Time, err error) {
 
 	dtsInt, err := strconv.ParseInt(dts, 10, 64)

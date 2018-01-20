@@ -11,6 +11,11 @@ import (
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio"
 )
 
+const (
+	STAT_API_GETSUCCESS tio.StatType = "tio.api.GET.Success"
+  STAT_API_GETFAILED tio.StatType = "tio.api.GET.Failure"
+)
+
 type Portal struct {
 	BaseUrl   string
 	AccessKey string
@@ -49,6 +54,7 @@ func (portal *Portal) TenableXHeader() string {
 	return fmt.Sprintf("accessKey=%s;secretKey=%s", akeys[key], skeys[key])
 }
 
+//NOTE: HTTP DELETE is NOT implemented for deleting scan history_id..
 func (portal *Portal) Delete(endPoint string) error {
 	var url string = portal.BaseUrl + "/" + endPoint
 
@@ -85,34 +91,32 @@ func (portal *Portal) Delete(endPoint string) error {
 }
 
 func (portal *Portal) Get(endPoint string) ([]byte, error) {
-	var url string = endPoint
-	var method string = "GET"
-
-	portal.Stats.Count("GET")
+	var reqStartTime = time.Now() //Start the clock!
 
 	client := &http.Client{Transport: tr}
-	req, err := http.NewRequest(method, url, nil)
+
+	req, err := http.NewRequest("GET", endPoint, nil)
 	if err != nil {
 		portal.Log.Errorf("%s", err)
 		return nil, err
 	}
 	req.Header.Add("X-ApiKeys", portal.TenableXHeader())
 
-	//Make the request
-	var reqStartTime = time.Now() //Start the clock!
-	resp, err := client.Do(req)
+	resp, err := client.Do(req) // <-------HTTPS GET Request!
 	if err != nil {
+		portal.Stats.Count(STAT_API_GETFAILED)
 		portal.Log.Errorf("%s", err)
 		return nil, err
 	}
-	var reqEndTime = time.Now() //Stop the clock!
 	defer resp.Body.Close()
 
+	portal.Stats.Count(STAT_API_GETSUCCESS)
+
+	var reqEndTime = time.Now() //Stop the clock!
 	var reqDuration = fmt.Sprintf("%v", reqEndTime.Sub(reqStartTime))
 
-	portal.Log.Debugf("GET '%s' took %v", url, reqDuration)
+	portal.Log.Debugf("HTTP GET '%s' took %v", endPoint, reqDuration)
 
-	//Read the repsonse
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		portal.Log.Errorf("%s", err)
@@ -129,7 +133,7 @@ func (portal *Portal) Get(endPoint string) ([]byte, error) {
 	}
 
 	if strings.Contains(string(body), `{"error":"Asset or host not found"}`) || strings.Contains(string(body), `{"error":"You need to log in to perform this request"}`) || strings.Contains(string(body), "504 Gateway Time-out") || strings.Contains(string(body), `{"statusCode":504,"error":"Gateway Timeout"`) || strings.Contains(string(body), `{"error":"Invalid Credentials"}`) || strings.Contains(string(body), `Please retry request.`) || strings.Contains(string(body), `Please wait a moment`) {
-		warn := fmt.Sprintf("SOFT FAILURE: GET %s failed : Body:\n%s\n", endPoint, body)
+		warn := fmt.Sprintf("FAILED: GET '%s' Body:'%s'", endPoint, body)
 		portal.Log.Warn(warn)
 		err := errors.New(warn)
 		return body, err

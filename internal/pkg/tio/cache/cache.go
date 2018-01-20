@@ -14,6 +14,12 @@ import (
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio/obfu"
 )
 
+const (
+	STAT_CACHE_HIT tio.StatType = "tio.cache.HIT"
+	STAT_CACHE_MISS tio.StatType = "tio.cache.MISS"
+	STAT_CACHE_STORE tio.StatType = "tio.cache.STORE"
+) 
+
 type TranslatorCache struct {
 	Log *tio.Logger
 }
@@ -25,11 +31,8 @@ type PortalCache struct {
 	CacheKey       string
 	UseCryptoCache bool
 	OfflineMode    bool
-
 	CacheKeyBytes []byte
-
 	Log *tio.Logger
-
 	Stats *tio.Statistics
 }
 
@@ -130,6 +133,8 @@ func (portal *PortalCache) PortalCacheFilename(url string) (filename string, err
 }
 
 func (portal *PortalCache) PortalCacheSet(cacheFilename string, store []byte) (err error) {
+	portal.Stats.Count(STAT_CACHE_STORE)
+
 	if portal.UseCryptoCache {
 		encDat, err := obfu.Encrypt(store, portal.CacheKeyBytes)
 		if err != nil {
@@ -148,11 +153,12 @@ func (portal *PortalCache) PortalCacheSet(cacheFilename string, store []byte) (e
 	return err
 }
 func (portal *PortalCache) PortalCacheGet(cacheFilename string) ([]byte, error) {
+
 	dat, err := ioutil.ReadFile(cacheFilename)
 	if err != nil {
 		return nil, err
 	}
-	portal.Stats.Count("HIT.FILESYSTEM")
+	portal.Stats.Count(STAT_CACHE_HIT)
 
 	if !portal.UseCryptoCache {
 		return dat, nil
@@ -185,13 +191,12 @@ func (portal *PortalCache) Get(url string) (body []byte, filename string, err er
 		return body, filename, err
 	}
 
+	portal.Stats.Count(STAT_CACHE_MISS)
+
 	if portal.OfflineMode == true {
 		err = errors.New("Cache MISSED in '--offlineMode'")
-		portal.Log.Infof("%s", err)
 		return body, filename, err
 	}
-
-	portal.Log.Debugf("Cache: MISSED: GET '%s' and '%s' not in local cache.", url, filename)
 
 	//TODO: Add some 'soft retry' concepts here.
 	body, err = portal.Portal.Get(url)
@@ -205,7 +210,7 @@ func (portal *PortalCache) Get(url string) (body []byte, filename string, err er
 		return body, filename, err
 
 	}
-	portal.Log.Debugf("Cache: STORE: GET '%s' is now in local cache.", url)
+
 	return body, filename, err
 }
 
