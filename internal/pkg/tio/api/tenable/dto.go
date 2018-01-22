@@ -111,8 +111,8 @@ func (hdi HostDetailInfo) MarshalJSON() ([]byte, error) {
 	end := json.Number(fmt.Sprintf("%d", etm.Unix()))
 
 	return json.Marshal(&struct {
-		HostStart json.Number `json:"host_start"` //becoming a number
-		HostEnd   json.Number `json:"host_end"`   //becoming a number
+		HostStart json.Number `json:"host_start"` 
+		HostEnd   json.Number `json:"host_end"`   
 		Alias
 	}{
 		HostStart: json.Number(start),
