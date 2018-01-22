@@ -22,11 +22,10 @@ type CommandLineInterface struct {
 
 func NewCommandLineInterface(config *tio.BaseConfig) *CommandLineInterface {
 	c := new(CommandLineInterface)
+	
 	c.Config = config
-
 	c.Workers = new(sync.WaitGroup)
 	c.ConcurrentWorkers, _ = strconv.Atoi(config.ConcurrentWorkers)
-
 	c.Output = config.Output
 
 	if c.Config.NoColourMode {

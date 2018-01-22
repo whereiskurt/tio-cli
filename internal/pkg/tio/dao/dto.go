@@ -32,24 +32,10 @@ func (s *Scan) CSVHeader() string {
     return fmt.Sprintf("ScanId,Name,Status,Owner,Targets,ScannerName,Enabled,RRules,LastModifiedDate,PolicyName")
 }
 
-
 type ScanHistory struct {
 	Scan               Scan
 	ScanHistoryCount   string `json:'ScanHistoryCount'`
 	ScanHistoryDetails []ScanHistoryDetail
-}
-
-type HostPluginExposure struct {
-	Host                    HostScanSummary
-	Plugin                  PluginDetailSummary
-	FirstScan               ScanHistoryDetail
-	LastScan                ScanHistoryDetail
-	DaysSinceFirstDetection string `json:"daysSinceFirstDetection"`
-	DaysSinceLastDetection  string `json:"DaysSinceLastDetection"`
-	VulnerableStatus        string `json:"VulnerableStatus"`
-	DurationStatus          string `json:"DurationStatus"`
-	IsVulnerable            bool   `json:"IsVulnerable"`
-	IsPatched               bool   `json:"IsPatched"`
 }
 
 type ScanHistoryDetail struct {
@@ -78,12 +64,11 @@ type ScanHistoryDetail struct {
 }
 
 func (s *ScanHistoryDetail) CSV() string {
-    return strings.Join([]string {s.Scan.CSV(), s.HistoryId,s.HistoryIndex,s.Status,s.CreationDate,s.LastModifiedDate,s.PluginCriticalCount,s.PluginHighCount,s.PluginMediumCount,s.PluginLowCount,s.PluginTotalCount,"'"+s.ScanStart+"'",s.ScanStartUnix,"'"+s.ScanEnd+"'",s.ScanEndUnix,"'"+s.ScanDuration+"'",s.HostCount}, ",")
+  return strings.Join([]string {s.Scan.CSV(), s.HistoryId,s.HistoryIndex,"'"+s.Status+"'",s.CreationDate,s.LastModifiedDate,s.PluginCriticalCount,s.PluginHighCount,s.PluginMediumCount,s.PluginLowCount,s.PluginTotalCount,"'"+s.ScanStart+"'",s.ScanStartUnix,"'"+s.ScanEnd+"'",s.ScanEndUnix,"'"+s.ScanDuration+"'",s.HostCount}, ",")
 }
 func (s *ScanHistoryDetail) CSVHeader() string {
-    return fmt.Sprintf("%s,%s", s.Scan.CSVHeader(), "HistoryId,HistoryIndex,Status,CreationDate,LastModifiedDate,PluginCriticalCount,PluginHighCount,PluginMediumCount,PluginLowCount,PluginTotalCount,ScanStart,ScanStartUnix,ScanEnd,ScanEndUnix,ScanDuration,HostCount")
+  return fmt.Sprintf("%s,%s", s.Scan.CSVHeader(), "HistoryId,HistoryIndex,Status,CreationDate,LastModifiedDate,PluginCriticalCount,PluginHighCount,PluginMediumCount,PluginLowCount,PluginTotalCount,ScanStart,ScanStartUnix,ScanEnd,ScanEndUnix,ScanDuration,HostCount")
 }
-
 
 type HostScanSummary struct {
 	HostId              string `json:"hostId"`
@@ -129,4 +114,18 @@ type PluginDetail struct {
 type PluginDetailAttribute struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
+}
+
+////// Computed 
+type HostPluginExposure struct {
+  Host                    HostScanSummary
+  Plugin                  PluginDetailSummary
+  FirstScan               ScanHistoryDetail
+  LastScan                ScanHistoryDetail
+  DaysSinceFirstDetection string `json:"daysSinceFirstDetection"`
+  DaysSinceLastDetection  string `json:"DaysSinceLastDetection"`
+  VulnerableStatus        string `json:"VulnerableStatus"`
+  DurationStatus          string `json:"DurationStatus"`
+  IsVulnerable            bool   `json:"IsVulnerable"`
+  IsPatched               bool   `json:"IsPatched"`
 }
