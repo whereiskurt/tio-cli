@@ -23,6 +23,7 @@ const (
   
   STAT_GETHOSTDETAIL tio.StatType = "tio.dao.GetHostDetail.CallCount"
   STAT_GETHOSTDETAIL_MEMCACHE tio.StatType = "tio.dao.GetHostDetail.Memcached"
+  STAT_GETHOSTDETAIL_ERROR tio.StatType = "tio.dao.GetHostDetail.ErrorBadData"
 
   STAT_GETSCANHISTORY tio.StatType = "tio.dao.GetScanHistory.CallCount"
   STAT_GETSCANHISTORY_MEMCACHE tio.StatType = "tio.dao.GetScanHistory.Memcached"
@@ -286,6 +287,7 @@ func (trans *Translator) GetHostDetail(host HostScanSummary) (record HostScanDet
 
 	hd, err := trans.getTenableHostDetail(scanId, hostId, historyId)
 	if err != nil {
+    	trans.Stats.Count(STAT_GETHOSTDETAIL_ERROR)
 		trans.Warnf("Couldn't unmarshal tenable.HostDetails for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
 		return record, err
 	}
