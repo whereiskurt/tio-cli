@@ -194,7 +194,7 @@ func (portal *PortalCache) Get(url string) (body []byte, filename string, err er
 	portal.Stats.Count(STAT_CACHE_MISS)
 
 	if portal.OfflineMode == true {
-		err = errors.New("Cache MISSED in '--offlineMode'")
+		err = errors.New(fmt.Sprintf("Cache MISSED for '%s' in '--offlineMode'", filename))
 		return body, filename, err
 	}
 

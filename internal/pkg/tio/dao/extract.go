@@ -35,31 +35,34 @@ func (trans *Translator) getTenableScanList() (sl tenable.ScanList, err error) {
   if item != nil {
     trans.Stats.Count(STAT_API_TENABLE_SCANLIST_MEMCACHE)
 
-		sl = item.Value().(tenable.ScanList)
-		return sl, nil
-	}
+    sl = item.Value().(tenable.ScanList)
+    return sl, nil
+  }
 
-	raw, cacheFilename, err := trans.PortalCache.Get(portalUrl)
-	if err != nil {
-		trans.Warnf("Couldn't get tenable.ScanList from PortalCache: %s", err)
-		return sl, err
-	}
+  raw, _, err := trans.PortalCache.Get(portalUrl)
+  if err != nil {
+    trans.Warnf("Couldn't get tenable.ScanList from PortalCache: %s", err)
+    return sl, err
+  }
 
-	err = json.Unmarshal([]byte(string(raw)), &sl)
-	if err != nil {
-		trans.Warnf("Couldn't unmarshal tenable.ScanList: %s", err)
-		return sl, err
-	}
+  err = json.Unmarshal([]byte(string(raw)), &sl) 
+  if err != nil {
+    trans.Warnf("Couldn't unmarshal tenable.ScanList: %s", err)
+    return sl, err
+  }
 
-	if trans.Anonymizer != nil {
-		trans.Anonymizer.AnonymizeScanList(&sl)
+  if trans.Anonymizer != nil {
 
-		backToRaw, err := json.Marshal(sl)
-		if err == nil {
+    trans.Anonymizer.AnonymizeScanList(&sl)
 
-			newCacheFilename := trans.Anonymizer.RewriteCacheFilename(cacheFilename)
-			trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
-		}
+    backToRaw, err := json.Marshal(sl)
+    if err != nil {
+      trans.Errorf("Error: %s", err)
+      return sl, err
+    }
+    newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
+    newCacheFilename = trans.Anonymizer.RewriteCacheFilename(newCacheFilename)
+    trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
 	}
 
 	trans.Memcache.Set(memcacheKey, sl, time.Minute*60)
