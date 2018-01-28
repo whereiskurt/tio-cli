@@ -1,6 +1,7 @@
 package ui
 
 import (
+  "bufio"
 	"fmt"
 	"os"
 	"strconv"
@@ -35,8 +36,12 @@ func NewCommandLineInterface(config *tio.BaseConfig) *CommandLineInterface {
 	return c
 }
 
-func (cli *CommandLineInterface) Println(line string) {
-	fmt.Fprintln(cli.Output, line)
+func (cli *CommandLineInterface) Println(line ... interface{}) {
+	fmt.Fprintln(cli.Output, fmt.Sprintf("%v", line ...))
+  return
+}
+func (cli *CommandLineInterface) Print(line ... interface{}) {
+  fmt.Fprintf(cli.Output, fmt.Sprintf("%v", line ... ))
 	return
 }
 
@@ -278,5 +283,63 @@ func (cli *CommandLineInterface) DrawScanVulnTable(rec dao.ScanHistoryDetail, vu
 	} else {
 		fmt.Println(BOLD + "---> NONE!" + RESET)
 	}
+}
 
+func (cli *CommandLineInterface) PromptForConfigKeys() {
+  home := cli.Config.HomeDir
+
+  cli.Println( fmt.Sprintf(BOLD + "WARN: " + RESET + "No configuration file '.tio-cli.yaml' found in '%s' .", home)) 
+  cli.Println("") 
+  cli.Print(fmt.Sprintf(BOLD + "Is this your first execution? Need access keys for API usage." + RESET))
+  cli.Println("") 
+
+  cli.Println( fmt.Sprintf("You must provide the X-ApiKeys 'accessKey' and 'secretKey' to access the API.")) 
+  cli.Println( fmt.Sprintf("For complete details see: https://cloud.tenable.com/api#/authorization")) 
+  cli.Println("") 
+  
+  reader := bufio.NewReader(os.Stdin)
+  cli.Print(fmt.Sprintf("Enter required "+BOLD+"'accessKey'"+RESET+": "))
+  cli.Config.AccessKey, _ = reader.ReadString('\n')
+  cli.Config.AccessKey = strings.TrimSpace(cli.Config.AccessKey)
+  if len(cli.Config.AccessKey) != 64 {
+    panic( fmt.Sprintf("Invalid accessKey '%s' length %d not 64.\n\n", cli.Config.AccessKey, len(cli.Config.AccessKey))) 
+  }
+
+  cli.Print("Enter required ", BOLD, "'secretKey'", RESET, ": ")
+  cli.Config.SecretKey, _ = reader.ReadString('\n')
+  cli.Config.SecretKey = strings.TrimSpace(cli.Config.SecretKey)
+  if len(cli.Config.SecretKey) != 64 {
+    panic( fmt.Sprintf("Invalid secretKey '%s' length %d not 64.\n\n", cli.Config.SecretKey, len(cli.Config.SecretKey))) 
+  }
+
+  cli.Println()
+  cli.Print("Save configuration file? [yes or ", BOLD, "no (default is 'no')", RESET, "): ")
+  shouldSave, _ := reader.ReadString('\n')
+  cli.Println()
+
+  if len(shouldSave) > 0 && strings.ToUpper(shouldSave)[0] == 'Y' {
+    cli.Println( fmt.Sprintf("Creating default '.tio-cli.yaml' in '%s' .", home)) 
+    
+    file, err := os.Create(home + "/.tio-cli.yaml")
+    if err != nil {
+      panic(fmt.Sprintf("Cannot create file:", BOLD, err, RESET, "\n\n"))
+    }
+    defer file.Close()
+    cli.Println( fmt.Sprintf("Writing 'accessKey' and 'seretKey'...")) 
+
+    fmt.Fprintf(file, "accessKey: %s\n", cli.Config.AccessKey)
+    fmt.Fprintf(file, "secretKey: %s\n", cli.Config.SecretKey)
+    fmt.Fprintf(file, "cacheKey: %s%s\n", cli.Config.AccessKey[:16], cli.Config.SecretKey[:16])
+    fmt.Fprintf(file, "cacheFolder: %s\n", "./cache/")
+
+    cli.Println( fmt.Sprintf("Done! \nWriting default timezone ...")) 
+    t := time.Now()
+    ts := fmt.Sprintf("%v", t)
+    tzDefault := ts[len(ts)-10:]
+    fmt.Fprintf(file, "tzDefault: %s", tzDefault)
+
+    cli.Println( fmt.Sprintf("Done! \nSuccessfully created '%v/.tio-cli.yaml'", home)) 
+  }
+
+  return
 }

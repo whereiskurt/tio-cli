@@ -85,8 +85,11 @@ func (a *Anonymizer) AnonHostId(scanId string, historyId string, hostId string) 
 	a.ThreadSafe["host"].Lock()
 	defer a.ThreadSafe["host"].Unlock()
 
-	key := fmt.Sprintf("%v|%v|%v", scanId, historyId, hostId)
-	value, ok := a.RemappedId["hostId.real"][key]
+	//TODO: Figure the best way to key the hostId
+	//key := fmt.Sprintf("%v|%v|%v", scanId, historyId, hostId)
+	key := fmt.Sprintf("%v", hostId)
+  
+  value, ok := a.RemappedId["hostId.real"][key]
 
 	if ok {
 		return value
@@ -235,7 +238,7 @@ func (a *Anonymizer) AnonymizeHostDetail(scanId string, historyId string, hd *Ho
 		hostId := fmt.Sprintf("%v", hd.Vulnerabilities[i].HostId)
 		hd.Vulnerabilities[i].HostId = json.Number(a.AnonHostId(scanId, historyId, hostId))
 		hd.Vulnerabilities[i].Count = json.Number(fmt.Sprintf("%d", rand.Intn(50)))
-		hd.Vulnerabilities[i].HostName = hd.Info.HostIP //as per the Tenable output!
+		hd.Vulnerabilities[i].HostName = hd.Info.HostIP
 	}
 
 	if len(hd.Info.OperatingSystem) == 0 {

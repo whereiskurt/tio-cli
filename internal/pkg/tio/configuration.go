@@ -11,6 +11,9 @@ type ReflectIntoConfig interface {
 }
 
 type BaseConfig struct {
+	IsSuccessState		bool
+	HomeDir			   string
+	ExecutionDTS	   string
 	ConfigFile         string
 	VerbosityMode      string
 	BaseUrl            string
@@ -43,15 +46,6 @@ type BaseConfig struct {
 	Logger        *Logger
 
 	Output         *os.File
-	statisticsRefs map[string]*map[string]interface{}
-}
-
-func (config *BaseConfig) AddStatistics(key string, stats *map[string]interface{}) {
-	config.statisticsRefs[key] = stats
-	return
-}
-func (config *BaseConfig) GetStatistics() map[string]*map[string]interface{} {
-	return config.statisticsRefs
 }
 
 // func (config *BaseConfig) String() string {
@@ -87,7 +81,9 @@ type VulnerabilityConfig struct {
 
 func NewBaseConfig() *BaseConfig {
 	c := new(BaseConfig)
-	c.statisticsRefs = make(map[string]*map[string]interface{})
+
+	
+
 	return c
 }
 func NewVulnerabilityConfig() *VulnerabilityConfig {
