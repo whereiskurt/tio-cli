@@ -36,6 +36,22 @@ func NewCommandLineInterface(config *tio.BaseConfig) *CommandLineInterface {
 	return c
 }
 
+func (cli *CommandLineInterface) DrawGopher() {
+  
+  cli.Println("         ,_---~~~~~----._         ")
+  cli.Println("  _,,_,*^____      _____``*g*\"*,")
+  cli.Println(" / __/ /'     ^.  /      \\ ^@q   ")
+  cli.Println("[  @f | @))    |  | @))   l  0 _/")
+  cli.Println(" \\`/   \\~____ / __ \\_____/    \\")
+  cli.Println("  |           _l__l_           I")
+  cli.Println("  }          [______]           I")
+  cli.Println("  ]            | | |            |")
+  cli.Println("  ]             ~ ~             |") 
+  cli.Println("  |                            |") 
+  cli.Println("   |                           |")  
+  //Sourced!:https://gist.github.com/belbomemo/b5e7dad10fa567a5fe8a
+
+}
 func (cli *CommandLineInterface) Println(line ... interface{}) {
 	fmt.Fprintln(cli.Output, fmt.Sprintf("%v", line ...))
   return

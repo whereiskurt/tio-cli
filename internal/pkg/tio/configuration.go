@@ -15,7 +15,7 @@ type BaseConfig struct {
 	HomeDir			   string
 	ExecutionDTS	   string
 	ConfigFile         string
-	VerbosityMode      string
+	Verbose      string
 	BaseUrl            string
 	AccessKey          string
 	SecretKey          string

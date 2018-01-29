@@ -30,9 +30,9 @@ type Logger struct {
 }
 
 func NewLogger(config *BaseConfig) *Logger {
-	cmdVerbosityMode := config.VerbosityMode
+	cmdVerbose := config.Verbose
 
-	verbose, verboseErr := strconv.Atoi(cmdVerbosityMode)
+	verbose, verboseErr := strconv.Atoi(cmdVerbose)
 	if verboseErr != nil {
 		panic(fmt.Sprintf("Invalid verbose setting: %v", verboseErr))
 	} else if verbose < 0 || verbose > 5 {
