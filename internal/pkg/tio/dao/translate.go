@@ -225,7 +225,9 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
 					for hostKey, host := range hist.Host {
 						record, err := trans.GetHostDetail(host)
 						if err != nil {
-							trans.Warnf("Couldn't retrieve host details. Removing host from list: %s", err)
+              if !trans.Config.Base.OfflineMode {
+							  trans.Warnf("Couldn't retrieve host details. Removing host from list: %s", err)
+              }
 							delete(sd.ScanHistoryDetails[h].Host, hostKey)
 							continue
 						}
@@ -287,8 +289,10 @@ func (trans *Translator) GetHostDetail(host HostScanSummary) (record HostScanDet
 
 	hd, err := trans.getTenableHostDetail(scanId, hostId, historyId)
 	if err != nil {
-    	trans.Stats.Count(STAT_GETHOSTDETAIL_ERROR)
-		trans.Warnf("Couldn't unmarshal tenable.HostDetails for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
+    trans.Stats.Count(STAT_GETHOSTDETAIL_ERROR)
+		if !trans.Config.Base.OfflineMode {
+			trans.Warnf("Couldn't unmarshal tenable.HostDetails for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
+		}
 		return record, err
 	}
 

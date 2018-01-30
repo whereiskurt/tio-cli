@@ -166,7 +166,6 @@ func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (
 
   var portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId + "?history_id=" + historyId
 
-
 	var memcacheKey = portalUrl
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
@@ -178,7 +177,9 @@ func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (
 
 	raw, _, err := trans.PortalCache.Get(portalUrl)
 	if err != nil {
-		trans.Warnf("Couldn't get tenable.ScanDetail from PortalCache: %s", err)
+		if !trans.Config.Base.OfflineMode {
+			trans.Warnf("Couldn't get tenable.ScanDetail from PortalCache: %s", err)
+		}
 		return scanDetail, err
 	}
 	err = json.Unmarshal([]byte(string(raw)), &scanDetail)
@@ -189,14 +190,8 @@ func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (
 
 	//Sort histories by creation date DESC, to get offset history_id
 	sort.Slice(scanDetail.History, func(i, j int) bool {
-		iv, iverr := strconv.ParseInt(string(scanDetail.History[i].CreationDate), 10, 64)
-		if iverr != nil {
-			panic(iverr) //TODO:Replace with warns
-		}
-		jv, jverr := strconv.ParseInt(string(scanDetail.History[j].CreationDate), 10, 64)
-		if jverr != nil {
-			panic(jverr)
-		}
+		iv, _ := strconv.ParseInt(string(scanDetail.History[i].CreationDate), 10, 64)
+		jv, _ := strconv.ParseInt(string(scanDetail.History[j].CreationDate), 10, 64)
 		return iv > jv
 	})
 

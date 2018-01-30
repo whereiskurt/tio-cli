@@ -194,7 +194,7 @@ func (portal *PortalCache) Get(url string) (body []byte, filename string, err er
 	portal.Stats.Count(STAT_CACHE_MISS)
 
 	if portal.OfflineMode == true {
-		err = errors.New(fmt.Sprintf("Cache MISSED for '%s' in '--offlineMode'", filename))
+		err = fmt.Errorf("Cache MISSED for '%s' in '--offlineMode'", filename)
 		return body, filename, err
 	}
 
@@ -206,9 +206,7 @@ func (portal *PortalCache) Get(url string) (body []byte, filename string, err er
 
 	err = portal.PortalCacheSet(filename, body)
 	if err != nil {
-		portal.Log.Debugf(fmt.Sprintf("Failed to store in cache. Error: %s", err))
 		return body, filename, err
-
 	}
 
 	return body, filename, err

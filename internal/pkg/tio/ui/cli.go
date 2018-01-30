@@ -36,12 +36,24 @@ func NewCommandLineInterface(config *tio.BaseConfig) *CommandLineInterface {
 	return c
 }
 
+func (cli *CommandLineInterface) DrawTioBanner() {
+  cli.Println("  _   _                  _ _           ___   ____   ")
+  cli.Println(" | |_(_) ___         ___| (_)  __   __/ _ \\ | ___|  ")
+  cli.Println(" | __| |/ _ \\ _____ / __| | |  \\ \\ / / | | ||___ \\  ")
+  cli.Println(" | |_| | (_) |_____| (__| | |   \\ V /| |_| | ___) | ")
+  cli.Println("  \\__|_|\\___/       \\___|_|_|    \\_/  \\___(_)____/  ")
+  cli.Println("                                 tio-cli version 0.5 ")
+
+  //http://patorjk.com/software/taag/#p=author&f=Ivrit&t=tio-cli%20%20v0.5
+  return                                                   
+}
+
 func (cli *CommandLineInterface) DrawGopher() {
-  
+
   cli.Println("         ,_---~~~~~----._         ")
   cli.Println("  _,,_,*^____      _____``*g*\"*,")
   cli.Println(" / __/ /'     ^.  /      \\ ^@q   ")
-  cli.Println("[  @f | @))    |  | @))   l  0 _/")
+  cli.Println("[  @f | ❤))    |  | ❤))   l  0 _/")
   cli.Println(" \\`/   \\~____ / __ \\_____/    \\")
   cli.Println("  |           _l__l_           I")
   cli.Println("  }          [______]           I")
@@ -301,15 +313,19 @@ func (cli *CommandLineInterface) DrawScanVulnTable(rec dao.ScanHistoryDetail, vu
 	}
 }
 
-func (cli *CommandLineInterface) PromptForConfigKeys() {
+func (cli *CommandLineInterface) PromptForConfigKeys() (wasSuccess bool) {
+  wasSuccess = false
   home := cli.Config.HomeDir
 
-  cli.Println( fmt.Sprintf(BOLD + "WARN: " + RESET + "No configuration file '.tio-cli.yaml' found in '%s' .", home)) 
   cli.Println("") 
+  cli.Println( fmt.Sprintf(BOLD + "WARN: " + RESET + "No configuration file '.tio-cli.yaml' found in homedir '%s' ", home)) 
   cli.Print(fmt.Sprintf(BOLD + "Is this your first execution? Need access keys for API usage." + RESET))
   cli.Println("") 
-
-  cli.Println( fmt.Sprintf("You must provide the X-ApiKeys 'accessKey' and 'secretKey' to access the API.")) 
+  cli.Println("") 
+  cli.DrawGopher()
+  cli.Println("") 
+  cli.Println("") 
+  cli.Println( fmt.Sprintf("You must provide the X-ApiKeys '" + BOLD + "accessKey" + RESET + "' and '" + BOLD + "secretKey" + RESET + "' to the Tenable.IO API.")) 
   cli.Println( fmt.Sprintf("For complete details see: https://cloud.tenable.com/api#/authorization")) 
   cli.Println("") 
   
@@ -318,27 +334,31 @@ func (cli *CommandLineInterface) PromptForConfigKeys() {
   cli.Config.AccessKey, _ = reader.ReadString('\n')
   cli.Config.AccessKey = strings.TrimSpace(cli.Config.AccessKey)
   if len(cli.Config.AccessKey) != 64 {
-    panic( fmt.Sprintf("Invalid accessKey '%s' length %d not 64.\n\n", cli.Config.AccessKey, len(cli.Config.AccessKey))) 
+    cli.Println(fmt.Sprintf("Invalid accessKey '%s' length %d not 64.\n\n", cli.Config.AccessKey, len(cli.Config.AccessKey))) 
+    return wasSuccess
   }
 
-  cli.Print("Enter required ", BOLD, "'secretKey'", RESET, ": ")
+  cli.Print(fmt.Sprintf("Enter required "+BOLD+"'secretKey'"+RESET+": "))
   cli.Config.SecretKey, _ = reader.ReadString('\n')
   cli.Config.SecretKey = strings.TrimSpace(cli.Config.SecretKey)
   if len(cli.Config.SecretKey) != 64 {
-    panic( fmt.Sprintf("Invalid secretKey '%s' length %d not 64.\n\n", cli.Config.SecretKey, len(cli.Config.SecretKey))) 
+    cli.Println( fmt.Sprintf("Invalid secretKey '%s' length %d not 64.\n\n", cli.Config.SecretKey, len(cli.Config.SecretKey))) 
+    return wasSuccess
   }
+  cli.Config.CacheKey = fmt.Sprintf("%s%s", cli.Config.AccessKey[:16], cli.Config.SecretKey[:16])
 
-  cli.Println()
-  cli.Print("Save configuration file? [yes or ", BOLD, "no (default is 'no')", RESET, "): ")
+  cli.Println("")
+  cli.Print(fmt.Sprintf("Save configuration file? [yes or "+BOLD+"no (default is 'no')"+RESET+"): "))
   shouldSave, _ := reader.ReadString('\n')
-  cli.Println()
+  cli.Println("")
 
   if len(shouldSave) > 0 && strings.ToUpper(shouldSave)[0] == 'Y' {
     cli.Println( fmt.Sprintf("Creating default '.tio-cli.yaml' in '%s' .", home)) 
     
     file, err := os.Create(home + "/.tio-cli.yaml")
     if err != nil {
-      panic(fmt.Sprintf("Cannot create file:", BOLD, err, RESET, "\n\n"))
+      cli.Println(fmt.Sprintf("Cannot create file:", BOLD, err, RESET, "\n\n"))
+      return wasSuccess
     }
     defer file.Close()
     cli.Println( fmt.Sprintf("Writing 'accessKey' and 'seretKey'...")) 
@@ -348,14 +368,17 @@ func (cli *CommandLineInterface) PromptForConfigKeys() {
     fmt.Fprintf(file, "cacheKey: %s%s\n", cli.Config.AccessKey[:16], cli.Config.SecretKey[:16])
     fmt.Fprintf(file, "cacheFolder: %s\n", "./cache/")
 
-    cli.Println( fmt.Sprintf("Done! \nWriting default timezone ...")) 
     t := time.Now()
     ts := fmt.Sprintf("%v", t)
     tzDefault := ts[len(ts)-10:]
     fmt.Fprintf(file, "tzDefault: %s", tzDefault)
 
+    cli.Println( fmt.Sprintf("Done! \nWriting timezone '%v' based on local timezone...", tzDefault)) 
     cli.Println( fmt.Sprintf("Done! \nSuccessfully created '%v/.tio-cli.yaml'", home)) 
+    cli.Println( "") 
   }
 
-  return
+  wasSuccess = true
+
+  return wasSuccess
 }
