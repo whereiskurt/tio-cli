@@ -37,11 +37,11 @@ func NewCommandLineInterface(config *tio.BaseConfig) *CommandLineInterface {
 }
 
 func (cli *CommandLineInterface) DrawTioBanner() {
-  cli.Println("  _   _                  _ _           ___   ____   ")
-  cli.Println(" | |_(_) ___         ___| (_)  __   __/ _ \\ | ___|  ")
-  cli.Println(" | __| |/ _ \\ _____ / __| | |  \\ \\ / / | | ||___ \\  ")
-  cli.Println(" | |_| | (_) |_____| (__| | |   \\ V /| |_| | ___) | ")
-  cli.Println("  \\__|_|\\___/       \\___|_|_|    \\_/  \\___(_)____/  ")
+  cli.Println("  _   _                 _ _           ___   ____   ")
+  cli.Println(" | |_(_) ___       ___| (_)  __   __/ _ \\ | ___|  ")
+  cli.Println(" | __| |/ _ \\ ___ / __| | |  \\ \\ / / | | ||___ \\  ")
+  cli.Println(" | |_| | (_) |___| (__| | |   \\ V /| |_| | ___) | ")
+  cli.Println("  \\__|_|\\___/     \\___|_|_|    \\_/  \\___(_)____/  ")
   cli.Println("                                 tio-cli version 0.5 ")
 
   //http://patorjk.com/software/taag/#p=author&f=Ivrit&t=tio-cli%20%20v0.5

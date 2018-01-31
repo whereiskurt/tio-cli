@@ -211,9 +211,9 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
 		go func() {
 			for sd := range chanScanDetails {
 
-				if len(sd.ScanHistoryDetails) < 1 {
-					continue
-				}
+				//if len(sd.ScanHistoryDetails) < 1 {
+				//	continue
+				//}
 
 				//For each history in the scan
 				for h, hist := range sd.ScanHistoryDetails {
@@ -226,7 +226,7 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
 						record, err := trans.GetHostDetail(host)
 						if err != nil {
               if !trans.Config.Base.OfflineMode {
-							  trans.Warnf("Couldn't retrieve host details. Removing host from list: %s", err)
+                trans.Warnf("Couldn't retrieve host details. Removing host from list: %s", err)
               }
 							delete(sd.ScanHistoryDetails[h].Host, hostKey)
 							continue
@@ -318,7 +318,6 @@ func (trans *Translator) GoGetScanHistoryDetails(out chan ScanHistory, concurren
 	go func() {
 		for _, s := range scans {
 			scansChan <- s
-
 		}
 		close(scansChan)
 	}()
@@ -327,11 +326,8 @@ func (trans *Translator) GoGetScanHistoryDetails(out chan ScanHistory, concurren
 		trans.Workers["detail"].Add(1)
 		go func() {
 			for s := range scansChan {
-
-				record, err := trans.GetScanHistory(s.ScanId, previousOffset)
-				if err == nil {
-					out <- record
-				}
+				record, _ := trans.GetScanHistory(s.ScanId, previousOffset)
+				out <- record
 			}
 			trans.Workers["detail"].Done()
 		}()
