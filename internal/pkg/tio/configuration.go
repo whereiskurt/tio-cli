@@ -11,11 +11,11 @@ type ReflectIntoConfig interface {
 }
 
 type BaseConfig struct {
-	IsSuccessState		bool
-	HomeDir			   string
-	ExecutionDTS	   string
+	IsSuccessState     bool
+	HomeDir            string
+	ExecutionDTS       string
 	ConfigFile         string
-	Verbose      string
+	Verbose            string
 	BaseUrl            string
 	AccessKey          string
 	SecretKey          string
@@ -45,7 +45,7 @@ type BaseConfig struct {
 	LogFileHandle *os.File
 	Logger        *Logger
 
-	Output         *os.File
+	Output *os.File
 }
 
 // func (config *BaseConfig) String() string {
@@ -72,17 +72,15 @@ type VulnerabilityConfig struct {
 	PluginId        string
 	IgnorePluginId  string
 
-	ShouldAnon        bool
-	SyncMode          bool
-	PurgeMode          bool
+	ShouldAnon bool
+	SyncMode   bool
+	PurgeMode  bool
 
-	CacheFolderWrite  string
+	CacheFolderWrite string
 }
 
 func NewBaseConfig() *BaseConfig {
 	c := new(BaseConfig)
-
-	
 
 	return c
 }

@@ -13,7 +13,7 @@ import (
 
 const (
 	STAT_API_GETSUCCESS tio.StatType = "tio.api.GET.Success"
-  STAT_API_GETFAILED tio.StatType = "tio.api.GET.Failure"
+	STAT_API_GETFAILED  tio.StatType = "tio.api.GET.Failure"
 )
 
 type Portal struct {

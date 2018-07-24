@@ -1,11 +1,11 @@
 package obfu
 
 import (
+	CryptoRand "crypto/rand"
 	"fmt"
 	"io"
 	"io/ioutil"
 	MathRand "math/rand"
-	CryptoRand "crypto/rand"
 	"net"
 	"strings"
 )

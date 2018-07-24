@@ -15,10 +15,10 @@ import (
 )
 
 const (
-	STAT_CACHE_HIT tio.StatType = "tio.cache.HIT"
-	STAT_CACHE_MISS tio.StatType = "tio.cache.MISS"
+	STAT_CACHE_HIT   tio.StatType = "tio.cache.HIT"
+	STAT_CACHE_MISS  tio.StatType = "tio.cache.MISS"
 	STAT_CACHE_STORE tio.StatType = "tio.cache.STORE"
-) 
+)
 
 type TranslatorCache struct {
 	Log *tio.Logger
@@ -31,9 +31,9 @@ type PortalCache struct {
 	CacheKey       string
 	UseCryptoCache bool
 	OfflineMode    bool
-	CacheKeyBytes []byte
-	Log *tio.Logger
-	Stats *tio.Statistics
+	CacheKeyBytes  []byte
+	Log            *tio.Logger
+	Stats          *tio.Statistics
 }
 
 var reAllScans = regexp.MustCompile("^.*?/scans$")

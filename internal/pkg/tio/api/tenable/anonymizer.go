@@ -13,9 +13,9 @@ import (
 )
 
 type Anonymizer struct {
-	Workers *sync.WaitGroup
- 	ThreadSafe map[string]*sync.Mutex
-  
+	Workers    *sync.WaitGroup
+	ThreadSafe map[string]*sync.Mutex
+
 	Debug func(string)
 	Info  func(string)
 	Warn  func(string)
@@ -88,8 +88,8 @@ func (a *Anonymizer) AnonHostId(scanId string, historyId string, hostId string) 
 	//TODO: Figure the best way to key the hostId
 	//key := fmt.Sprintf("%v|%v|%v", scanId, historyId, hostId)
 	key := fmt.Sprintf("%v", hostId)
-  
-  value, ok := a.RemappedId["hostId.real"][key]
+
+	value, ok := a.RemappedId["hostId.real"][key]
 
 	if ok {
 		return value
@@ -98,7 +98,7 @@ func (a *Anonymizer) AnonHostId(scanId string, historyId string, hostId string) 
 	value = fmt.Sprintf("%d", a.CountHostId)
 	a.RemappedId["hostId.real"][key] = value
 	a.RemappedId["hostId.obfu"][value] = hostId
-	
+
 	return value
 }
 func (a *Anonymizer) DeAnonHostId(hostId string) (value string) {

@@ -1,7 +1,7 @@
 package ui
 
 import (
-  "bufio"
+	"bufio"
 	"fmt"
 	"os"
 	"strconv"
@@ -18,12 +18,12 @@ type CommandLineInterface struct {
 	Config            *tio.BaseConfig
 	Workers           *sync.WaitGroup
 	ConcurrentWorkers int
-	Output *os.File
+	Output            *os.File
 }
 
 func NewCommandLineInterface(config *tio.BaseConfig) *CommandLineInterface {
 	c := new(CommandLineInterface)
-	
+
 	c.Config = config
 	c.Workers = new(sync.WaitGroup)
 	c.ConcurrentWorkers, _ = strconv.Atoi(config.ConcurrentWorkers)
@@ -37,39 +37,39 @@ func NewCommandLineInterface(config *tio.BaseConfig) *CommandLineInterface {
 }
 
 func (cli *CommandLineInterface) DrawTioBanner() {
-  cli.Println("  _   _                 _ _           ___   ____   ")
-  cli.Println(" | |_(_) ___       ___| (_)  __   __/ _ \\ | ___|  ")
-  cli.Println(" | __| |/ _ \\ ___ / __| | |  \\ \\ / / | | ||___ \\  ")
-  cli.Println(" | |_| | (_) |___| (__| | |   \\ V /| |_| | ___) | ")
-  cli.Println("  \\__|_|\\___/     \\___|_|_|    \\_/  \\___(_)____/  ")
-  cli.Println("                                 tio-cli version 0.5 ")
+	cli.Println("  _   _                 _ _           ___   ____   ")
+	cli.Println(" | |_(_) ___       ___| (_)  __   __/ _ \\ | ___|  ")
+	cli.Println(" | __| |/ _ \\ ___ / __| | |  \\ \\ / / | | ||___ \\  ")
+	cli.Println(" | |_| | (_) |___| (__| | |   \\ V /| |_| | ___) | ")
+	cli.Println("  \\__|_|\\___/     \\___|_|_|    \\_/  \\___(_)____/  ")
+	cli.Println("                                 tio-cli version 0.5 ")
 
-  //http://patorjk.com/software/taag/#p=author&f=Ivrit&t=tio-cli%20%20v0.5
-  return                                                   
+	//http://patorjk.com/software/taag/#p=author&f=Ivrit&t=tio-cli%20%20v0.5
+	return
 }
 
 func (cli *CommandLineInterface) DrawGopher() {
 
-  cli.Println("         ,_---~~~~~----._         ")
-  cli.Println("  _,,_,*^____      _____``*g*\"*,")
-  cli.Println(" / __/ /'     ^.  /      \\ ^@q   ")
-  cli.Println("[  @f | ❤))    |  | ❤))   l  0 _/")
-  cli.Println(" \\`/   \\~____ / __ \\_____/    \\")
-  cli.Println("  |           _l__l_           I")
-  cli.Println("  }          [______]           I")
-  cli.Println("  ]            | | |            |")
-  cli.Println("  ]             ~ ~             |") 
-  cli.Println("  |                            |") 
-  cli.Println("   |                           |")  
-  //Sourced!:https://gist.github.com/belbomemo/b5e7dad10fa567a5fe8a
+	cli.Println("         ,_---~~~~~----._         ")
+	cli.Println("  _,,_,*^____      _____``*g*\"*,")
+	cli.Println(" / __/ /'     ^.  /      \\ ^@q   ")
+	cli.Println("[  @f | ❤))    |  | ❤))   l  0 _/")
+	cli.Println(" \\`/   \\~____ / __ \\_____/    \\")
+	cli.Println("  |           _l__l_           I")
+	cli.Println("  }          [______]           I")
+	cli.Println("  ]            | | |            |")
+	cli.Println("  ]             ~ ~             |")
+	cli.Println("  |                            |")
+	cli.Println("   |                           |")
+	//Sourced!:https://gist.github.com/belbomemo/b5e7dad10fa567a5fe8a
 
 }
-func (cli *CommandLineInterface) Println(line ... interface{}) {
-	fmt.Fprintln(cli.Output, fmt.Sprintf("%v", line ...))
-  return
+func (cli *CommandLineInterface) Println(line ...interface{}) {
+	fmt.Fprintln(cli.Output, fmt.Sprintf("%v", line...))
+	return
 }
-func (cli *CommandLineInterface) Print(line ... interface{}) {
-  fmt.Fprintf(cli.Output, fmt.Sprintf("%v", line ... ))
+func (cli *CommandLineInterface) Print(line ...interface{}) {
+	fmt.Fprintf(cli.Output, fmt.Sprintf("%v", line...))
 	return
 }
 
@@ -314,71 +314,71 @@ func (cli *CommandLineInterface) DrawScanVulnTable(rec dao.ScanHistoryDetail, vu
 }
 
 func (cli *CommandLineInterface) PromptForConfigKeys() (wasSuccess bool) {
-  wasSuccess = false
-  home := cli.Config.HomeDir
+	wasSuccess = false
+	home := cli.Config.HomeDir
 
-  cli.Println("") 
-  cli.Println( fmt.Sprintf(BOLD + "WARN: " + RESET + "No configuration file '.tio-cli.yaml' found in homedir '%s' ", home)) 
-  cli.Print(fmt.Sprintf(BOLD + "Is this your first execution? Need access keys for API usage." + RESET))
-  cli.Println("") 
-  cli.Println("") 
-  cli.DrawGopher()
-  cli.Println("") 
-  cli.Println("") 
-  cli.Println( fmt.Sprintf("You must provide the X-ApiKeys '" + BOLD + "accessKey" + RESET + "' and '" + BOLD + "secretKey" + RESET + "' to the Tenable.IO API.")) 
-  cli.Println( fmt.Sprintf("For complete details see: https://cloud.tenable.com/api#/authorization")) 
-  cli.Println("") 
-  
-  reader := bufio.NewReader(os.Stdin)
-  cli.Print(fmt.Sprintf("Enter required "+BOLD+"'accessKey'"+RESET+": "))
-  cli.Config.AccessKey, _ = reader.ReadString('\n')
-  cli.Config.AccessKey = strings.TrimSpace(cli.Config.AccessKey)
-  if len(cli.Config.AccessKey) != 64 {
-    cli.Println(fmt.Sprintf("Invalid accessKey '%s' length %d not 64.\n\n", cli.Config.AccessKey, len(cli.Config.AccessKey))) 
-    return wasSuccess
-  }
+	cli.Println("")
+	cli.Println(fmt.Sprintf(BOLD+"WARN: "+RESET+"No configuration file '.tio-cli.yaml' found in homedir '%s' ", home))
+	cli.Print(fmt.Sprintf(BOLD + "Is this your first execution? Need access keys for API usage." + RESET))
+	cli.Println("")
+	cli.Println("")
+	cli.DrawGopher()
+	cli.Println("")
+	cli.Println("")
+	cli.Println(fmt.Sprintf("You must provide the X-ApiKeys '" + BOLD + "accessKey" + RESET + "' and '" + BOLD + "secretKey" + RESET + "' to the Tenable.IO API."))
+	cli.Println(fmt.Sprintf("For complete details see: https://cloud.tenable.com/api#/authorization"))
+	cli.Println("")
 
-  cli.Print(fmt.Sprintf("Enter required "+BOLD+"'secretKey'"+RESET+": "))
-  cli.Config.SecretKey, _ = reader.ReadString('\n')
-  cli.Config.SecretKey = strings.TrimSpace(cli.Config.SecretKey)
-  if len(cli.Config.SecretKey) != 64 {
-    cli.Println( fmt.Sprintf("Invalid secretKey '%s' length %d not 64.\n\n", cli.Config.SecretKey, len(cli.Config.SecretKey))) 
-    return wasSuccess
-  }
-  cli.Config.CacheKey = fmt.Sprintf("%s%s", cli.Config.AccessKey[:16], cli.Config.SecretKey[:16])
+	reader := bufio.NewReader(os.Stdin)
+	cli.Print(fmt.Sprintf("Enter required " + BOLD + "'accessKey'" + RESET + ": "))
+	cli.Config.AccessKey, _ = reader.ReadString('\n')
+	cli.Config.AccessKey = strings.TrimSpace(cli.Config.AccessKey)
+	if len(cli.Config.AccessKey) != 64 {
+		cli.Println(fmt.Sprintf("Invalid accessKey '%s' length %d not 64.\n\n", cli.Config.AccessKey, len(cli.Config.AccessKey)))
+		return wasSuccess
+	}
 
-  cli.Println("")
-  cli.Print(fmt.Sprintf("Save configuration file? [yes or "+BOLD+"no (default is 'no')"+RESET+"): "))
-  shouldSave, _ := reader.ReadString('\n')
-  cli.Println("")
+	cli.Print(fmt.Sprintf("Enter required " + BOLD + "'secretKey'" + RESET + ": "))
+	cli.Config.SecretKey, _ = reader.ReadString('\n')
+	cli.Config.SecretKey = strings.TrimSpace(cli.Config.SecretKey)
+	if len(cli.Config.SecretKey) != 64 {
+		cli.Println(fmt.Sprintf("Invalid secretKey '%s' length %d not 64.\n\n", cli.Config.SecretKey, len(cli.Config.SecretKey)))
+		return wasSuccess
+	}
+	cli.Config.CacheKey = fmt.Sprintf("%s%s", cli.Config.AccessKey[:16], cli.Config.SecretKey[:16])
 
-  if len(shouldSave) > 0 && strings.ToUpper(shouldSave)[0] == 'Y' {
-    cli.Println( fmt.Sprintf("Creating default '.tio-cli.yaml' in '%s' .", home)) 
-    
-    file, err := os.Create(home + "/.tio-cli.yaml")
-    if err != nil {
-      cli.Println(fmt.Sprintf("Cannot create file:", BOLD, err, RESET, "\n\n"))
-      return wasSuccess
-    }
-    defer file.Close()
-    cli.Println( fmt.Sprintf("Writing 'accessKey' and 'seretKey'...")) 
+	cli.Println("")
+	cli.Print(fmt.Sprintf("Save configuration file? [yes or " + BOLD + "no (default is 'no')" + RESET + "): "))
+	shouldSave, _ := reader.ReadString('\n')
+	cli.Println("")
 
-    fmt.Fprintf(file, "accessKey: %s\n", cli.Config.AccessKey)
-    fmt.Fprintf(file, "secretKey: %s\n", cli.Config.SecretKey)
-    fmt.Fprintf(file, "cacheKey: %s%s\n", cli.Config.AccessKey[:16], cli.Config.SecretKey[:16])
-    fmt.Fprintf(file, "cacheFolder: %s\n", "./cache/")
+	if len(shouldSave) > 0 && strings.ToUpper(shouldSave)[0] == 'Y' {
+		cli.Println(fmt.Sprintf("Creating default '.tio-cli.yaml' in '%s' .", home))
 
-    t := time.Now()
-    ts := fmt.Sprintf("%v", t)
-    tzDefault := ts[len(ts)-10:]
-    fmt.Fprintf(file, "tzDefault: %s", tzDefault)
+		file, err := os.Create(home + "/.tio-cli.yaml")
+		if err != nil {
+			cli.Println(fmt.Sprintf("Cannot create file:", BOLD, err, RESET, "\n\n"))
+			return wasSuccess
+		}
+		defer file.Close()
+		cli.Println(fmt.Sprintf("Writing 'accessKey' and 'seretKey'..."))
 
-    cli.Println( fmt.Sprintf("Done! \nWriting timezone '%v' based on local timezone...", tzDefault)) 
-    cli.Println( fmt.Sprintf("Done! \nSuccessfully created '%v/.tio-cli.yaml'", home)) 
-    cli.Println( "") 
-  }
+		fmt.Fprintf(file, "accessKey: %s\n", cli.Config.AccessKey)
+		fmt.Fprintf(file, "secretKey: %s\n", cli.Config.SecretKey)
+		fmt.Fprintf(file, "cacheKey: %s%s\n", cli.Config.AccessKey[:16], cli.Config.SecretKey[:16])
+		fmt.Fprintf(file, "cacheFolder: %s\n", "./cache/")
 
-  wasSuccess = true
+		t := time.Now()
+		ts := fmt.Sprintf("%v", t)
+		tzDefault := ts[len(ts)-10:]
+		fmt.Fprintf(file, "tzDefault: %s", tzDefault)
 
-  return wasSuccess
+		cli.Println(fmt.Sprintf("Done! \nWriting timezone '%v' based on local timezone...", tzDefault))
+		cli.Println(fmt.Sprintf("Done! \nSuccessfully created '%v/.tio-cli.yaml'", home))
+		cli.Println("")
+	}
+
+	wasSuccess = true
+
+	return wasSuccess
 }
