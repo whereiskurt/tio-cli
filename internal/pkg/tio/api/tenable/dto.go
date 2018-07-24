@@ -162,3 +162,31 @@ type Plugin struct {
 	PatchPublicationDate       string
 	DaysSincePatchPublication  string
 }
+
+type TagCategory struct {
+	ContainerUUID 	string `json:"container_uuid"`
+	UUID       		string `json:"uuid"`
+	CreatedAt		string `json:"created_at"`
+	CreatedBy		string `json:"created_by"`
+	UpdatedAt		string `json:"updated_at"`
+	UpdatedBy		string `json:"updated_by"`
+	Name       		string `json:"name"`
+	Description     string `json:"description"`
+	ModelName     	string `json:"model_name"`
+}
+
+type TagValue struct {
+	ContainerUUID 			string `json:"container_uuid"`
+	UUID       				string `json:"uuid"`
+	CreatedAt				string `json:"created_at"`
+	CreatedBy				string `json:"created_by"`
+	UpdatedAt				string `json:"updated_at"`
+	UpdatedBy				string `json:"updated_by"`
+	CategoryUUID			string `json:"category_uuid"`
+	Value       			string `json:"value"`
+	Description     		string `json:"description"`
+	Type     				string `json:"type"`
+	CategoryName    		string `json:"category_name"`
+	CategoryDescription     string `json:"category_description"`
+	ModelName     			string `json:"model_name"`
+}

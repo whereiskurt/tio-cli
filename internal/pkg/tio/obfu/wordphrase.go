@@ -30,6 +30,7 @@ func init() {
 	rawnames, _ := ioutil.ReadFile("configs/wordlist/1000englishwords.txt")
 	names = strings.Split(string(rawnames), "\n")
 
+	//Create an index list PERM based on r.RAND()
 	animalP = r.Perm(len(animals))
 	namesP = r.Perm(len(names))
 
@@ -56,7 +57,7 @@ func Hostname(fqdn string) (hostname string) {
 	animal = strings.Replace(animal, ",", "", -1)
 	animal = strings.Replace(animal, ".", "", -1)
 
-	hostname = strings.ToLower(fmt.Sprintf("%s%02d.%s", Animal(), hostnum, fqdn))
+	hostname = strings.ToLower(fmt.Sprintf("%s%02d.%s", animal, hostnum, fqdn))
 
 	return hostname
 }
