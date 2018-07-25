@@ -16,8 +16,13 @@ const (
 	STAT_API_TENABLE_SCANLIST          tio.StatType = "tio.dao.TenableScanList.CallCount"
 	STAT_API_TENABLE_SCANLIST_MEMCACHE tio.StatType = "tio.dao.TenableScanList.Memcached"
 
+	STAT_API_TENABLE_ASSETHOST          tio.StatType = "tio.dao.TenableAssetVulnerabilties.CallCount"
+	STAT_API_TENABLE_ASSETHOST_MEMCACHE tio.StatType = "tio.dao.TenableAssetVulnerabilties.Memcached"
+
 	STAT_API_TENABLE_HOSTDETAIL          tio.StatType = "tio.dao.TenableHostDetail.CallCount"
 	STAT_API_TENABLE_HOSTDETAIL_MEMCACHE tio.StatType = "tio.dao.TenableHostDetail.Memcached"
+
+	STAT_API_TENABLE_TAGSCATEGORY tio.StatType = "tio.dao.TenableTags.CallCount"
 
 	STAT_API_TENABLE_SCANDETAIL          tio.StatType = "tio.dao.TenableScanDetail.CallCount"
 	STAT_API_TENABLE_SCANDETAIL_MEMCACHE tio.StatType = "tio.dao.TenableScanDetail.Memcached"
@@ -25,6 +30,54 @@ const (
 	STAT_API_TENABLE_HISTORYID          tio.StatType = "tio.dao.TenableHistoryId.CallCount"
 	STAT_API_TENABLE_HISTORYID_MEMCACHE tio.StatType = "tio.dao.TenableHistoryId.Memcached"
 )
+
+func (trans *Translator) getTags() (tags tenable.TagCategory, err error) {
+	trans.Stats.Count(STAT_API_TENABLE_TAGSCATEGORY)
+	var portalUrl = trans.Config.Base.BaseUrl + "/tags/categories"
+
+	raw, _, err := trans.PortalCache.GET(portalUrl)
+
+	err = json.Unmarshal([]byte(string(raw)), &tags)
+	if err != nil {
+		trans.Warnf("Couldn't unmarshal tenable.Tags: %s", err)
+		return tags, err
+	}
+
+	trans.Infof("Succesfully unmarshalled tenable.Tags: %s", raw)
+
+	trans.getTenableAssetVulnerabilties("87", "10843946")
+
+	return tags, err
+}
+
+func (trans *Translator) getTenableAssetVulnerabilties(scanId string, historyId string) (assets tenable.AssetHost, err error) {
+	trans.Stats.Count(STAT_API_TENABLE_ASSETHOST)
+
+	var portalUrl = trans.Config.Base.BaseUrl + "/private/scans/" + scanId + "/assets/vulnerabilities?history_id=" + historyId
+
+	var memcacheKey = portalUrl
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		trans.Stats.Count(STAT_API_TENABLE_ASSETHOST_MEMCACHE)
+
+		assets = item.Value().(tenable.AssetHost)
+		return assets, nil
+	}
+
+	raw, _, err := trans.PortalCache.Get(portalUrl)
+	if err != nil {
+		trans.Errorf("Couldn't HTTP GET tenable.TenableAssetVulnerabilties for scan id:%s:histId:%s: %s", scanId, historyId, err)
+		return assets, err
+	}
+
+	err = json.Unmarshal([]byte(string(raw)), &assets)
+	if err != nil {
+		trans.Warnf("Couldn't unmarshal tenable.TenableAssetVulnerabilties: %s", err)
+		return assets, err
+	}
+
+	return assets, err
+}
 
 func (trans *Translator) getTenableScanList() (sl tenable.ScanList, err error) {
 	trans.Stats.Count(STAT_API_TENABLE_SCANLIST)

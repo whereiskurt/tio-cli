@@ -83,6 +83,7 @@ type HostScanSummary struct {
 
 type HostScanDetail struct {
 	FQDN             string                         `json:"hostFQDN"`
+	UUID             string                         `json:"hostUUID"`
 	IP               string                         `json:"hostIP"`
 	NetBIOS          string                         `json:"hostNetBIOS"` //Windows only, but prevelant.
 	MACAddresses     string                         `json:"hostMACAddresses"`

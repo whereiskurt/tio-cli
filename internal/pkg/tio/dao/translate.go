@@ -20,6 +20,8 @@ const (
 
 	STAT_GETASCAN_MEMCACHE tio.StatType = "tio.dao.GetScan.Memcached"
 	STAT_GETASCAN          tio.StatType = "tio.dao.GetScan.CallCount"
+	STAT_GETTAGS_MEMCACHE  tio.StatType = "tio.dao.GetTags.Memcached"
+	STAT_GETTAGS           tio.StatType = "tio.dao.GetTags.CallCount"
 
 	STAT_GETHOSTDETAIL          tio.StatType = "tio.dao.GetHostDetail.CallCount"
 	STAT_GETHOSTDETAIL_MEMCACHE tio.StatType = "tio.dao.GetHostDetail.Memcached"
@@ -138,6 +140,28 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 	}
 
 	return t
+}
+
+func (trans *Translator) GetTags() (tags tenable.TagCategory, err error) {
+	trans.Stats.Count(STAT_GETTAGS)
+
+	var memcacheKey = "translator:GetTags:ALL"
+
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		trans.Stats.Count(STAT_GETTAGS_MEMCACHE)
+		tags = item.Value().(tenable.TagCategory)
+		return tags, nil
+	}
+
+	tags, err = trans.getTags()
+	if err != nil {
+		return tags, err
+	}
+
+	trans.Memcache.Set(memcacheKey, tags, time.Minute*60)
+
+	return tags, err
 }
 
 func (trans *Translator) GetScans() (scans []Scan, err error) {

@@ -170,9 +170,9 @@ type TagCategory struct {
 	CreatedBy     string `json:"created_by"`
 	UpdatedAt     string `json:"updated_at"`
 	UpdatedBy     string `json:"updated_by"`
+	ModelName     string `json:"model_name"`
 	Name          string `json:"name"`
 	Description   string `json:"description"`
-	ModelName     string `json:"model_name"`
 }
 
 type TagValue struct {
@@ -182,11 +182,27 @@ type TagValue struct {
 	CreatedBy           string `json:"created_by"`
 	UpdatedAt           string `json:"updated_at"`
 	UpdatedBy           string `json:"updated_by"`
-	CategoryUUID        string `json:"category_uuid"`
+	ModelName           string `json:"model_name"`
 	Value               string `json:"value"`
 	Description         string `json:"description"`
 	Type                string `json:"type"`
+	CategoryUUID        string `json:"category_uuid"`
 	CategoryName        string `json:"category_name"`
 	CategoryDescription string `json:"category_description"`
-	ModelName           string `json:"model_name"`
+}
+
+//This allows us to map HostId to the asset UUID.
+type AssetHost struct {
+	Assets []struct {
+		HostId     json.Number `json:"id"`
+		UUID       string      `json:"uuid"`
+		FQDN       []string    `json:"fqdn"`
+		IPV4       []string    `json:"ipv4"`
+		IPV6       []string    `json:"ipv6"`
+		Severities []struct {
+			Count json.Number `json:"count"`
+			Level json.Number `json:"level"`
+			Name  string      `json:"name"`
+		}
+	}
 }

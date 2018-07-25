@@ -42,6 +42,8 @@ var reCurrentScan = regexp.MustCompile("^.*?/scans/(\\d+)$")
 var reHistoryScan = regexp.MustCompile("^.*?/scans/(\\d+)\\?history_id=(\\d+)$")
 var reHostScan = regexp.MustCompile("^.*?/scans/(\\d+)\\/hosts/(\\d+)\\?history_id=(\\d+)$")
 
+var reAssetHost = regexp.MustCompile("^.*?/private/scans/(\\d+)\\/assets/vulnerabilities?\\?history_id=(\\d+)$")
+
 func NewPortalCache(config *tio.BaseConfig) *PortalCache {
 	p := new(PortalCache)
 	p.Portal = tenable.NewPortal(config)
@@ -103,6 +105,17 @@ func (portal *PortalCache) PortalCacheFilename(url string) (filename string, err
 			history = fmt.Sprintf("%x", hkey[:KEY_SIZE])
 		}
 		folder = "tenable/scans/" + scan + "/history_id=" + history + "/"
+
+	} else if matched := reAssetHost.FindStringSubmatch(url); matched != nil {
+		scan := matched[1]
+		history := matched[2]
+		if crypto {
+			skey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, scan)))
+			scan = fmt.Sprintf("%x", skey[:KEY_SIZE])
+			hkey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, scan)))
+			history = fmt.Sprintf("%x", hkey[:KEY_SIZE])
+		}
+		folder = "tenable/scans/" + scan + "/history_id=" + history + "/map/"
 
 	} else if matched := reHostScan.FindStringSubmatch(url); matched != nil {
 		scan := matched[1]
@@ -173,11 +186,14 @@ func (portal *PortalCache) PortalCacheGet(cacheFilename string) ([]byte, error) 
 	return decDat, nil
 }
 
-func (portal *PortalCache) Get(url string) (body []byte, filename string, err error) {
+func (portal *PortalCache) GET(url string) (body []byte, filename string, err error) {
+	body, err = portal.Portal.Get(url)
+	return body, filename, err
+}
 
+func (portal *PortalCache) Get(url string) (body []byte, filename string, err error) {
 	if portal.CacheDisabled == true {
-		body, err = portal.Portal.Get(url)
-		return body, filename, err
+		return portal.GET(url)
 	}
 
 	filename, err = portal.PortalCacheFilename(url)
