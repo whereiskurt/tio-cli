@@ -111,8 +111,8 @@ func (hdi HostDetailInfo) MarshalJSON() ([]byte, error) {
 	end := json.Number(fmt.Sprintf("%d", etm.Unix()))
 
 	return json.Marshal(&struct {
-		HostStart json.Number `json:"host_start"` 
-		HostEnd   json.Number `json:"host_end"`   
+		HostStart json.Number `json:"host_start"`
+		HostEnd   json.Number `json:"host_end"`
 		Alias
 	}{
 		HostStart: json.Number(start),
@@ -161,4 +161,52 @@ type Plugin struct {
 	DaysSincePluginPublication string
 	PatchPublicationDate       string
 	DaysSincePatchPublication  string
+}
+
+type TagCategory struct {
+	Categories []struct {
+		ContainerUUID string `json:"container_uuid"`
+		UUID          string `json:"uuid"`
+		CreatedAt     string `json:"created_at"`
+		CreatedBy     string `json:"created_by"`
+		UpdatedAt     string `json:"updated_at"`
+		UpdatedBy     string `json:"updated_by"`
+		ModelName     string `json:"model_name"`
+		Name          string `json:"name"`
+		Description   string `json:"description"`
+	}
+}
+
+type TagValue struct {
+	Values []struct {
+		ContainerUUID       string `json:"container_uuid"`
+		UUID                string `json:"uuid"`
+		CreatedAt           string `json:"created_at"`
+		CreatedBy           string `json:"created_by"`
+		UpdatedAt           string `json:"updated_at"`
+		UpdatedBy           string `json:"updated_by"`
+		ModelName           string `json:"model_name"`
+		Value               string `json:"value"`
+		Description         string `json:"description"`
+		Type                string `json:"type"`
+		CategoryUUID        string `json:"category_uuid"`
+		CategoryName        string `json:"category_name"`
+		CategoryDescription string `json:"category_description"`
+	}
+}
+
+//This allows us to map HostId to the asset UUID.
+type AssetHost struct {
+	Assets []struct {
+		HostId     json.Number `json:"id"`
+		UUID       string      `json:"uuid"`
+		FQDN       []string    `json:"fqdn"`
+		IPV4       []string    `json:"ipv4"`
+		IPV6       []string    `json:"ipv6"`
+		Severities []struct {
+			Count json.Number `json:"count"`
+			Level json.Number `json:"level"`
+			Name  string      `json:"name"`
+		}
+	}
 }

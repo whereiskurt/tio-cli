@@ -8,61 +8,128 @@ import (
 	"strconv"
 	"time"
 
-  "github.com/whereiskurt/tio-cli/internal/pkg/tio"
+	"github.com/whereiskurt/tio-cli/internal/pkg/tio"
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio/api/tenable"
 )
 
 const (
-  STAT_API_TENABLE_SCANLIST tio.StatType = "tio.dao.TenableScanList.CallCount"
-  STAT_API_TENABLE_SCANLIST_MEMCACHE tio.StatType = "tio.dao.TenableScanList.Memcached"
- 
-  STAT_API_TENABLE_HOSTDETAIL tio.StatType = "tio.dao.TenableHostDetail.CallCount"
-  STAT_API_TENABLE_HOSTDETAIL_MEMCACHE tio.StatType = "tio.dao.TenableHostDetail.Memcached"
+	STAT_API_TENABLE_SCANLIST          tio.StatType = "tio.dao.TenableScanList.CallCount"
+	STAT_API_TENABLE_SCANLIST_MEMCACHE tio.StatType = "tio.dao.TenableScanList.Memcached"
 
-  STAT_API_TENABLE_SCANDETAIL tio.StatType = "tio.dao.TenableScanDetail.CallCount"
-  STAT_API_TENABLE_SCANDETAIL_MEMCACHE tio.StatType = "tio.dao.TenableScanDetail.Memcached"
+	STAT_API_TENABLE_ASSETHOST          tio.StatType = "tio.dao.TenableAssetVulnerabilties.CallCount"
+	STAT_API_TENABLE_ASSETHOST_MEMCACHE tio.StatType = "tio.dao.TenableAssetVulnerabilties.Memcached"
 
-  STAT_API_TENABLE_HISTORYID tio.StatType = "tio.dao.TenableHistoryId.CallCount"
-  STAT_API_TENABLE_HISTORYID_MEMCACHE tio.StatType = "tio.dao.TenableHistoryId.Memcached"
+	STAT_API_TENABLE_HOSTDETAIL          tio.StatType = "tio.dao.TenableHostDetail.CallCount"
+	STAT_API_TENABLE_HOSTDETAIL_MEMCACHE tio.StatType = "tio.dao.TenableHostDetail.Memcached"
+
+	STAT_API_TENABLE_TAGSCATEGORY tio.StatType = "tio.dao.TenableTags.CallCount"
+
+	STAT_API_TENABLE_SCANDETAIL          tio.StatType = "tio.dao.TenableScanDetail.CallCount"
+	STAT_API_TENABLE_SCANDETAIL_MEMCACHE tio.StatType = "tio.dao.TenableScanDetail.Memcached"
+
+	STAT_API_TENABLE_HISTORYID          tio.StatType = "tio.dao.TenableHistoryId.CallCount"
+	STAT_API_TENABLE_HISTORYID_MEMCACHE tio.StatType = "tio.dao.TenableHistoryId.Memcached"
 )
+
+func (trans *Translator) getTagCategories() (tags tenable.TagCategory, err error) {
+	trans.Stats.Count(STAT_API_TENABLE_TAGSCATEGORY)
+	var portalUrl = trans.Config.Base.BaseUrl + "/tags/categories"
+
+	raw, _, err := trans.PortalCache.GetNoCache(portalUrl)
+
+	err = json.Unmarshal([]byte(string(raw)), &tags)
+	if err != nil {
+		trans.Warnf("Couldn't unmarshal tenable.TagCategory: %s", err)
+		return tags, err
+	}
+
+	trans.Infof("Succesfully unmarshalled tenable.TagCategory: %s", raw)
+
+	return tags, err
+}
+func (trans *Translator) getTagValues() (tags tenable.TagValue, err error) {
+
+	var portalUrl = trans.Config.Base.BaseUrl + "/tags/values"
+
+	raw, _, err := trans.PortalCache.GetNoCache(portalUrl)
+
+	err = json.Unmarshal([]byte(string(raw)), &tags)
+	if err != nil {
+		trans.Warnf("Couldn't unmarshal tenable.TagValue: %s", err)
+		return tags, err
+	}
+
+	trans.Infof("Succesfully unmarshalled tenable.TagValues: %s", raw)
+
+	return tags, err
+}
+
+func (trans *Translator) getTenableAssetVulnerabilties(scanId string, historyId string) (assets tenable.AssetHost, err error) {
+	trans.Stats.Count(STAT_API_TENABLE_ASSETHOST)
+
+	var portalUrl = trans.Config.Base.BaseUrl + "/private/scans/" + scanId + "/assets/vulnerabilities?history_id=" + historyId
+
+	var memcacheKey = portalUrl
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		trans.Stats.Count(STAT_API_TENABLE_ASSETHOST_MEMCACHE)
+
+		assets = item.Value().(tenable.AssetHost)
+		return assets, nil
+	}
+
+	raw, _, err := trans.PortalCache.Get(portalUrl)
+	if err != nil {
+		trans.Errorf("Couldn't HTTP GET tenable.TenableAssetVulnerabilties for scan id:%s:histId:%s: %s", scanId, historyId, err)
+		return assets, err
+	}
+
+	err = json.Unmarshal([]byte(string(raw)), &assets)
+	if err != nil {
+		trans.Warnf("Couldn't unmarshal tenable.TenableAssetVulnerabilties: %s", err)
+		return assets, err
+	}
+
+	return assets, err
+}
 
 func (trans *Translator) getTenableScanList() (sl tenable.ScanList, err error) {
 	trans.Stats.Count(STAT_API_TENABLE_SCANLIST)
 
-  var portalUrl = trans.Config.Base.BaseUrl + "/scans"
-  var memcacheKey = portalUrl
-  item := trans.Memcache.Get(memcacheKey)
-  if item != nil {
-    trans.Stats.Count(STAT_API_TENABLE_SCANLIST_MEMCACHE)
+	var portalUrl = trans.Config.Base.BaseUrl + "/scans"
+	var memcacheKey = portalUrl
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		trans.Stats.Count(STAT_API_TENABLE_SCANLIST_MEMCACHE)
 
-    sl = item.Value().(tenable.ScanList)
-    return sl, nil
-  }
+		sl = item.Value().(tenable.ScanList)
+		return sl, nil
+	}
 
-  raw, _, err := trans.PortalCache.Get(portalUrl)
-  if err != nil {
-    trans.Warnf("Couldn't get tenable.ScanList from PortalCache: %s", err)
-    return sl, err
-  }
+	raw, _, err := trans.PortalCache.Get(portalUrl)
+	if err != nil {
+		trans.Warnf("Couldn't get tenable.ScanList from PortalCache: %s", err)
+		return sl, err
+	}
 
-  err = json.Unmarshal([]byte(string(raw)), &sl) 
-  if err != nil {
-    trans.Warnf("Couldn't unmarshal tenable.ScanList: %s", err)
-    return sl, err
-  }
+	err = json.Unmarshal([]byte(string(raw)), &sl)
+	if err != nil {
+		trans.Warnf("Couldn't unmarshal tenable.ScanList: %s", err)
+		return sl, err
+	}
 
-  if trans.Anonymizer != nil {
+	if trans.Anonymizer != nil {
 
-    trans.Anonymizer.AnonymizeScanList(&sl)
+		trans.Anonymizer.AnonymizeScanList(&sl)
 
-    backToRaw, err := json.Marshal(sl)
-    if err != nil {
-      trans.Errorf("Error: %s", err)
-      return sl, err
-    }
-    newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
-    newCacheFilename = trans.Anonymizer.RewriteCacheFilename(newCacheFilename)
-    trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
+		backToRaw, err := json.Marshal(sl)
+		if err != nil {
+			trans.Errorf("Error: %s", err)
+			return sl, err
+		}
+		newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
+		newCacheFilename = trans.Anonymizer.RewriteCacheFilename(newCacheFilename)
+		trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
 	}
 
 	trans.Memcache.Set(memcacheKey, sl, time.Minute*60)
@@ -70,21 +137,21 @@ func (trans *Translator) getTenableScanList() (sl tenable.ScanList, err error) {
 	return sl, nil
 }
 func (trans *Translator) getTenableHostDetail(scanId string, hostId string, historyId string) (hd tenable.HostDetail, err error) {
-  trans.Stats.Count(STAT_API_TENABLE_HOSTDETAIL)
+	trans.Stats.Count(STAT_API_TENABLE_HOSTDETAIL)
 
-  if trans.Anonymizer != nil {
-    scanId = trans.Anonymizer.DeAnonScanId(scanId)
-    historyId = trans.Anonymizer.DeAnonHistoryId(historyId)
-    hostId = trans.Anonymizer.DeAnonHostId(hostId)
-  }
+	if trans.Anonymizer != nil {
+		scanId = trans.Anonymizer.DeAnonScanId(scanId)
+		historyId = trans.Anonymizer.DeAnonHistoryId(historyId)
+		hostId = trans.Anonymizer.DeAnonHostId(hostId)
+	}
 
-  var portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId + "/hosts/" + hostId + "?history_id=" + historyId
-  var memcacheKey = portalUrl
+	var portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId + "/hosts/" + hostId + "?history_id=" + historyId
+	var memcacheKey = portalUrl
 
-  item := trans.Memcache.Get(memcacheKey)
-  if item != nil { //CACHE HIT!
-    trans.Stats.Count(STAT_API_TENABLE_HOSTDETAIL_MEMCACHE)
-    hd := item.Value().(tenable.HostDetail)
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil { //CACHE HIT!
+		trans.Stats.Count(STAT_API_TENABLE_HOSTDETAIL_MEMCACHE)
+		hd := item.Value().(tenable.HostDetail)
 		return hd, nil
 	}
 
@@ -117,10 +184,11 @@ func (trans *Translator) getTenableHostDetail(scanId string, hostId string, hist
 
 		portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId + "/hosts/" + hostId + "?history_id=" + historyId
 
-		newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
-		newCacheFilename = trans.Anonymizer.RewriteCacheFilename(newCacheFilename)
-
-		trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
+		newCacheFilename, err := trans.PortalCache.PortalCacheFilename(portalUrl)
+		if err == nil {
+			newCacheFilename = trans.Anonymizer.RewriteCacheFilename(newCacheFilename)
+			trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
+		}
 	}
 
 	trans.Memcache.Set(memcacheKey, hd, time.Minute*60)
@@ -159,12 +227,12 @@ func (trans *Translator) marshalTenableHostDetailOld(scanId string, hostId strin
 func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (scanDetail tenable.ScanDetail, err error) {
 	trans.Stats.Count(STAT_API_TENABLE_SCANDETAIL)
 
-  if trans.Anonymizer != nil {
-    scanId = trans.Anonymizer.DeAnonScanId(scanId)
-    historyId = trans.Anonymizer.DeAnonHistoryId(historyId)
-  }
+	if trans.Anonymizer != nil {
+		scanId = trans.Anonymizer.DeAnonScanId(scanId)
+		historyId = trans.Anonymizer.DeAnonHistoryId(historyId)
+	}
 
-  var portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId + "?history_id=" + historyId
+	var portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId + "?history_id=" + historyId
 
 	var memcacheKey = portalUrl
 	item := trans.Memcache.Get(memcacheKey)
@@ -219,21 +287,21 @@ func (trans *Translator) getTenableScanDetail(scanId string, historyId string) (
 func (trans *Translator) getTenableHistoryId(scanId string, previousOffset int) (retHistoryId string, err error) {
 	trans.Stats.Count(STAT_API_TENABLE_HISTORYID)
 
-  var scanDetail tenable.ScanDetail
+	var scanDetail tenable.ScanDetail
 
-  if trans.Anonymizer != nil {
-    scanId = trans.Anonymizer.DeAnonScanId(scanId)
-  }
+	if trans.Anonymizer != nil {
+		scanId = trans.Anonymizer.DeAnonScanId(scanId)
+	}
 
-  if trans.ShouldSkipScanId(scanId) {
-    return retHistoryId, err
-  }
+	if trans.ShouldSkipScanId(scanId) {
+		return retHistoryId, err
+	}
 
-  var memcacheKey = fmt.Sprintf("%s:%s", scanId, previousOffset)
-  item := trans.Memcache.Get(memcacheKey)
-  if item != nil {
+	var memcacheKey = fmt.Sprintf("%s:%s", scanId, previousOffset)
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
 
-    trans.Stats.Count(STAT_API_TENABLE_HISTORYID_MEMCACHE)
+		trans.Stats.Count(STAT_API_TENABLE_HISTORYID_MEMCACHE)
 
 		retHistoryId = item.Value().(string)
 		return retHistoryId, err

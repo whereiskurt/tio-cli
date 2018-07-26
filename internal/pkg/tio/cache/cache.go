@@ -15,10 +15,10 @@ import (
 )
 
 const (
-	STAT_CACHE_HIT tio.StatType = "tio.cache.HIT"
-	STAT_CACHE_MISS tio.StatType = "tio.cache.MISS"
+	STAT_CACHE_HIT   tio.StatType = "tio.cache.HIT"
+	STAT_CACHE_MISS  tio.StatType = "tio.cache.MISS"
 	STAT_CACHE_STORE tio.StatType = "tio.cache.STORE"
-) 
+)
 
 type TranslatorCache struct {
 	Log *tio.Logger
@@ -31,9 +31,9 @@ type PortalCache struct {
 	CacheKey       string
 	UseCryptoCache bool
 	OfflineMode    bool
-	CacheKeyBytes []byte
-	Log *tio.Logger
-	Stats *tio.Statistics
+	CacheKeyBytes  []byte
+	Log            *tio.Logger
+	Stats          *tio.Statistics
 }
 
 var reAllScans = regexp.MustCompile("^.*?/scans$")
@@ -41,6 +41,8 @@ var rePlugin = regexp.MustCompile("^.*?/plugins/plugin/(\\d+)$")
 var reCurrentScan = regexp.MustCompile("^.*?/scans/(\\d+)$")
 var reHistoryScan = regexp.MustCompile("^.*?/scans/(\\d+)\\?history_id=(\\d+)$")
 var reHostScan = regexp.MustCompile("^.*?/scans/(\\d+)\\/hosts/(\\d+)\\?history_id=(\\d+)$")
+
+var reAssetHost = regexp.MustCompile("^.*?/private/scans/(\\d+)\\/assets/vulnerabilities?\\?history_id=(\\d+)$")
 
 func NewPortalCache(config *tio.BaseConfig) *PortalCache {
 	p := new(PortalCache)
@@ -104,6 +106,17 @@ func (portal *PortalCache) PortalCacheFilename(url string) (filename string, err
 		}
 		folder = "tenable/scans/" + scan + "/history_id=" + history + "/"
 
+	} else if matched := reAssetHost.FindStringSubmatch(url); matched != nil {
+		scan := matched[1]
+		history := matched[2]
+		if crypto {
+			skey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, scan)))
+			scan = fmt.Sprintf("%x", skey[:KEY_SIZE])
+			hkey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, scan)))
+			history = fmt.Sprintf("%x", hkey[:KEY_SIZE])
+		}
+		folder = "tenable/scans/" + scan + "/history_id=" + history + "/map/"
+
 	} else if matched := reHostScan.FindStringSubmatch(url); matched != nil {
 		scan := matched[1]
 		host := matched[2]
@@ -124,10 +137,11 @@ func (portal *PortalCache) PortalCacheFilename(url string) (filename string, err
 		return "", err
 	}
 
-	shaKey := sha256.Sum256([]byte(fmt.Sprintf("%s", portal.CacheKey)))
-	shaKeyHex := fmt.Sprintf("%x.dat", shaKey[:KEY_SIZE])
-
-	filename = portal.CacheFolder + folder + shaKeyHex
+	if filename == "" {
+		shaKey := sha256.Sum256([]byte(fmt.Sprintf("%s", portal.CacheKey)))
+		shaKeyHex := fmt.Sprintf("%x.dat", shaKey[:KEY_SIZE])
+		filename = portal.CacheFolder + folder + shaKeyHex
+	}
 
 	return filename, err
 }
@@ -173,11 +187,14 @@ func (portal *PortalCache) PortalCacheGet(cacheFilename string) ([]byte, error) 
 	return decDat, nil
 }
 
-func (portal *PortalCache) Get(url string) (body []byte, filename string, err error) {
+func (portal *PortalCache) GetNoCache(url string) (body []byte, filename string, err error) {
+	body, err = portal.Portal.Get(url)
+	return body, filename, err
+}
 
+func (portal *PortalCache) Get(url string) (body []byte, filename string, err error) {
 	if portal.CacheDisabled == true {
-		body, err = portal.Portal.Get(url)
-		return body, filename, err
+		return portal.GetNoCache(url)
 	}
 
 	filename, err = portal.PortalCacheFilename(url)

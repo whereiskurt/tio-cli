@@ -15,18 +15,20 @@ import (
 )
 
 const (
-  STAT_GETSCANS_MEMCACHE tio.StatType = "tio.dao.GetScans.Memcached"
-  STAT_GETSCANS tio.StatType = "tio.dao.GetScans.CallCount"
+	STAT_GETSCANS_MEMCACHE tio.StatType = "tio.dao.GetScans.Memcached"
+	STAT_GETSCANS          tio.StatType = "tio.dao.GetScans.CallCount"
 
-  STAT_GETASCAN_MEMCACHE tio.StatType = "tio.dao.GetScan.Memcached"
-  STAT_GETASCAN tio.StatType = "tio.dao.GetScan.CallCount"
-  
-  STAT_GETHOSTDETAIL tio.StatType = "tio.dao.GetHostDetail.CallCount"
-  STAT_GETHOSTDETAIL_MEMCACHE tio.StatType = "tio.dao.GetHostDetail.Memcached"
-  STAT_GETHOSTDETAIL_ERROR tio.StatType = "tio.dao.GetHostDetail.ErrorBadData"
+	STAT_GETASCAN_MEMCACHE tio.StatType = "tio.dao.GetScan.Memcached"
+	STAT_GETASCAN          tio.StatType = "tio.dao.GetScan.CallCount"
+	STAT_GETTAGS_MEMCACHE  tio.StatType = "tio.dao.GetTags.Memcached"
+	STAT_GETTAGS           tio.StatType = "tio.dao.GetTags.CallCount"
 
-  STAT_GETSCANHISTORY tio.StatType = "tio.dao.GetScanHistory.CallCount"
-  STAT_GETSCANHISTORY_MEMCACHE tio.StatType = "tio.dao.GetScanHistory.Memcached"
+	STAT_GETHOSTDETAIL          tio.StatType = "tio.dao.GetHostDetail.CallCount"
+	STAT_GETHOSTDETAIL_MEMCACHE tio.StatType = "tio.dao.GetHostDetail.Memcached"
+	STAT_GETHOSTDETAIL_ERROR    tio.StatType = "tio.dao.GetHostDetail.ErrorBadData"
+
+	STAT_GETSCANHISTORY          tio.StatType = "tio.dao.GetScanHistory.CallCount"
+	STAT_GETSCANHISTORY_MEMCACHE tio.StatType = "tio.dao.GetScanHistory.Memcached"
 )
 
 type Translator struct {
@@ -116,12 +118,12 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 			t.IgnoreHistoryId[id] = true
 		}
 	}
-	for _, id := range strings.Split(t.Config.AssetId, ",") {
+	for _, id := range strings.Split(t.Config.AssetUUID, ",") {
 		if id != "" {
 			t.IncludeAssetId[id] = true
 		}
 	}
-	for _, id := range strings.Split(t.Config.IgnoreAssetId, ",") {
+	for _, id := range strings.Split(t.Config.IgnoreAssetUUID, ",") {
 		if id != "" {
 			t.IgnoreAssetId[id] = true
 		}
@@ -140,17 +142,59 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 	return t
 }
 
+func (trans *Translator) GetTagValue() (tags tenable.TagValue, err error) {
+
+	var memcacheKey = "translator:GetTagValue:ALL"
+
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		tags = item.Value().(tenable.TagValue)
+		return tags, nil
+	}
+
+	tags, err = trans.getTagValues()
+	if err != nil {
+		return tags, err
+	}
+
+	trans.Memcache.Set(memcacheKey, tags, time.Minute*60)
+
+	return tags, err
+}
+
+func (trans *Translator) GetTagCategory() (tags tenable.TagCategory, err error) {
+	trans.Stats.Count(STAT_GETTAGS)
+
+	var memcacheKey = "translator:GetTagCategory:ALL"
+
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		trans.Stats.Count(STAT_GETTAGS_MEMCACHE)
+		tags = item.Value().(tenable.TagCategory)
+		return tags, nil
+	}
+
+	tags, err = trans.getTagCategories()
+	if err != nil {
+		return tags, err
+	}
+
+	trans.Memcache.Set(memcacheKey, tags, time.Minute*60)
+
+	return tags, err
+}
+
 func (trans *Translator) GetScans() (scans []Scan, err error) {
 	trans.Stats.Count(STAT_GETSCANS)
 
-  var memcacheKey = "translator:GetScans"
-  item := trans.Memcache.Get(memcacheKey)
-  if item != nil {
-    trans.Stats.Count(STAT_GETSCANS_MEMCACHE)
+	var memcacheKey = "translator:GetScans"
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		trans.Stats.Count(STAT_GETSCANS_MEMCACHE)
 
-    scans = item.Value().([]Scan)
-    return scans, nil
-  }
+		scans = item.Value().([]Scan)
+		return scans, nil
+	}
 
 	tenableScans, err := trans.getTenableScanList()
 	if err != nil {
@@ -165,13 +209,13 @@ func (trans *Translator) GetScans() (scans []Scan, err error) {
 }
 
 func (trans *Translator) GetScan(scanId string) (scan Scan, err error) {
-  trans.Stats.Count(STAT_GETASCAN)
+	trans.Stats.Count(STAT_GETASCAN)
 
-  var memcacheKey = "translator:GetScan:" + scanId
+	var memcacheKey = "translator:GetScan:" + scanId
 
-  item := trans.Memcache.Get(memcacheKey)
-  if item != nil {
-    trans.Stats.Count(STAT_GETASCAN_MEMCACHE)
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		trans.Stats.Count(STAT_GETASCAN_MEMCACHE)
 		scan = item.Value().(Scan)
 		return scan, nil
 	}
@@ -212,7 +256,7 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
 			for sd := range chanScanDetails {
 
 				//if len(sd.ScanHistoryDetails) < 1 {
-				//	continue
+				//  continue
 				//}
 
 				//For each history in the scan
@@ -225,9 +269,9 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
 					for hostKey, host := range hist.Host {
 						record, err := trans.GetHostDetail(host)
 						if err != nil {
-              if !trans.Config.Base.OfflineMode {
-                trans.Warnf("Couldn't retrieve host details. Removing host from list: %s", err)
-              }
+							if !trans.Config.Base.OfflineMode {
+								trans.Warnf("Couldn't retrieve host details. Removing host from list: %s", err)
+							}
 							delete(sd.ScanHistoryDetails[h].Host, hostKey)
 							continue
 						}
@@ -271,7 +315,7 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
 	return err
 }
 func (trans *Translator) GetHostDetail(host HostScanSummary) (record HostScanDetail, err error) {
-  trans.Stats.Count(STAT_GETHOSTDETAIL)
+	trans.Stats.Count(STAT_GETHOSTDETAIL)
 
 	scan := host.ScanDetail.Scan
 	scanDetail := host.ScanDetail
@@ -279,17 +323,17 @@ func (trans *Translator) GetHostDetail(host HostScanSummary) (record HostScanDet
 	historyId := scanDetail.HistoryId
 	hostId := host.HostId
 
-  var memcacheKey = fmt.Sprintf("translator:GetHostDetail:%s%s%s", scanId, historyId, hostId)
-  item := trans.Memcache.Get(memcacheKey)
-  if item != nil {
-    trans.Stats.Count(STAT_GETHOSTDETAIL_MEMCACHE)
-    record = item.Value().(HostScanDetail)
-    return record, nil
-  }
+	var memcacheKey = fmt.Sprintf("translator:GetHostDetail:%s%s%s", scanId, historyId, hostId)
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		trans.Stats.Count(STAT_GETHOSTDETAIL_MEMCACHE)
+		record = item.Value().(HostScanDetail)
+		return record, nil
+	}
 
 	hd, err := trans.getTenableHostDetail(scanId, hostId, historyId)
 	if err != nil {
-    trans.Stats.Count(STAT_GETHOSTDETAIL_ERROR)
+		trans.Stats.Count(STAT_GETHOSTDETAIL_ERROR)
 		if !trans.Config.Base.OfflineMode {
 			trans.Warnf("Couldn't unmarshal tenable.HostDetails for scan id:%s:host%s:histId:%s: %s", scanId, hostId, historyId, err)
 		}
@@ -339,14 +383,14 @@ func (trans *Translator) GoGetScanHistoryDetails(out chan ScanHistory, concurren
 func (trans *Translator) GetScanHistory(scanId string, previousOffset int) (record ScanHistory, err error) {
 	trans.Stats.Count(STAT_GETSCANHISTORY)
 
-  var memcacheKey = fmt.Sprintf("translator:GetScanHistory:%s:%d", scanId, previousOffset)
+	var memcacheKey = fmt.Sprintf("translator:GetScanHistory:%s:%d", scanId, previousOffset)
 
-  item := trans.Memcache.Get(memcacheKey)
-  if item != nil {
-    trans.Stats.Count(STAT_GETSCANHISTORY_MEMCACHE)
-    record = item.Value().(ScanHistory)
-    return record, nil
-  }
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		trans.Stats.Count(STAT_GETSCANHISTORY_MEMCACHE)
+		record = item.Value().(ScanHistory)
+		return record, nil
+	}
 
 	historyId, err := trans.getTenableHistoryId(scanId, previousOffset)
 	if err != nil {
@@ -486,6 +530,18 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 			return record, err
 		}
 
+		//AssetId lookup and mapping
+		amap, err := trans.getTenableAssetVulnerabilties(scanId, historyId)
+		if err != nil {
+			trans.Errorf("Cannot map hostid to assetids: %s", err)
+			return record, err
+		}
+
+		hist.HostAssetMap = make(map[string]string)
+		for _, value := range amap.Assets {
+			hist.HostAssetMap[string(value.HostId)] = value.UUID
+		}
+
 		hist.HistoryId = fmt.Sprintf("%v", histDetails.History[i].HistoryId)
 		hist.HostCount = fmt.Sprintf("%v", len(histDetails.Hosts))
 		hist.LastModifiedDate = string(histDetails.History[i].LastModifiedDate)
@@ -541,6 +597,8 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 			retHost.PluginMediumCount = fmt.Sprintf("%v", mediumHost)
 			retHost.PluginLowCount = fmt.Sprintf("%v", lowHost)
 			retHost.PluginTotalCount = fmt.Sprintf("%v", lowHost+mediumHost+highHost+critsHost)
+
+			retHost.UUID = hist.HostAssetMap[hostId]
 
 			hist.Host[hostId] = retHost
 

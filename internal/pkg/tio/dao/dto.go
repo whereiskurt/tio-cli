@@ -1,8 +1,8 @@
 package dao
 
 import (
-  "fmt"
-  "strings"
+	"fmt"
+	"strings"
 )
 
 type Scan struct {
@@ -26,10 +26,10 @@ type Scan struct {
 }
 
 func (s *Scan) CSV() string {
-    return strings.Join([]string { s.ScanId, "'"+s.Name+"'", "'"+s.Status+"'","'"+s.Owner+"'", "'"+s.Targets+"'", "'"+s.ScannerName+"'", "'"+s.Enabled+"'", "'"+s.RRules+"'", "'"+s.LastModifiedDate+"'", "'"+s.PolicyName+"'", }, ",")
+	return strings.Join([]string{s.ScanId, "'" + s.Name + "'", "'" + s.Status + "'", "'" + s.Owner + "'", "'" + s.Targets + "'", "'" + s.ScannerName + "'", "'" + s.Enabled + "'", "'" + s.RRules + "'", "'" + s.LastModifiedDate + "'", "'" + s.PolicyName + "'"}, ",")
 }
 func (s *Scan) CSVHeader() string {
-    return fmt.Sprintf("ScanId,Name,Status,Owner,Targets,ScannerName,Enabled,RRules,LastModifiedDate,PolicyName")
+	return fmt.Sprintf("ScanId,Name,Status,Owner,Targets,ScannerName,Enabled,RRules,LastModifiedDate,PolicyName")
 }
 
 type ScanHistory struct {
@@ -61,17 +61,20 @@ type ScanHistoryDetail struct {
 	HostCount  string                         `json:"hostCount"`
 	Host       map[string]HostScanSummary     `json:"hostMap"`
 	HostPlugin map[string]PluginDetailSummary `json:"hostPluginMap"`
+
+	HostAssetMap map[string]string `json:"hostAssetMap"`
 }
 
 func (s *ScanHistoryDetail) CSV() string {
-  return strings.Join([]string {s.Scan.CSV(), s.HistoryId,s.HistoryIndex,"'"+s.Status+"'",s.CreationDate,s.LastModifiedDate,s.PluginCriticalCount,s.PluginHighCount,s.PluginMediumCount,s.PluginLowCount,s.PluginTotalCount,"'"+s.ScanStart+"'",s.ScanStartUnix,"'"+s.ScanEnd+"'",s.ScanEndUnix,"'"+s.ScanDuration+"'",s.HostCount}, ",")
+	return strings.Join([]string{s.Scan.CSV(), s.HistoryId, s.HistoryIndex, "'" + s.Status + "'", s.CreationDate, s.LastModifiedDate, s.PluginCriticalCount, s.PluginHighCount, s.PluginMediumCount, s.PluginLowCount, s.PluginTotalCount, "'" + s.ScanStart + "'", s.ScanStartUnix, "'" + s.ScanEnd + "'", s.ScanEndUnix, "'" + s.ScanDuration + "'", s.HostCount}, ",")
 }
 func (s *ScanHistoryDetail) CSVHeader() string {
-  return fmt.Sprintf("%s,%s", s.Scan.CSVHeader(), "HistoryId,HistoryIndex,Status,CreationDate,LastModifiedDate,PluginCriticalCount,PluginHighCount,PluginMediumCount,PluginLowCount,PluginTotalCount,ScanStart,ScanStartUnix,ScanEnd,ScanEndUnix,ScanDuration,HostCount")
+	return fmt.Sprintf("%s,%s", s.Scan.CSVHeader(), "HistoryId,HistoryIndex,Status,CreationDate,LastModifiedDate,PluginCriticalCount,PluginHighCount,PluginMediumCount,PluginLowCount,PluginTotalCount,ScanStart,ScanStartUnix,ScanEnd,ScanEndUnix,ScanDuration,HostCount")
 }
 
 type HostScanSummary struct {
 	HostId              string `json:"hostId"`
+	UUID                string `json:"hostUUID"`
 	ScanDetail          ScanHistoryDetail
 	HostDetail          HostScanDetail
 	PluginCriticalCount string `json:"pluginCriticalCount"`
@@ -116,16 +119,16 @@ type PluginDetailAttribute struct {
 	Value string `json:"value"`
 }
 
-////// Computed 
+////// Computed
 type HostPluginExposure struct {
-  Host                    HostScanSummary
-  Plugin                  PluginDetailSummary
-  FirstScan               ScanHistoryDetail
-  LastScan                ScanHistoryDetail
-  DaysSinceFirstDetection string `json:"daysSinceFirstDetection"`
-  DaysSinceLastDetection  string `json:"DaysSinceLastDetection"`
-  VulnerableStatus        string `json:"VulnerableStatus"`
-  DurationStatus          string `json:"DurationStatus"`
-  IsVulnerable            bool   `json:"IsVulnerable"`
-  IsPatched               bool   `json:"IsPatched"`
+	Host                    HostScanSummary
+	Plugin                  PluginDetailSummary
+	FirstScan               ScanHistoryDetail
+	LastScan                ScanHistoryDetail
+	DaysSinceFirstDetection string `json:"daysSinceFirstDetection"`
+	DaysSinceLastDetection  string `json:"DaysSinceLastDetection"`
+	VulnerableStatus        string `json:"VulnerableStatus"`
+	DurationStatus          string `json:"DurationStatus"`
+	IsVulnerable            bool   `json:"IsVulnerable"`
+	IsPatched               bool   `json:"IsPatched"`
 }
