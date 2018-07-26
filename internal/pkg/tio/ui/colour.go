@@ -30,10 +30,15 @@ func DisableColour() {
 	RED = ""
 	GREY = ""
 	GRAY = ""
+
 	CRUNNING = ""
 	CNEVER = ""
+
 	CCRIT = ""
 	CHIGH = ""
 	CMED = ""
+	CLOW = ""
+	CINFO = ""
 	CCNT = ""
+
 }
