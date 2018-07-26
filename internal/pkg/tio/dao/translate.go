@@ -118,12 +118,12 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 			t.IgnoreHistoryId[id] = true
 		}
 	}
-	for _, id := range strings.Split(t.Config.AssetId, ",") {
+	for _, id := range strings.Split(t.Config.AssetUUID, ",") {
 		if id != "" {
 			t.IncludeAssetId[id] = true
 		}
 	}
-	for _, id := range strings.Split(t.Config.IgnoreAssetId, ",") {
+	for _, id := range strings.Split(t.Config.IgnoreAssetUUID, ",") {
 		if id != "" {
 			t.IgnoreAssetId[id] = true
 		}
@@ -142,10 +142,30 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 	return t
 }
 
+func (trans *Translator) GetTagValue() (tags tenable.TagValue, err error) {
+
+	var memcacheKey = "translator:GetTagValue:ALL"
+
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		tags = item.Value().(tenable.TagValue)
+		return tags, nil
+	}
+
+	tags, err = trans.getTagValues()
+	if err != nil {
+		return tags, err
+	}
+
+	trans.Memcache.Set(memcacheKey, tags, time.Minute*60)
+
+	return tags, err
+}
+
 func (trans *Translator) GetTagCategory() (tags tenable.TagCategory, err error) {
 	trans.Stats.Count(STAT_GETTAGS)
 
-	var memcacheKey = "translator:GetTags:ALL"
+	var memcacheKey = "translator:GetTagCategory:ALL"
 
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
@@ -154,7 +174,7 @@ func (trans *Translator) GetTagCategory() (tags tenable.TagCategory, err error) 
 		return tags, nil
 	}
 
-	tags, err = trans.getTags()
+	tags, err = trans.getTagCategories()
 	if err != nil {
 		return tags, err
 	}

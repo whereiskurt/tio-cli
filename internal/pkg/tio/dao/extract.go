@@ -31,7 +31,7 @@ const (
 	STAT_API_TENABLE_HISTORYID_MEMCACHE tio.StatType = "tio.dao.TenableHistoryId.Memcached"
 )
 
-func (trans *Translator) getTags() (tags tenable.TagCategory, err error) {
+func (trans *Translator) getTagCategories() (tags tenable.TagCategory, err error) {
 	trans.Stats.Count(STAT_API_TENABLE_TAGSCATEGORY)
 	var portalUrl = trans.Config.Base.BaseUrl + "/tags/categories"
 
@@ -39,13 +39,27 @@ func (trans *Translator) getTags() (tags tenable.TagCategory, err error) {
 
 	err = json.Unmarshal([]byte(string(raw)), &tags)
 	if err != nil {
-		trans.Warnf("Couldn't unmarshal tenable.Tags: %s", err)
+		trans.Warnf("Couldn't unmarshal tenable.TagCategory: %s", err)
 		return tags, err
 	}
 
-	trans.Infof("Succesfully unmarshalled tenable.Tags: %s", raw)
+	trans.Infof("Succesfully unmarshalled tenable.TagCategory: %s", raw)
 
-	trans.getTenableAssetVulnerabilties("87", "10843946")
+	return tags, err
+}
+func (trans *Translator) getTagValues() (tags tenable.TagValue, err error) {
+
+	var portalUrl = trans.Config.Base.BaseUrl + "/tags/values"
+
+	raw, _, err := trans.PortalCache.GetNoCache(portalUrl)
+
+	err = json.Unmarshal([]byte(string(raw)), &tags)
+	if err != nil {
+		trans.Warnf("Couldn't unmarshal tenable.TagValue: %s", err)
+		return tags, err
+	}
+
+	trans.Infof("Succesfully unmarshalled tenable.TagValues: %s", raw)
 
 	return tags, err
 }
@@ -170,10 +184,11 @@ func (trans *Translator) getTenableHostDetail(scanId string, hostId string, hist
 
 		portalUrl = trans.Config.Base.BaseUrl + "/scans/" + scanId + "/hosts/" + hostId + "?history_id=" + historyId
 
-		newCacheFilename, _ := trans.PortalCache.PortalCacheFilename(portalUrl)
-		newCacheFilename = trans.Anonymizer.RewriteCacheFilename(newCacheFilename)
-
-		trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
+		newCacheFilename, err := trans.PortalCache.PortalCacheFilename(portalUrl)
+		if err == nil {
+			newCacheFilename = trans.Anonymizer.RewriteCacheFilename(newCacheFilename)
+			trans.PortalCache.PortalCacheSet(newCacheFilename, backToRaw)
+		}
 	}
 
 	trans.Memcache.Set(memcacheKey, hd, time.Minute*60)

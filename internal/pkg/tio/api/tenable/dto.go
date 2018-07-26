@@ -164,31 +164,35 @@ type Plugin struct {
 }
 
 type TagCategory struct {
-	ContainerUUID string `json:"container_uuid"`
-	UUID          string `json:"uuid"`
-	CreatedAt     string `json:"created_at"`
-	CreatedBy     string `json:"created_by"`
-	UpdatedAt     string `json:"updated_at"`
-	UpdatedBy     string `json:"updated_by"`
-	ModelName     string `json:"model_name"`
-	Name          string `json:"name"`
-	Description   string `json:"description"`
+	Categories []struct {
+		ContainerUUID string `json:"container_uuid"`
+		UUID          string `json:"uuid"`
+		CreatedAt     string `json:"created_at"`
+		CreatedBy     string `json:"created_by"`
+		UpdatedAt     string `json:"updated_at"`
+		UpdatedBy     string `json:"updated_by"`
+		ModelName     string `json:"model_name"`
+		Name          string `json:"name"`
+		Description   string `json:"description"`
+	}
 }
 
 type TagValue struct {
-	ContainerUUID       string `json:"container_uuid"`
-	UUID                string `json:"uuid"`
-	CreatedAt           string `json:"created_at"`
-	CreatedBy           string `json:"created_by"`
-	UpdatedAt           string `json:"updated_at"`
-	UpdatedBy           string `json:"updated_by"`
-	ModelName           string `json:"model_name"`
-	Value               string `json:"value"`
-	Description         string `json:"description"`
-	Type                string `json:"type"`
-	CategoryUUID        string `json:"category_uuid"`
-	CategoryName        string `json:"category_name"`
-	CategoryDescription string `json:"category_description"`
+	Values []struct {
+		ContainerUUID       string `json:"container_uuid"`
+		UUID                string `json:"uuid"`
+		CreatedAt           string `json:"created_at"`
+		CreatedBy           string `json:"created_by"`
+		UpdatedAt           string `json:"updated_at"`
+		UpdatedBy           string `json:"updated_by"`
+		ModelName           string `json:"model_name"`
+		Value               string `json:"value"`
+		Description         string `json:"description"`
+		Type                string `json:"type"`
+		CategoryUUID        string `json:"category_uuid"`
+		CategoryName        string `json:"category_name"`
+		CategoryDescription string `json:"category_description"`
+	}
 }
 
 //This allows us to map HostId to the asset UUID.

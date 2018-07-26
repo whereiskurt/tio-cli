@@ -67,8 +67,11 @@ type VulnerabilityConfig struct {
 	IgnoreScanId    string
 	HistoryId       string
 	IgnoreHistoryId string
-	AssetId         string
-	IgnoreAssetId   string
+
+	HostId          string
+	IgnoreHostId    string
+	AssetUUID       string
+	IgnoreAssetUUID string
 	PluginId        string
 	IgnorePluginId  string
 

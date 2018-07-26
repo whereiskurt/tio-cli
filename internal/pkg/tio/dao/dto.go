@@ -63,8 +63,6 @@ type ScanHistoryDetail struct {
 	HostPlugin map[string]PluginDetailSummary `json:"hostPluginMap"`
 
 	HostAssetMap map[string]string `json:"hostAssetMap"`
-
-
 }
 
 func (s *ScanHistoryDetail) CSV() string {
@@ -76,8 +74,8 @@ func (s *ScanHistoryDetail) CSVHeader() string {
 
 type HostScanSummary struct {
 	HostId              string `json:"hostId"`
-	UUID             		string `json:"hostUUID"`
-	ScanDetail          ScanHistoryDetail 
+	UUID                string `json:"hostUUID"`
+	ScanDetail          ScanHistoryDetail
 	HostDetail          HostScanDetail
 	PluginCriticalCount string `json:"pluginCriticalCount"`
 	PluginHighCount     string `json:"pluginHighCount"`
