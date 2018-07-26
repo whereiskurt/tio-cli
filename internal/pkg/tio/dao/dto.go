@@ -61,6 +61,10 @@ type ScanHistoryDetail struct {
 	HostCount  string                         `json:"hostCount"`
 	Host       map[string]HostScanSummary     `json:"hostMap"`
 	HostPlugin map[string]PluginDetailSummary `json:"hostPluginMap"`
+
+	HostAssetMap map[string]string `json:"hostAssetMap"`
+
+
 }
 
 func (s *ScanHistoryDetail) CSV() string {
@@ -72,7 +76,8 @@ func (s *ScanHistoryDetail) CSVHeader() string {
 
 type HostScanSummary struct {
 	HostId              string `json:"hostId"`
-	ScanDetail          ScanHistoryDetail
+	UUID             		string `json:"hostUUID"`
+	ScanDetail          ScanHistoryDetail 
 	HostDetail          HostScanDetail
 	PluginCriticalCount string `json:"pluginCriticalCount"`
 	PluginHighCount     string `json:"pluginHighCount"`
@@ -83,7 +88,6 @@ type HostScanSummary struct {
 
 type HostScanDetail struct {
 	FQDN             string                         `json:"hostFQDN"`
-	UUID             string                         `json:"hostUUID"`
 	IP               string                         `json:"hostIP"`
 	NetBIOS          string                         `json:"hostNetBIOS"` //Windows only, but prevelant.
 	MACAddresses     string                         `json:"hostMACAddresses"`

@@ -137,10 +137,11 @@ func (portal *PortalCache) PortalCacheFilename(url string) (filename string, err
 		return "", err
 	}
 
-	shaKey := sha256.Sum256([]byte(fmt.Sprintf("%s", portal.CacheKey)))
-	shaKeyHex := fmt.Sprintf("%x.dat", shaKey[:KEY_SIZE])
-
-	filename = portal.CacheFolder + folder + shaKeyHex
+	if filename == "" {
+		shaKey := sha256.Sum256([]byte(fmt.Sprintf("%s", portal.CacheKey)))
+		shaKeyHex := fmt.Sprintf("%x.dat", shaKey[:KEY_SIZE])
+		filename = portal.CacheFolder + folder + shaKeyHex
+	}
 
 	return filename, err
 }
@@ -186,14 +187,14 @@ func (portal *PortalCache) PortalCacheGet(cacheFilename string) ([]byte, error) 
 	return decDat, nil
 }
 
-func (portal *PortalCache) GET(url string) (body []byte, filename string, err error) {
+func (portal *PortalCache) GetNoCache(url string) (body []byte, filename string, err error) {
 	body, err = portal.Portal.Get(url)
 	return body, filename, err
 }
 
 func (portal *PortalCache) Get(url string) (body []byte, filename string, err error) {
 	if portal.CacheDisabled == true {
-		return portal.GET(url)
+		return portal.GetNoCache(url)
 	}
 
 	filename, err = portal.PortalCacheFilename(url)

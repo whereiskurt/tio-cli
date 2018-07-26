@@ -235,7 +235,7 @@ func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail, hostKeys []s
 	}
 
 	table := tablewriter.NewWriter(cli.Output)
-	table.SetHeader([]string{"ID", "IP", "Names", "#CRIT/H/M/L", "OS"})
+	table.SetHeader([]string{"ID", "UUID", "IP", "Names", "#CRIT/H/M/L", "OS"})
 	table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
 
 	data := [][]string{}
@@ -250,6 +250,7 @@ func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail, hostKeys []s
 		if name == " " {
 			name = "[UNKNOWN]"
 		}
+		name = strings.TrimSpace(name)
 
 		if len(h.HostDetail.OperatingSystems) > 30 {
 			h.HostDetail.OperatingSystems = h.HostDetail.OperatingSystems[:30]
@@ -273,7 +274,7 @@ func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail, hostKeys []s
 		if vulnStr == ",,," {
 			vulnStr = "-"
 		}
-		data = append(data, []string{h.HostId, h.HostDetail.IP, name, vulnStr, os})
+		data = append(data, []string{h.HostId, h.UUID, h.HostDetail.IP, name, vulnStr, os})
 	}
 
 	if len(data) > 0 {

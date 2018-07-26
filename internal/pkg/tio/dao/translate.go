@@ -142,7 +142,7 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 	return t
 }
 
-func (trans *Translator) GetTags() (tags tenable.TagCategory, err error) {
+func (trans *Translator) GetTagCategory() (tags tenable.TagCategory, err error) {
 	trans.Stats.Count(STAT_GETTAGS)
 
 	var memcacheKey = "translator:GetTags:ALL"
@@ -510,6 +510,18 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 			return record, err
 		}
 
+		//AssetId lookup and mapping
+		amap, err := trans.getTenableAssetVulnerabilties(scanId, historyId)
+		if err != nil {
+			trans.Errorf("Cannot map hostid to assetids: %s", err)
+			return record, err
+		}
+
+		hist.HostAssetMap = make(map[string]string)
+		for _, value := range amap.Assets {
+			hist.HostAssetMap[string(value.HostId)] = value.UUID
+		}
+
 		hist.HistoryId = fmt.Sprintf("%v", histDetails.History[i].HistoryId)
 		hist.HostCount = fmt.Sprintf("%v", len(histDetails.Hosts))
 		hist.LastModifiedDate = string(histDetails.History[i].LastModifiedDate)
@@ -565,6 +577,8 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 			retHost.PluginMediumCount = fmt.Sprintf("%v", mediumHost)
 			retHost.PluginLowCount = fmt.Sprintf("%v", lowHost)
 			retHost.PluginTotalCount = fmt.Sprintf("%v", lowHost+mediumHost+highHost+critsHost)
+
+			retHost.UUID = hist.HostAssetMap[hostId]
 
 			hist.Host[hostId] = retHost
 

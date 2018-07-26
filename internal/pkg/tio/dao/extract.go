@@ -35,7 +35,7 @@ func (trans *Translator) getTags() (tags tenable.TagCategory, err error) {
 	trans.Stats.Count(STAT_API_TENABLE_TAGSCATEGORY)
 	var portalUrl = trans.Config.Base.BaseUrl + "/tags/categories"
 
-	raw, _, err := trans.PortalCache.GET(portalUrl)
+	raw, _, err := trans.PortalCache.GetNoCache(portalUrl)
 
 	err = json.Unmarshal([]byte(string(raw)), &tags)
 	if err != nil {
