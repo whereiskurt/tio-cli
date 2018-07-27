@@ -276,7 +276,7 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
 							continue
 						}
 
-						if trans.ShouldSkipAssetId(host.HostId) {
+						if trans.ShouldSkipAssetId(host.UUID) {
 							delete(sd.ScanHistoryDetails[h].Host, hostKey)
 							continue
 						}
@@ -531,7 +531,7 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 		}
 
 		//AssetId lookup and mapping
-		amap, err := trans.getTenableAssetVulnerabilties(scanId, historyId)
+		amap, err := trans.getTenableAssetHostMap(scanId, historyId)
 		if err != nil {
 			trans.Errorf("Cannot map hostid to assetids: %s", err)
 			return record, err
