@@ -31,6 +31,33 @@ const (
 	STAT_API_TENABLE_HISTORYID_MEMCACHE tio.StatType = "tio.dao.TenableHistoryId.Memcached"
 )
 
+
+func (trans *Translator) getTagUUID(categoryName string, value string) (tagUUID string, err error) {
+	var memcacheKey = categoryName + ":" + value
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		tagUUID = item.Value().(string)
+		return tagUUID, nil
+	}
+
+	tags, err := trans.getTagValues()
+	for _,v := range tags.Values {
+		if categoryName == v.CategoryName && v.Value == value {
+			tagUUID = v.UUID
+			break
+		}
+	}
+
+	if tagUUID == "" {
+		err = errors.New(fmt.Sprintf("Couldn't find tag UUID for catgeory '%s' and value '%s'", categoryName, value))
+		return tagUUID, err
+	}
+
+	trans.Memcache.Set(memcacheKey, tagUUID, time.Minute*60)
+
+	return tagUUID, nil
+}
+
 func (trans *Translator) getTagCategories() (tags tenable.TagCategory, err error) {
 	trans.Stats.Count(STAT_API_TENABLE_TAGSCATEGORY)
 	var portalUrl = trans.Config.Base.BaseUrl + "/tags/categories"
@@ -64,7 +91,7 @@ func (trans *Translator) getTagValues() (tags tenable.TagValue, err error) {
 	return tags, err
 }
 
-func (trans *Translator) getTenableAssetVulnerabilties(scanId string, historyId string) (assets tenable.AssetHost, err error) {
+func (trans *Translator) getTenableAssetHostMap(scanId string, historyId string) (assets tenable.AssetHost, err error) {
 	trans.Stats.Count(STAT_API_TENABLE_ASSETHOST)
 
 	var portalUrl = trans.Config.Base.BaseUrl + "/private/scans/" + scanId + "/assets/vulnerabilities?history_id=" + historyId

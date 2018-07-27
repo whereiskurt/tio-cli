@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"bytes"
 
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio"
 )
@@ -14,6 +15,8 @@ import (
 const (
 	STAT_API_GETSUCCESS tio.StatType = "tio.api.GET.Success"
 	STAT_API_GETFAILED  tio.StatType = "tio.api.GET.Failure"
+	STAT_API_POSTSUCCESS tio.StatType = "tio.api.POST.Success"
+	STAT_API_POSTFAILED  tio.StatType = "tio.api.POST.Failure"
 )
 
 type Portal struct {
@@ -89,6 +92,44 @@ func (portal *Portal) Delete(endPoint string) error {
 
 	return nil
 }
+
+
+func (portal *Portal) Post(endPoint string, postData string) (body []byte, err error) {
+	var reqStartTime = time.Now() //Start the clock!
+
+	client := &http.Client{Transport: tr}
+
+	req, err := http.NewRequest("POST", endPoint, bytes.NewBuffer([]byte(postData)))
+	if err != nil {
+		portal.Log.Errorf("%s", err)
+		return nil, err
+	}
+	req.Header.Add("X-ApiKeys", portal.TenableXHeader())
+  req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req) // <-------HTTPS GET Request!
+	if err != nil {
+		portal.Stats.Count(STAT_API_POSTFAILED)
+		portal.Log.Errorf("%s", err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+	portal.Stats.Count(STAT_API_POSTSUCCESS)
+
+	var reqEndTime = time.Now() //Stop the clock!
+	var reqDuration = fmt.Sprintf("%v", reqEndTime.Sub(reqStartTime))
+
+	portal.Log.Debugf("HTTP POST '%s' took %v", endPoint, reqDuration)
+
+	body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		portal.Log.Errorf("%s", err)
+		return nil, err
+	}
+
+	return body, nil
+}
+
 
 func (portal *Portal) Get(endPoint string) ([]byte, error) {
 	var reqStartTime = time.Now() //Start the clock!

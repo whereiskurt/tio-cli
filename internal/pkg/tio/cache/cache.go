@@ -192,6 +192,11 @@ func (portal *PortalCache) GetNoCache(url string) (body []byte, filename string,
 	return body, filename, err
 }
 
+func (portal *PortalCache) Post(endPoint string, postData string) (body []byte, err error) {
+	body, err = portal.Portal.Post(endPoint, postData)
+	return body, err
+}
+
 func (portal *PortalCache) Get(url string) (body []byte, filename string, err error) {
 	if portal.CacheDisabled == true {
 		return portal.GetNoCache(url)
