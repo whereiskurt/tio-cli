@@ -74,7 +74,7 @@ func (s *ScanHistoryDetail) CSVHeader() string {
 
 type HostScanSummary struct {
 	HostId              string `json:"hostId"`
-	UUID                string `json:"hostUUID"`
+	Asset               AssetDetail
 	ScanDetail          ScanHistoryDetail
 	HostDetail          HostScanDetail
 	PluginCriticalCount string `json:"pluginCriticalCount"`
@@ -131,4 +131,18 @@ type HostPluginExposure struct {
 	DurationStatus          string `json:"DurationStatus"`
 	IsVulnerable            bool   `json:"IsVulnerable"`
 	IsPatched               bool   `json:"IsPatched"`
+}
+
+type AssetDetail struct {
+	UUID string
+	Tags []AssetTagDetail
+}
+
+type AssetTagDetail struct {
+	UUID         string
+	CategoryName string
+	Value        string
+	AddedBy      string
+	AddedAt      string
+	Source       string
 }

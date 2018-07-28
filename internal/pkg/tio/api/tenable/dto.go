@@ -196,6 +196,7 @@ type TagValue struct {
 }
 
 //This allows us to map HostId to the asset UUID.
+//NOTE: We retrieve from the '/private' URL space.
 type AssetHost struct {
 	Assets []struct {
 		HostId     json.Number `json:"id"`
@@ -209,4 +210,98 @@ type AssetHost struct {
 			Name  string      `json:"name"`
 		}
 	}
+}
+
+type Asset struct {
+	Info AssetInfo
+}
+
+//https://cloud.tenable.com/api#/resources/workbenches/asset-info
+type AssetInfo struct {
+	TimeEnd         string   `json:"time_end"`
+	Id              string   `json:"id"`
+	UUID            string   `json:"uuid"`
+	OperatingSystem []string `json:"operating_system"`
+	Counts          struct {
+		Vulnerabilities struct {
+			Total      json.Number `json:"total"`
+			Severities []struct {
+				Count json.Number `json:"count"`
+				Level json.Number `json:"level"`
+				Name  string      `json:"name"`
+			}
+		}
+		Audits struct {
+			Total      json.Number `json:"total"`
+			Severities []struct {
+				Count json.Number `json:"count"`
+				Level json.Number `json:"level"`
+				Name  string      `json:"name"`
+			}
+		}
+	}
+
+	Interfaces []struct {
+		Name       string   `json:"name"`
+		IPV4       []string `json:"ipv4"`
+		IPV6       []string `json:"ipv6"`
+		FQDN       []string `json:"fqdn"`
+		MACAddress []string `json:"mac_address"`
+	}
+
+	Sources []struct {
+		FirstSeenAt string `json:"first_seen"`
+		LastSeenAt  string `json:"last_seen"`
+		Name        string `json:"name"`
+	}
+
+	Tags []struct {
+		UUID         string `json:"tag_uuid"`
+		CategoryName string `json:"tag_key"`
+		Value        string `json:"tag_value"`
+		AddedBy      string `json:"added_by"`
+		AddedAt      string `json:"added_at"`
+		Source       string `json:"source"`
+	}
+
+	HasAgent                bool   `json:"has_agent"`
+	CreatedAt               string `json:"created_at"`
+	UpdatedAt               string `json:"updated_at"`
+	FirstSeenAt             string `json:"first_seen"`
+	LastSeenAt              string `json:"last_seen"`
+	LastAuthenticatedScanAt string `json:"last_authenticated_scan_date"`
+	LastLicensedScanAt      string `json:"last_licensed_scan_date"`
+
+	IPV4        []string `json:"ipv4"`
+	IPV6        []string `json:"ipv6"`
+	FQDN        []string `json:"fqdn"`
+	MACAddress  []string `json:"mac_address"`
+	NetBIOS     []string `json:"netbios_name"`
+	SystemType  []string `json:"system_type"`
+	TenableUUID []string `json:"tenable_uuid"`
+	HostName    []string `json:"hostname"`
+	AgentName   []string `json:"agent_name"`
+	BIOSUUID    []string `json:"bios_uuid"`
+
+	AWSEC2InstanceId        []string `json:"aws_ec2_instance_id"`
+	AWSEC2InstanceAMIId     []string `json:"aws_ec2_instance_ami_id"`
+	AWSOwnerId              []string `json:"aws_owner_id"`
+	AWSAvailabilityZone     []string `json:"aws_availability_zone"`
+	AWSRegion               []string `json:"aws_region"`
+	AWSVPCID                []string `json:"aws_vpc_id"`
+	AWSEC2InstanceGroupName []string `json:"aws_ec2_instance_group_name"`
+	AWSEC2InstanceStateName []string `json:"aws_ec2_instance_state_name"`
+	AWSEC2InstanceType      []string `json:"aws_ec2_instance_type"`
+
+	AWSSubnetId        []string `json:"aws_subnet_id"`
+	AWSEC2ProductCode  []string `json:"aws_ec2_product_code"`
+	AWSEC2Name         []string `json:"aws_ec2_name"`
+	AzureVMId          []string `json:"azure_vm_id"`
+	AzureResourceId    []string `json:"azure_resource_id"`
+	SSHFingerPrint     []string `json:"ssh_fingerprint"`
+	McafeeEPOGUID      []string `json:"mcafee_epo_guid"`
+	McafeeEPOAgentGUID []string `json:"mcafee_epo_agent_guid"`
+	QualysHostId       []string `json:"qualys_host_id"`
+	QualysAssetId      []string `json:"qualys_asset_id"`
+	ServiceNowSystemId []string `json:"servicenow_sysid"`
 }

@@ -58,11 +58,20 @@ type BaseConfig struct {
 // }
 
 type VulnerabilityConfig struct {
-	Base            *BaseConfig
-	Previous        string
-	Depth           string
-	DetailView      bool
-	ListView        bool
+	Base     *BaseConfig
+	Previous string
+	Depth    string
+
+	Create      bool
+	Tag         bool
+	Untag       bool
+	TagCategory string
+	TagValue    string
+	SearchView  bool
+
+	DetailView bool
+	ListView   bool
+
 	ScanId          string
 	IgnoreScanId    string
 	HistoryId       string

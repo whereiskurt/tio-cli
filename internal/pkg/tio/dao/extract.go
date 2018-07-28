@@ -24,13 +24,15 @@ const (
 
 	STAT_API_TENABLE_TAGSCATEGORY tio.StatType = "tio.dao.TenableTags.CallCount"
 
+	STAT_API_TENABLE_ASSETINFO          tio.StatType = "tio.dao.AssetInfo.CallCount"
+	STAT_API_TENABLE_ASSETINFO_MEMCACHE tio.StatType = "tio.dao.AssetInfo.Memcached"
+
 	STAT_API_TENABLE_SCANDETAIL          tio.StatType = "tio.dao.TenableScanDetail.CallCount"
 	STAT_API_TENABLE_SCANDETAIL_MEMCACHE tio.StatType = "tio.dao.TenableScanDetail.Memcached"
 
 	STAT_API_TENABLE_HISTORYID          tio.StatType = "tio.dao.TenableHistoryId.CallCount"
 	STAT_API_TENABLE_HISTORYID_MEMCACHE tio.StatType = "tio.dao.TenableHistoryId.Memcached"
 )
-
 
 func (trans *Translator) getTagUUID(categoryName string, value string) (tagUUID string, err error) {
 	var memcacheKey = categoryName + ":" + value
@@ -40,8 +42,8 @@ func (trans *Translator) getTagUUID(categoryName string, value string) (tagUUID 
 		return tagUUID, nil
 	}
 
-	tags, err := trans.getTagValues()
-	for _,v := range tags.Values {
+	tags, err := trans.getTenableTagValues()
+	for _, v := range tags.Values {
 		if categoryName == v.CategoryName && v.Value == value {
 			tagUUID = v.UUID
 			break
@@ -57,8 +59,7 @@ func (trans *Translator) getTagUUID(categoryName string, value string) (tagUUID 
 
 	return tagUUID, nil
 }
-
-func (trans *Translator) getTagCategories() (tags tenable.TagCategory, err error) {
+func (trans *Translator) getTenableTagCategories() (tags tenable.TagCategory, err error) {
 	trans.Stats.Count(STAT_API_TENABLE_TAGSCATEGORY)
 	var portalUrl = trans.Config.Base.BaseUrl + "/tags/categories"
 
@@ -74,7 +75,7 @@ func (trans *Translator) getTagCategories() (tags tenable.TagCategory, err error
 
 	return tags, err
 }
-func (trans *Translator) getTagValues() (tags tenable.TagValue, err error) {
+func (trans *Translator) getTenableTagValues() (tags tenable.TagValue, err error) {
 
 	var portalUrl = trans.Config.Base.BaseUrl + "/tags/values"
 
@@ -90,7 +91,6 @@ func (trans *Translator) getTagValues() (tags tenable.TagValue, err error) {
 
 	return tags, err
 }
-
 func (trans *Translator) getTenableAssetHostMap(scanId string, historyId string) (assets tenable.AssetHost, err error) {
 	trans.Stats.Count(STAT_API_TENABLE_ASSETHOST)
 
@@ -118,6 +118,35 @@ func (trans *Translator) getTenableAssetHostMap(scanId string, historyId string)
 	}
 
 	return assets, err
+}
+func (trans *Translator) getTenableAsset(assetUUID string) (assetInfo tenable.AssetInfo, err error) {
+	trans.Stats.Count(STAT_API_TENABLE_ASSETINFO)
+
+	var portalUrl = trans.Config.Base.BaseUrl + "/workbenches/assets/" + assetUUID + "/info"
+	var memcacheKey = portalUrl
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		trans.Stats.Count(STAT_API_TENABLE_ASSETINFO_MEMCACHE)
+
+		assetInfo = item.Value().(tenable.AssetInfo)
+		return assetInfo, nil
+	}
+
+	raw, _, err := trans.PortalCache.Get(portalUrl)
+	if err != nil {
+		trans.Errorf("Couldn't HTTP GET tenable.TenableAssetInfo for asset UUID:%s\n%s", assetUUID, err)
+	}
+
+	var asset tenable.Asset
+	err = json.Unmarshal([]byte(string(raw)), &asset)
+	if err != nil {
+		trans.Errorf("Couldn't Unmarshal HTTP GET tenable.TenableAssetInfo for asset UUID:%s\n%s", assetUUID, err)
+		return assetInfo, err
+	}
+
+	trans.Memcache.Set(memcacheKey, asset.Info, time.Minute*60)
+
+	return asset.Info, err
 }
 
 func (trans *Translator) getTenableScanList() (sl tenable.ScanList, err error) {

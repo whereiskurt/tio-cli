@@ -42,7 +42,9 @@ var reCurrentScan = regexp.MustCompile("^.*?/scans/(\\d+)$")
 var reHistoryScan = regexp.MustCompile("^.*?/scans/(\\d+)\\?history_id=(\\d+)$")
 var reHostScan = regexp.MustCompile("^.*?/scans/(\\d+)\\/hosts/(\\d+)\\?history_id=(\\d+)$")
 
-var reAssetHost = regexp.MustCompile("^.*?/private/scans/(\\d+)\\/assets/vulnerabilities?\\?history_id=(\\d+)$")
+var reAssetHostMap = regexp.MustCompile("^.*?/private/scans/(\\d+)\\/assets/vulnerabilities?\\?history_id=(\\d+)$")
+
+var reAssetInfo = regexp.MustCompile("^.*?/workbenches/assets/(.+)/info$") //matches a GUID!
 
 func NewPortalCache(config *tio.BaseConfig) *PortalCache {
 	p := new(PortalCache)
@@ -106,7 +108,7 @@ func (portal *PortalCache) PortalCacheFilename(url string) (filename string, err
 		}
 		folder = "tenable/scans/" + scan + "/history_id=" + history + "/"
 
-	} else if matched := reAssetHost.FindStringSubmatch(url); matched != nil {
+	} else if matched := reAssetHostMap.FindStringSubmatch(url); matched != nil {
 		scan := matched[1]
 		history := matched[2]
 		if crypto {
@@ -116,6 +118,15 @@ func (portal *PortalCache) PortalCacheFilename(url string) (filename string, err
 			history = fmt.Sprintf("%x", hkey[:KEY_SIZE])
 		}
 		folder = "tenable/scans/" + scan + "/history_id=" + history + "/map/"
+
+	} else if matched := reAssetInfo.FindStringSubmatch(url); matched != nil {
+		assetUUID := matched[1]
+
+		if crypto {
+			skey := sha256.Sum256([]byte(fmt.Sprintf("%s%s", portal.CacheKey, assetUUID)))
+			assetUUID = fmt.Sprintf("%x", skey[:KEY_SIZE])
+		}
+		folder = "tenable/asset/" + assetUUID + "/"
 
 	} else if matched := reHostScan.FindStringSubmatch(url); matched != nil {
 		scan := matched[1]
@@ -192,8 +203,8 @@ func (portal *PortalCache) GetNoCache(url string) (body []byte, filename string,
 	return body, filename, err
 }
 
-func (portal *PortalCache) Post(endPoint string, postData string) (body []byte, err error) {
-	body, err = portal.Portal.Post(endPoint, postData)
+func (portal *PortalCache) PostJSON(endPoint string, postData string) (body []byte, err error) {
+	body, err = portal.Portal.Post(endPoint, postData, "application/json")
 	return body, err
 }
 

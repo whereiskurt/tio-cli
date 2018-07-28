@@ -274,7 +274,7 @@ func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail, hostKeys []s
 		if vulnStr == ",,," {
 			vulnStr = "-"
 		}
-		data = append(data, []string{h.HostId, h.UUID, h.HostDetail.IP, name, vulnStr, os})
+		data = append(data, []string{h.HostId, h.Asset.UUID, h.HostDetail.IP, name, vulnStr, os})
 	}
 
 	if len(data) > 0 {

@@ -1,20 +1,20 @@
 package tenable
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
-	"bytes"
 
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio"
 )
 
 const (
-	STAT_API_GETSUCCESS tio.StatType = "tio.api.GET.Success"
-	STAT_API_GETFAILED  tio.StatType = "tio.api.GET.Failure"
+	STAT_API_GETSUCCESS  tio.StatType = "tio.api.GET.Success"
+	STAT_API_GETFAILED   tio.StatType = "tio.api.GET.Failure"
 	STAT_API_POSTSUCCESS tio.StatType = "tio.api.POST.Success"
 	STAT_API_POSTFAILED  tio.StatType = "tio.api.POST.Failure"
 )
@@ -93,8 +93,7 @@ func (portal *Portal) Delete(endPoint string) error {
 	return nil
 }
 
-
-func (portal *Portal) Post(endPoint string, postData string) (body []byte, err error) {
+func (portal *Portal) Post(endPoint string, postData string, postType string) (body []byte, err error) {
 	var reqStartTime = time.Now() //Start the clock!
 
 	client := &http.Client{Transport: tr}
@@ -105,7 +104,7 @@ func (portal *Portal) Post(endPoint string, postData string) (body []byte, err e
 		return nil, err
 	}
 	req.Header.Add("X-ApiKeys", portal.TenableXHeader())
-  req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", postType)
 
 	resp, err := client.Do(req) // <-------HTTPS GET Request!
 	if err != nil {
@@ -129,7 +128,6 @@ func (portal *Portal) Post(endPoint string, postData string) (body []byte, err e
 
 	return body, nil
 }
-
 
 func (portal *Portal) Get(endPoint string) ([]byte, error) {
 	var reqStartTime = time.Now() //Start the clock!

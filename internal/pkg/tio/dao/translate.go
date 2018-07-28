@@ -46,8 +46,12 @@ type Translator struct {
 	IncludePluginId  map[string]bool
 	IgnoreHistoryId  map[string]bool
 	IncludeHistoryId map[string]bool
+
 	IgnoreAssetId    map[string]bool
 	IncludeAssetId   map[string]bool
+
+	IgnoreHostId    map[string]bool
+	IncludeHostId   map[string]bool
 
 	Anonymizer *tenable.Anonymizer
 
@@ -95,6 +99,9 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 	t.IgnoreHistoryId = make(map[string]bool)
 	t.IncludeAssetId = make(map[string]bool)
 	t.IgnoreAssetId = make(map[string]bool)
+	t.IncludeHostId = make(map[string]bool)
+	t.IgnoreHostId = make(map[string]bool)
+
 	t.IncludePluginId = make(map[string]bool)
 	t.IgnorePluginId = make(map[string]bool)
 
@@ -128,6 +135,16 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 			t.IgnoreAssetId[id] = true
 		}
 	}
+	for _, id := range strings.Split(t.Config.HostId, ",") {
+		if id != "" {
+			t.IncludeHostId[id] = true
+		}
+	}
+	for _, id := range strings.Split(t.Config.IgnoreHostId, ",") {
+		if id != "" {
+			t.IgnoreHostId[id] = true
+		}
+	}
 	for _, id := range strings.Split(t.Config.IgnorePluginId, ",") {
 		if id != "" {
 			t.IgnorePluginId[id] = true
@@ -152,7 +169,7 @@ func (trans *Translator) GetTagValue() (tags tenable.TagValue, err error) {
 		return tags, nil
 	}
 
-	tags, err = trans.getTagValues()
+	tags, err = trans.getTenableTagValues()
 	if err != nil {
 		return tags, err
 	}
@@ -174,7 +191,7 @@ func (trans *Translator) GetTagCategory() (tags tenable.TagCategory, err error) 
 		return tags, nil
 	}
 
-	tags, err = trans.getTagCategories()
+	tags, err = trans.getTenableTagCategories()
 	if err != nil {
 		return tags, err
 	}
@@ -244,6 +261,26 @@ func (trans *Translator) GetScan(scanId string) (scan Scan, err error) {
 	return scan, err
 }
 
+func (trans *Translator) GetAsset(assetUUID string) (asset AssetDetail, err error) {
+	tenableAsset, err := trans.getTenableAsset(assetUUID)
+
+	asset.UUID = tenableAsset.UUID
+
+	for _, t := range tenableAsset.Tags {
+		var tag AssetTagDetail
+		tag.UUID = t.UUID
+		tag.CategoryName = t.CategoryName
+		tag.Value = t.Value
+		tag.AddedBy = t.AddedBy
+		tag.AddedAt = t.AddedAt
+		tag.Source = t.Source
+
+		asset.Tags = append(asset.Tags, tag)
+	}
+
+	return asset, err
+}
+
 func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorkers int) (err error) {
 	var chanScanDetails = make(chan ScanHistory, 2)
 
@@ -276,7 +313,7 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
 							continue
 						}
 
-						if trans.ShouldSkipAssetId(host.UUID) {
+						if trans.ShouldSkipAssetId(host.Asset.UUID) {
 							delete(sd.ScanHistoryDetails[h].Host, hostKey)
 							continue
 						}
@@ -598,7 +635,7 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 			retHost.PluginLowCount = fmt.Sprintf("%v", lowHost)
 			retHost.PluginTotalCount = fmt.Sprintf("%v", lowHost+mediumHost+highHost+critsHost)
 
-			retHost.UUID = hist.HostAssetMap[hostId]
+			retHost.Asset, _ = trans.GetAsset(hist.HostAssetMap[hostId])
 
 			hist.Host[hostId] = retHost
 
