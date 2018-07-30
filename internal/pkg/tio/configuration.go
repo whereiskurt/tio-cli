@@ -63,6 +63,7 @@ type VulnerabilityConfig struct {
 	Depth    string
 
 	Create      bool
+	Delete      bool
 	Tag         bool
 	Untag       bool
 	TagCategory string
