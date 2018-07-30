@@ -87,6 +87,13 @@ func (trans *Translator) getTenableTagValues() (tags tenable.TagValue, err error
 		return tags, err
 	}
 
+	sort.Slice(tags.Values, func(i, j int) bool {
+		if tags.Values[i].CategoryName == tags.Values[j].CategoryName {
+			return tags.Values[i].Value < tags.Values[j].Value
+		}
+		return tags.Values[i].CategoryName < tags.Values[j].CategoryName	
+	})
+
 	trans.Infof("Succesfully unmarshalled tenable.TagValues: %s", raw)
 
 	return tags, err
@@ -143,6 +150,13 @@ func (trans *Translator) getTenableAsset(assetUUID string) (assetInfo tenable.As
 		trans.Errorf("Couldn't Unmarshal HTTP GET tenable.TenableAssetInfo for asset UUID:%s\n%s", assetUUID, err)
 		return assetInfo, err
 	}
+
+	sort.Slice(asset.Info.Tags, func(i, j int) bool {
+		if asset.Info.Tags[i].CategoryName == asset.Info.Tags[j].CategoryName {
+			return asset.Info.Tags[i].Value < asset.Info.Tags[j].Value
+		}
+		return asset.Info.Tags[i].CategoryName < asset.Info.Tags[j].CategoryName	
+	})
 
 	trans.Memcache.Set(memcacheKey, asset.Info, time.Minute*60)
 

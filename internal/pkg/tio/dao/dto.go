@@ -18,7 +18,7 @@ type Scan struct {
 	Enabled          string `json:"enabled"`
 	RRules           string `json:"rrules"`
 	Timezone         string `json:"timezone"`
-	StartTime        string `json:"startTime"`
+	StartTime        string `json:"start_time"`
 	CreationDate     string `json:"creation_date"`
 	LastModifiedDate string `json:"last_modification_date"`
 	PolicyName       string `json:"policy_name"`
@@ -41,22 +41,22 @@ type ScanHistory struct {
 type ScanHistoryDetail struct {
 	Scan Scan
 
-	HistoryId           string `json:"historyId"`
-	HistoryIndex        string `json:"historyIndex"`
+	HistoryId           string `json:"history_id"`
+	HistoryIndex        string `json:"history_index"`
 	Status              string `json:"status"`
-	CreationDate        string `json:'createDate'`
-	LastModifiedDate    string `json:'lastModifiedDate'`
-	PluginCriticalCount string `json:"pluginCriticalCount"`
-	PluginHighCount     string `json:"pluginHighCount"`
-	PluginMediumCount   string `json:"pluginMediumCount"`
-	PluginLowCount      string `json:"pluginLowCount"`
-	PluginTotalCount    string `json:"pluginTotalCount"`
+	CreationDate        string `json:'create_date'`
+	LastModifiedDate    string `json:'last_modified_date'`
+	PluginCriticalCount string `json:"plugin_critical_count"`
+	PluginHighCount     string `json:"plugin_high_count"`
+	PluginMediumCount   string `json:"plugin_medium_count"`
+	PluginLowCount      string `json:"plugin_low_count"`
+	PluginTotalCount    string `json:"plugin_total_count"`
 
-	ScanStart     string `json:"scanStart"`
-	ScanStartUnix string `json:"scanStartUnix"`
-	ScanEnd       string `json:"scanEnd"`
-	ScanEndUnix   string `json:"scanEndUnix"`
-	ScanDuration  string `json:"scanDuration"`
+	ScanStart     string `json:"scan_start"`
+	ScanStartUnix string `json:"scan_start_unix"`
+	ScanEnd       string `json:"scan_end"`
+	ScanEndUnix   string `json:"scan_end_unix"`
+	ScanDuration  string `json:"scan_duration"`
 
 	HostCount  string                         `json:"hostCount"`
 	Host       map[string]HostScanSummary     `json:"hostMap"`
