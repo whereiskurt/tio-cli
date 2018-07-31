@@ -159,13 +159,13 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 	return t
 }
 
-func (trans *Translator) GetTagValue() (tags tenable.TagValue, err error) {
+func (trans *Translator) GetTagValues() (tags tenable.TagValues, err error) {
 
 	var memcacheKey = "translator:GetTagValue:ALL"
 
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
-		tags = item.Value().(tenable.TagValue)
+		tags = item.Value().(tenable.TagValues)
 		return tags, nil
 	}
 
@@ -179,7 +179,33 @@ func (trans *Translator) GetTagValue() (tags tenable.TagValue, err error) {
 	return tags, err
 }
 
-func (trans *Translator) GetTagCategory() (tags tenable.TagCategory, err error) {
+func (trans *Translator) GetTagUUID(categoryName string, value string) (tagUUID string, err error) {
+	var memcacheKey = categoryName + ":" + value
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		tagUUID = item.Value().(string)
+		return tagUUID, nil
+	}
+
+	tags, err := trans.getTenableTagValues()
+	for _, v := range tags.Values {
+		if categoryName == v.CategoryName && v.Value == value {
+			tagUUID = v.UUID
+			break
+		}
+	}
+
+	if tagUUID == "" {
+		err = errors.New(fmt.Sprintf("Couldn't find tag UUID for catgeory '%s' and value '%s'", categoryName, value))
+		return tagUUID, err
+	}
+
+	trans.Memcache.Set(memcacheKey, tagUUID, time.Minute*60)
+
+	return tagUUID, nil
+}
+
+func (trans *Translator) GetTagCategories() (tags tenable.TagCategories, err error) {
 	trans.Stats.Count(STAT_GETTAGS)
 
 	var memcacheKey = "translator:GetTagCategory:ALL"
@@ -187,7 +213,7 @@ func (trans *Translator) GetTagCategory() (tags tenable.TagCategory, err error) 
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
 		trans.Stats.Count(STAT_GETTAGS_MEMCACHE)
-		tags = item.Value().(tenable.TagCategory)
+		tags = item.Value().(tenable.TagCategories)
 		return tags, nil
 	}
 

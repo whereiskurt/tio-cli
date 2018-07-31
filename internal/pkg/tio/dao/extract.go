@@ -34,32 +34,8 @@ const (
 	STAT_API_TENABLE_HISTORYID_MEMCACHE tio.StatType = "tio.dao.TenableHistoryId.Memcached"
 )
 
-func (trans *Translator) getTagUUID(categoryName string, value string) (tagUUID string, err error) {
-	var memcacheKey = categoryName + ":" + value
-	item := trans.Memcache.Get(memcacheKey)
-	if item != nil {
-		tagUUID = item.Value().(string)
-		return tagUUID, nil
-	}
 
-	tags, err := trans.getTenableTagValues()
-	for _, v := range tags.Values {
-		if categoryName == v.CategoryName && v.Value == value {
-			tagUUID = v.UUID
-			break
-		}
-	}
-
-	if tagUUID == "" {
-		err = errors.New(fmt.Sprintf("Couldn't find tag UUID for catgeory '%s' and value '%s'", categoryName, value))
-		return tagUUID, err
-	}
-
-	trans.Memcache.Set(memcacheKey, tagUUID, time.Minute*60)
-
-	return tagUUID, nil
-}
-func (trans *Translator) getTenableTagCategories() (tags tenable.TagCategory, err error) {
+func (trans *Translator) getTenableTagCategories() (tags tenable.TagCategories, err error) {
 	trans.Stats.Count(STAT_API_TENABLE_TAGSCATEGORY)
 	var portalUrl = trans.Config.Base.BaseUrl + "/tags/categories"
 
@@ -71,11 +47,15 @@ func (trans *Translator) getTenableTagCategories() (tags tenable.TagCategory, er
 		return tags, err
 	}
 
+	sort.Slice(tags.Categories, func(i, j int) bool {
+		return tags.Categories[i].Name < tags.Categories[j].Name	
+	})
+
 	trans.Infof("Succesfully unmarshalled tenable.TagCategory: %s", raw)
 
 	return tags, err
 }
-func (trans *Translator) getTenableTagValues() (tags tenable.TagValue, err error) {
+func (trans *Translator) getTenableTagValues() (tags tenable.TagValues, err error) {
 
 	var portalUrl = trans.Config.Base.BaseUrl + "/tags/values"
 
