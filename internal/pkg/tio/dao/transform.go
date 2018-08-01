@@ -123,6 +123,23 @@ func (trans *Translator) ShouldSkipScanId(scanId string) (skip bool) {
 	return skip
 }
 
+func (trans *Translator) ShouldSkipHostId(hostId string) (skip bool) {
+	skip = false
+
+	_, ignore := trans.IgnoreHostId[hostId]
+	if ignore {
+		skip = true
+	}
+
+	if len(trans.IncludeHostId) > 0 {
+		_, include := trans.IncludeHostId[hostId]
+		if !include {
+			skip = true
+		}
+	}
+	return skip
+}
+
 func (trans *Translator) ShouldSkipAssetId(AssetId string) (skip bool) {
 	skip = false
 

@@ -1,15 +1,15 @@
 package dao
 
 import (
-	"fmt"
 	"encoding/json"
+	"fmt"
 
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio/api/tenable"
 )
 
 func (trans *Translator) CreateTagCategory(categoryName string) (categoryUUID string, err error) {
 	var tagEndPoint string = "https://cloud.tenable.com/tags/categories"
-	
+
 	postBody := fmt.Sprintf("{\"name\":\"%s\",\"description\":\"\"}", categoryName)
 	raw, err := trans.PortalCache.PostJSON(tagEndPoint, postBody)
 
@@ -21,15 +21,15 @@ func (trans *Translator) CreateTagCategory(categoryName string) (categoryUUID st
 		return categoryUUID, err
 	}
 
-	categoryUUID = tag.UUID	
+	categoryUUID = tag.UUID
 
 	return categoryUUID, err
 }
 func (trans *Translator) CreateTagValue(categoryUUID string, categoryName string, categoryValue string) (err error) {
 	var tagEndPoint string = "https://cloud.tenable.com/tags/values"
 
-	postBody := fmt.Sprintf("{\"category_uuid\":\"%s\",\"category_name\":\"%s\",\"category_description\":\"\",\"value\":\"%s\",\"description\":\"\"}", categoryUUID, categoryName,categoryValue)
-	
+	postBody := fmt.Sprintf("{\"category_uuid\":\"%s\",\"category_name\":\"%s\",\"category_description\":\"\",\"value\":\"%s\",\"description\":\"\"}", categoryUUID, categoryName, categoryValue)
+
 	body, err := trans.PortalCache.PostJSON(tagEndPoint, postBody)
 	if err != nil {
 		trans.Errorf("%s:%s", err, body)
@@ -41,46 +41,6 @@ func (trans *Translator) CreateTagValue(categoryUUID string, categoryName string
 func (trans *Translator) DeleteTagValue(valueUUID string) (err error) {
 	return err
 }
-
-
-///////////////////////////////
-//POST: https://cloud.tenable.com/tags/categories
-//POST: {"name":"NewTag","description":""}
-//RESP: {"container_uuid":"f23cc6b6-9d50-4c0b-b5fd-8836ff3fae88",
-// "uuid":"39d2705b-9c06-4c1e-9f03-98c1769705de",
-// "created_at":"2018-07-30T22:20:03.797Z",
-// "created_by":"kurt_hundeck@cooperators.ca",
-// "updated_at":"2018-07-30T22:20:03.797Z",
-// "updated_by":"kurt_hundeck@cooperators.ca",
-// "name":"NewTag",
-// "description":"",
-// "reserved":false,
-// "model_name":"Category"}
-////////////////////////////
-//
-////////////////////////////
-//POST: https://cloud.tenable.com/tags/values
-//POST:{"category_uuid":"39d2705b-9c06-4c1e-9f03-98c1769705de",
-// "category_name":"NewTag",
-// "category_description":"",
-// "value":"NewValue",
-// "description":""}
-//RESP:
-//{"container_uuid":"f23cc6b6-9d50-4c0b-b5fd-8836ff3fae88",
-//"uuid":"1373e4f5-7fbc-4158-b800-7b5996684e31",
-//"created_at":"2018-07-30T22:20:04.519Z",
-//"created_by":"kurt_hundeck@cooperators.ca",
-//"updated_at":"2018-07-30T22:20:04.519Z",
-//"updated_by":"kurt_hundeck@cooperators.ca",
-//"category_uuid":"39d2705b-9c06-4c1e-9f03-98c1769705de",
-//"value":"NewValue",
-//"description":"",
-//"type":"static",
-//"category_name":"NewTag",
-//"category_description":"",
-//"model_name":"Value"}
-///////////////////////////////
-
 
 func (trans *Translator) TagByAssetUUID(assetUUID string, categoryName string, value string) (err error) {
 	var tagEndPoint string = "https://cloud.tenable.com/tags/assets/assignments"

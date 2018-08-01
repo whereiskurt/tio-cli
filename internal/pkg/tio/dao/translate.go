@@ -47,11 +47,11 @@ type Translator struct {
 	IgnoreHistoryId  map[string]bool
 	IncludeHistoryId map[string]bool
 
-	IgnoreAssetId    map[string]bool
-	IncludeAssetId   map[string]bool
+	IgnoreAssetId  map[string]bool
+	IncludeAssetId map[string]bool
 
-	IgnoreHostId    map[string]bool
-	IncludeHostId   map[string]bool
+	IgnoreHostId  map[string]bool
+	IncludeHostId map[string]bool
 
 	Anonymizer *tenable.Anonymizer
 
@@ -339,7 +339,7 @@ func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorker
 							continue
 						}
 
-						if trans.ShouldSkipAssetId(host.Asset.UUID) {
+						if trans.ShouldSkipAssetId(host.Asset.UUID) || trans.ShouldSkipHostId(host.HostId) {
 							delete(sd.ScanHistoryDetails[h].Host, hostKey)
 							continue
 						}

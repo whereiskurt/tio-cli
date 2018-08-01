@@ -34,7 +34,6 @@ const (
 	STAT_API_TENABLE_HISTORYID_MEMCACHE tio.StatType = "tio.dao.TenableHistoryId.Memcached"
 )
 
-
 func (trans *Translator) getTenableTagCategories() (tags tenable.TagCategories, err error) {
 	trans.Stats.Count(STAT_API_TENABLE_TAGSCATEGORY)
 	var portalUrl = trans.Config.Base.BaseUrl + "/tags/categories"
@@ -48,7 +47,7 @@ func (trans *Translator) getTenableTagCategories() (tags tenable.TagCategories, 
 	}
 
 	sort.Slice(tags.Categories, func(i, j int) bool {
-		return tags.Categories[i].Name < tags.Categories[j].Name	
+		return tags.Categories[i].Name < tags.Categories[j].Name
 	})
 
 	trans.Infof("Succesfully unmarshalled tenable.TagCategory: %s", raw)
@@ -71,7 +70,7 @@ func (trans *Translator) getTenableTagValues() (tags tenable.TagValues, err erro
 		if tags.Values[i].CategoryName == tags.Values[j].CategoryName {
 			return tags.Values[i].Value < tags.Values[j].Value
 		}
-		return tags.Values[i].CategoryName < tags.Values[j].CategoryName	
+		return tags.Values[i].CategoryName < tags.Values[j].CategoryName
 	})
 
 	trans.Infof("Succesfully unmarshalled tenable.TagValues: %s", raw)
@@ -135,7 +134,7 @@ func (trans *Translator) getTenableAsset(assetUUID string) (assetInfo tenable.As
 		if asset.Info.Tags[i].CategoryName == asset.Info.Tags[j].CategoryName {
 			return asset.Info.Tags[i].Value < asset.Info.Tags[j].Value
 		}
-		return asset.Info.Tags[i].CategoryName < asset.Info.Tags[j].CategoryName	
+		return asset.Info.Tags[i].CategoryName < asset.Info.Tags[j].CategoryName
 	})
 
 	trans.Memcache.Set(memcacheKey, asset.Info, time.Minute*60)

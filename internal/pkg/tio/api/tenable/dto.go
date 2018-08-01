@@ -176,7 +176,7 @@ type TagCategory struct {
 	UpdatedBy     string `json:"updated_by"`
 	ModelName     string `json:"model_name"`
 	Name          string `json:"name"`
-	Description   string `json:"description"`	
+	Description   string `json:"description"`
 }
 
 type TagValues struct {
