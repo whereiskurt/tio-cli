@@ -41,9 +41,7 @@ var rePlugin = regexp.MustCompile("^.*?/plugins/plugin/(\\d+)$")
 var reCurrentScan = regexp.MustCompile("^.*?/scans/(\\d+)$")
 var reHistoryScan = regexp.MustCompile("^.*?/scans/(\\d+)\\?history_id=(\\d+)$")
 var reHostScan = regexp.MustCompile("^.*?/scans/(\\d+)\\/hosts/(\\d+)\\?history_id=(\\d+)$")
-
 var reAssetHostMap = regexp.MustCompile("^.*?/private/scans/(\\d+)\\/assets/vulnerabilities?\\?history_id=(\\d+)$")
-
 var reAssetInfo = regexp.MustCompile("^.*?/workbenches/assets/(.+)/info$") //matches a GUID!
 
 func NewPortalCache(config *tio.BaseConfig) *PortalCache {
@@ -198,9 +196,9 @@ func (portal *PortalCache) PortalCacheGet(cacheFilename string) ([]byte, error) 
 	return decDat, nil
 }
 
-func (portal *PortalCache) GetNoCache(url string) (body []byte, filename string, err error) {
+func (portal *PortalCache) GetNoCache(url string) (body []byte, err error) {
 	body, err = portal.Portal.Get(url)
-	return body, filename, err
+	return body,  err
 }
 
 func (portal *PortalCache) PostJSON(endPoint string, postData string) (body []byte, err error) {
@@ -209,13 +207,14 @@ func (portal *PortalCache) PostJSON(endPoint string, postData string) (body []by
 }
 
 func (portal *PortalCache) Delete(endPoint string) (body []byte, err error) {
-	body, err = portal.Portal.Post(endPoint, "", "application/json")
-	return body, err
+	err = portal.Portal.Delete(endPoint)
+	return nil, err
 }
 
 func (portal *PortalCache) Get(url string) (body []byte, filename string, err error) {
 	if portal.CacheDisabled == true {
-		return portal.GetNoCache(url)
+		body, err := portal.GetNoCache(url)
+		return body, "", err
 	}
 
 	filename, err = portal.PortalCacheFilename(url)
@@ -237,7 +236,7 @@ func (portal *PortalCache) Get(url string) (body []byte, filename string, err er
 	}
 
 	//TODO: Add some 'soft retry' concepts here.
-	body, err = portal.Portal.Get(url)
+	body, err = portal.GetNoCache(url)
 	if err != nil {
 		return body, filename, err
 	}

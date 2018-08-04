@@ -65,6 +65,7 @@ type ScanHistoryDetail struct {
 	HostAssetMap map[string]string `json:"hostAssetMap"`
 }
 
+//TODO: Replace with building and ARRYA and using encoding/csv
 func (s *ScanHistoryDetail) CSV() string {
 	return strings.Join([]string{s.Scan.CSV(), s.HistoryId, s.HistoryIndex, "'" + s.Status + "'", s.CreationDate, s.LastModifiedDate, s.PluginCriticalCount, s.PluginHighCount, s.PluginMediumCount, s.PluginLowCount, s.PluginTotalCount, "'" + s.ScanStart + "'", s.ScanStartUnix, "'" + s.ScanEnd + "'", s.ScanEndUnix, "'" + s.ScanDuration + "'", s.HostCount}, ",")
 }
