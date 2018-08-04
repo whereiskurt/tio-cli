@@ -159,6 +159,7 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 	return t
 }
 
+
 func (trans *Translator) GetTagValues() (tags tenable.TagValues, err error) {
 
 	var memcacheKey = "translator:GetTagValue:ALL"
@@ -226,6 +227,8 @@ func (trans *Translator) GetTagCategories() (tags tenable.TagCategories, err err
 
 	return tags, err
 }
+
+
 
 func (trans *Translator) GetScans() (scans []Scan, err error) {
 	trans.Stats.Count(STAT_GETSCANS)

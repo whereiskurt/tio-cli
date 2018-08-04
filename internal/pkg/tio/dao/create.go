@@ -38,7 +38,15 @@ func (trans *Translator) CreateTagValue(categoryUUID string, categoryName string
 	return err
 }
 
+
 func (trans *Translator) DeleteTagValue(valueUUID string) (err error) {
+	tagEndPoint := fmt.Sprintf("https://cloud.tenable.com/tags/values/%s", valueUUID)
+
+	_, err = trans.PortalCache.Delete(tagEndPoint)
+
+	//DELETE:https://cloud.tenable.com/tags/categories/39d2705b-9c06-4c1e-9f03-98c1769705de
+	//DELETE:https://cloud.tenable.com/tags/values/25214874-a953-4ef2-851d-f773357ec490
+
 	return err
 }
 

@@ -208,6 +208,11 @@ func (portal *PortalCache) PostJSON(endPoint string, postData string) (body []by
 	return body, err
 }
 
+func (portal *PortalCache) Delete(endPoint string) (body []byte, err error) {
+	body, err = portal.Portal.Post(endPoint, "", "application/json")
+	return body, err
+}
+
 func (portal *PortalCache) Get(url string) (body []byte, filename string, err error) {
 	if portal.CacheDisabled == true {
 		return portal.GetNoCache(url)
