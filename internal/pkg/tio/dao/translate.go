@@ -40,16 +40,15 @@ type Translator struct {
 	ThreadSafe      *sync.Mutex
 
 	Workers          map[string]*sync.WaitGroup
+
 	IgnoreScanId     map[string]bool
 	IncludeScanId    map[string]bool
 	IgnorePluginId   map[string]bool
 	IncludePluginId  map[string]bool
 	IgnoreHistoryId  map[string]bool
 	IncludeHistoryId map[string]bool
-
 	IgnoreAssetId  map[string]bool
 	IncludeAssetId map[string]bool
-
 	IgnoreHostId  map[string]bool
 	IncludeHostId map[string]bool
 

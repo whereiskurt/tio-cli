@@ -141,7 +141,6 @@ func (trans *Translator) getTenableAsset(assetUUID string) (assetInfo tenable.As
 
 	return asset.Info, err
 }
-
 func (trans *Translator) getTenableScanList() (sl tenable.ScanList, err error) {
 	trans.Stats.Count(STAT_API_TENABLE_SCANLIST)
 
