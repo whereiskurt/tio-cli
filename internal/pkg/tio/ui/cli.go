@@ -21,13 +21,13 @@ type CommandLineInterface struct {
 	Output            *os.File
 }
 
-func NewCommandLineInterface(config *tio.BaseConfig) *CommandLineInterface {
+func NewCommandLineInterface(config *tio.VulnerabilityConfig) *CommandLineInterface {
 	c := new(CommandLineInterface)
 
-	c.Config = config
+	c.Config = config.Base
 	c.Workers = new(sync.WaitGroup)
-	c.ConcurrentWorkers, _ = strconv.Atoi(config.ConcurrentWorkers)
-	c.Output = config.Output
+	c.ConcurrentWorkers, _ = strconv.Atoi(config.Base.ConcurrentWorkers)
+	c.Output = config.Base.Output
 
 	if c.Config.NoColourMode {
 		DisableColour()
@@ -283,6 +283,11 @@ func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail, hostKeys []s
 	} else {
 		fmt.Println(BOLD + "---> NONE!" + RESET)
 	}
+}
+
+func (cli *CommandLineInterface) DrawTags(tags []dao.TagValue) {
+
+	return
 }
 
 func (cli *CommandLineInterface) DrawScanVulnTable(rec dao.ScanHistoryDetail, vulnKeys []string) {

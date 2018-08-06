@@ -159,20 +159,22 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 }
 
 
-func (trans *Translator) GetTagValues() (tags tenable.TagValues, err error) {
+func (trans *Translator) GetTagValues() (tags[] TagValue, err error) {
 
 	var memcacheKey = "translator:GetTagValue:ALL"
 
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
-		tags = item.Value().(tenable.TagValues)
+		tags = item.Value().([]TagValue)
 		return tags, nil
 	}
 
-	tags, err = trans.getTenableTagValues()
+	tentableValues, err := trans.getTenableTagValues()
 	if err != nil {
 		return tags, err
 	}
+
+	tags, err = trans.fromTagValues(tentableValues)
 
 	trans.Memcache.Set(memcacheKey, tags, time.Minute*60)
 
@@ -205,7 +207,7 @@ func (trans *Translator) GetTagUUID(categoryName string, value string) (tagUUID 
 	return tagUUID, nil
 }
 
-func (trans *Translator) GetTagCategories() (tags tenable.TagCategories, err error) {
+func (trans *Translator) GetTagCategories() (tags[] TagCategory, err error) {
 	trans.Stats.Count(STAT_GETTAGS)
 
 	var memcacheKey = "translator:GetTagCategory:ALL"
@@ -213,21 +215,20 @@ func (trans *Translator) GetTagCategories() (tags tenable.TagCategories, err err
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
 		trans.Stats.Count(STAT_GETTAGS_MEMCACHE)
-		tags = item.Value().(tenable.TagCategories)
+		tags = item.Value().([]TagCategory)
 		return tags, nil
 	}
 
-	tags, err = trans.getTenableTagCategories()
+	tenableCategories, err := trans.getTenableTagCategories()
 	if err != nil {
 		return tags, err
 	}
 
-	trans.Memcache.Set(memcacheKey, tags, time.Minute*60)
+	tags, err = trans.fromTagCategories(tenableCategories)
 
+	trans.Memcache.Set(memcacheKey, tags, time.Minute*60)
 	return tags, err
 }
-
-
 
 func (trans *Translator) GetScans() (scans []Scan, err error) {
 	trans.Stats.Count(STAT_GETSCANS)
@@ -545,6 +546,40 @@ func (trans *Translator) fromScanList(scanList tenable.ScanList) []Scan {
 	}
 
 	return scans
+}
+
+func (trans *Translator) fromTagCategories(tenableTags tenable.TagCategories) (tags[] TagCategory, err error) {
+	for _,v := range tenableTags.Categories {
+		var tag TagCategory
+		tag.ContainerUUID = v.ContainerUUID
+		tag.UUID = v.UUID
+		tag.ModelName = v.ModelName
+		tag.Name = v.Name
+		tag.Description = v.Description
+		tags = append(tags, tag)
+	}
+
+	return tags, err
+}
+
+func (trans *Translator) fromTagValues(tenableTags tenable.TagValues) (tags[] TagValue, err error) {
+	for _,v := range tenableTags.Values {
+		var tag TagValue
+		
+		tag.ContainerUUID = v.ContainerUUID
+		tag.UUID = v.UUID            
+		tag.ModelName = v.ModelName
+		tag.Value = v.Value
+		tag.Description = v.Description         
+		tag.Type = v.Type
+		tag.CategoryUUID = v.CategoryUUID       
+		tag.CategoryName = v.CategoryName
+		tag.CategoryDescription = v.CategoryDescription
+
+		tags = append(tags, tag)
+	}
+
+	return tags, err
 }
 
 func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail) (record ScanHistory, err error) {

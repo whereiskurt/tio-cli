@@ -147,3 +147,23 @@ type AssetTagDetail struct {
 	AddedAt      string
 	Source       string
 }
+
+type TagValue struct {
+	ContainerUUID       string 
+	UUID                string
+	ModelName           string
+	Value               string
+	Description         string
+	Type                string
+	CategoryUUID        string
+	CategoryName        string
+	CategoryDescription string
+}
+
+type TagCategory struct {
+	ContainerUUID string 
+	UUID          string 
+	ModelName     string 
+	Name          string 
+	Description   string 
+}
