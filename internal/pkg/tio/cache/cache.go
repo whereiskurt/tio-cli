@@ -43,6 +43,7 @@ var reHistoryScan = regexp.MustCompile("^.*?/scans/(\\d+)\\?history_id=(\\d+)$")
 var reHostScan = regexp.MustCompile("^.*?/scans/(\\d+)\\/hosts/(\\d+)\\?history_id=(\\d+)$")
 var reAssetHostMap = regexp.MustCompile("^.*?/private/scans/(\\d+)\\/assets/vulnerabilities?\\?history_id=(\\d+)$")
 var reAssetInfo = regexp.MustCompile("^.*?/workbenches/assets/(.+)/info$") //matches a GUID!
+var reAssetSearch = regexp.MustCompile("^.*?\\/workbenches\\/assets\\?.+?tag\\.(.+?)\\&filter\\.0\\.value=(.+?)\\&") //matches a GUID!
 
 func NewPortalCache(config *tio.BaseConfig) *PortalCache {
 	p := new(PortalCache)
@@ -125,6 +126,11 @@ func (portal *PortalCache) PortalCacheFilename(url string) (filename string, err
 			assetUUID = fmt.Sprintf("%x", skey[:KEY_SIZE])
 		}
 		folder = "tenable/asset/" + assetUUID + "/"
+
+	} else if matched := reAssetSearch.FindStringSubmatch(url); matched != nil {
+		category := matched[1]
+		value := matched[2]
+		folder = "tenable/search/asset/" + category + "/" + value +"/"
 
 	} else if matched := reHostScan.FindStringSubmatch(url); matched != nil {
 		scan := matched[1]

@@ -109,15 +109,15 @@ type PluginDetailSummary struct {
 }
 
 type PluginDetail struct {
-	RiskFactor            string `"json:riskFactor"`
-	FunctionName          string `"json:functionName"`
-	PluginPublicationDate string `"json:pluginPublicationDate"`
-	PatchPublicationDate  string `"json:patchPublicationDate"`
+	RiskFactor            string 
+	FunctionName          string 
+	PluginPublicationDate string 
+	PatchPublicationDate  string 
 	Attribute             map[string]PluginDetailAttribute
 }
 type PluginDetailAttribute struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
+	Name  string 
+	Value string 
 }
 
 ////// Computed
@@ -126,17 +126,27 @@ type HostPluginExposure struct {
 	Plugin                  PluginDetailSummary
 	FirstScan               ScanHistoryDetail
 	LastScan                ScanHistoryDetail
-	DaysSinceFirstDetection string `json:"daysSinceFirstDetection"`
-	DaysSinceLastDetection  string `json:"DaysSinceLastDetection"`
-	VulnerableStatus        string `json:"VulnerableStatus"`
-	DurationStatus          string `json:"DurationStatus"`
-	IsVulnerable            bool   `json:"IsVulnerable"`
-	IsPatched               bool   `json:"IsPatched"`
+	DaysSinceFirstDetection string 
+	DaysSinceLastDetection  string 
+	VulnerableStatus        string 
+	DurationStatus          string 
+	IsVulnerable            bool   
+	IsPatched               bool   
 }
 
 type AssetDetail struct {
 	UUID string
 	Tags []AssetTagDetail
+	TenableUUID []string 
+	IPV4        []string 
+	IPV6        []string 
+	FQDN        []string 
+	MACAddress  []string 
+	NetBIOS     []string 
+	SystemType  []string 
+	HostName    []string 
+	AgentName   []string 
+	BIOSUUID    []string 
 }
 
 type AssetTagDetail struct {

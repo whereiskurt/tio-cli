@@ -121,6 +121,7 @@ func (trans *Translator) getTenableAsset(assetUUID string) (assetInfo tenable.As
 	raw, _, err := trans.PortalCache.Get(portalUrl)
 	if err != nil {
 		trans.Errorf("Couldn't HTTP GET tenable.TenableAssetInfo for asset UUID:%s\n%s", assetUUID, err)
+		return assetInfo, err
 	}
 
 	var asset tenable.Asset
@@ -136,11 +137,46 @@ func (trans *Translator) getTenableAsset(assetUUID string) (assetInfo tenable.As
 		}
 		return asset.Info.Tags[i].CategoryName < asset.Info.Tags[j].CategoryName
 	})
+	assetInfo = asset.Info
+	trans.Memcache.Set(memcacheKey, assetInfo, time.Minute*60)
 
-	trans.Memcache.Set(memcacheKey, asset.Info, time.Minute*60)
-
-	return asset.Info, err
+	return assetInfo, err
 }
+
+//curl 'https://cloud.tenable.com/workbenches/assets?date_range=30&filter.0.quality=set-has&filter.0.filter=tag.location&filter.0.value=test&filter.search_type=and' 
+
+
+func (trans *Translator) searchAssetByTag(tagCategory string, tagValue string) (assets []tenable.AssetInfo, err error) {
+	
+	var url string = fmt.Sprintf("date_range=0&filter.0.quality=set-has&filter.0.filter=tag.%s&filter.0.value=%s&filter.search_type=and",tagCategory, tagValue)
+
+	var portalUrl = trans.Config.Base.BaseUrl + "/workbenches/assets?" + url 
+	
+	var memcacheKey = portalUrl
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		assets = item.Value().([]tenable.AssetInfo)
+		return assets, nil
+	}
+
+	raw, _, err := trans.PortalCache.Get(portalUrl)
+
+	var assetSearch tenable.AssetSearchResults
+	err = json.Unmarshal([]byte(string(raw)), &assetSearch)
+	if err != nil {
+		trans.Errorf("Couldn't Unmarshal HTTP GET tenable.TenableAssetInfo on search for category:%s value:%s\n%s", tagCategory, tagValue, err)
+		return assets, err
+	}
+
+	for _, a := range assetSearch.Assets {
+		assets = append(assets, a)
+	}
+
+	trans.Memcache.Set(memcacheKey, assets, time.Minute*60)
+
+	return assets, err
+}
+
 func (trans *Translator) getTenableScanList() (sl tenable.ScanList, err error) {
 	trans.Stats.Count(STAT_API_TENABLE_SCANLIST)
 

@@ -301,8 +301,44 @@ func (cli *CommandLineInterface) DrawTags(tags []dao.TagValue) {
 	if len(data) > 0 {
 		table.AppendBulk(data)
 		table.Render()
-	} else {
-		fmt.Println(BOLD + "---> NONE!" + RESET)
+	}
+
+	return
+}
+
+func (cli *CommandLineInterface) DrawSearchedAssetTable(assets []dao.AssetDetail) {
+	table := tablewriter.NewWriter(cli.Output)
+	table.SetHeader([]string{"UUID", "Names", "IPs", "Tags"})
+
+	table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_LEFT})
+	table.SetAutoWrapText(false)
+
+	data := [][]string{}
+
+	for _, a := range assets {
+		var names []string
+		names = append(names, a.FQDN...)
+		if len(names) == 0 {
+			names = append(names, a.HostName...)
+		}
+		if len(names) == 0 {
+			names = append(names, a.NetBIOS...)
+		}
+
+		var ips []string = append(a.IPV4, a.IPV6...)
+
+		var tags []string
+		for _, tag := range a.Tags {
+			tags = append(tags, fmt.Sprintf("%s:%s", tag.CategoryName, tag.Value))
+		}
+
+		outRec := []string{a.UUID, strings.Join(names, ","), strings.Join(ips, ","), strings.Join(tags, ",")}
+		data = append(data, outRec)
+	}
+
+	if len(data) > 0 {
+		table.AppendBulk(data)
+		table.Render()
 	}
 
 	return

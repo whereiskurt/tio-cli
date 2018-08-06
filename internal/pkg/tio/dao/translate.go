@@ -290,24 +290,25 @@ func (trans *Translator) GetScan(scanId string) (scan Scan, err error) {
 	return scan, err
 }
 
+func (trans *Translator) SearchAssetsByTag(tagCategory string, tagValue string) (assets []AssetDetail, err error) {
+
+	tenableAssets, err := trans.searchAssetByTag(tagCategory, tagValue) 
+
+	for _, a := range tenableAssets {
+		asset, err := trans.fromAssetInfo(a)
+		if err != nil {
+			return assets, err
+		}
+		assets = append(assets, asset)
+	}
+
+	return assets, err
+}
+
 func (trans *Translator) GetAsset(assetUUID string) (asset AssetDetail, err error) {
 	tenableAsset, err := trans.getTenableAsset(assetUUID)
 
-	asset.UUID = tenableAsset.UUID
-
-	for _, t := range tenableAsset.Tags {
-		var tag AssetTagDetail
-		tag.UUID = t.UUID
-		tag.CategoryName = t.CategoryName
-		tag.Value = t.Value
-		tag.AddedBy = t.AddedBy
-		tag.AddedAt = t.AddedAt
-		tag.Source = t.Source
-
-		asset.Tags = append(asset.Tags, tag)
-	}
-
-	return asset, err
+	return trans.fromAssetInfo(tenableAsset)
 }
 
 func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorkers int) (err error) {
@@ -736,4 +737,36 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 	}
 
 	return record, nil
+}
+
+func (trans *Translator) fromAssetInfo(tenableAsset tenable.AssetInfo) (asset AssetDetail, err error) {
+
+  asset.UUID = tenableAsset.UUID
+	if asset.UUID  == "" {
+		asset.UUID = tenableAsset.Id
+	}
+ 	asset.TenableUUID = tenableAsset.TenableUUID
+ 	asset.IPV4 = tenableAsset.IPV4
+ 	asset.IPV6 = tenableAsset.IPV6
+ 	asset.FQDN = tenableAsset.FQDN
+ 	asset.MACAddress = tenableAsset.MACAddress
+ 	asset.NetBIOS = tenableAsset.NetBIOS
+ 	asset.SystemType = tenableAsset.SystemType
+ 	asset.HostName = tenableAsset.HostName
+ 	asset.AgentName = tenableAsset.AgentName
+ 	asset.BIOSUUID = tenableAsset.BIOSUUID
+
+	for _, t := range tenableAsset.Tags {
+		var tag AssetTagDetail
+		tag.UUID = t.UUID
+		tag.CategoryName = t.CategoryName
+		tag.Value = t.Value
+		tag.AddedBy = t.AddedBy
+		tag.AddedAt = t.AddedAt
+		tag.Source = t.Source
+
+		asset.Tags = append(asset.Tags, tag)
+	}
+
+	return asset, err
 }
