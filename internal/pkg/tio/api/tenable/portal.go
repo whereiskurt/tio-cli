@@ -59,7 +59,7 @@ func (portal *Portal) TenableXHeader() string {
 
 //NOTE: HTTP DELETE is NOT implemented for deleting scan history_id..
 func (portal *Portal) Delete(endPoint string) error {
-	var url string = portal.BaseUrl + "/" + endPoint
+	var url string = endPoint
 
 	client := &http.Client{Transport: tr}
 	req, err := http.NewRequest("DELETE", url, nil)
@@ -85,7 +85,7 @@ func (portal *Portal) Delete(endPoint string) error {
 	}
 
 	if strings.Contains(string(body), `"error"`) {
-		err := errors.New("Cannot delete from Tenable.IO, feature not yet implemented.")
+		err := errors.New(fmt.Sprintf("Cannot delete from Tenable.IO, feature not yet implemented:%s", string(body)))
 		portal.Log.Errorf("%s", err)
 		return err
 	}

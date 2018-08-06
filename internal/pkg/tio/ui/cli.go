@@ -286,6 +286,24 @@ func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail, hostKeys []s
 }
 
 func (cli *CommandLineInterface) DrawTags(tags []dao.TagValue) {
+	table := tablewriter.NewWriter(cli.Output)
+	table.SetHeader([]string{"UUID", "Name", "Value"})
+	table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
+	table.SetAutoWrapText(false)
+
+	data := [][]string{}
+
+	for _, t := range tags {
+		outRec := []string{t.UUID, t.CategoryName, t.Value}
+		data = append(data, outRec)
+	}
+
+	if len(data) > 0 {
+		table.AppendBulk(data)
+		table.Render()
+	} else {
+		fmt.Println(BOLD + "---> NONE!" + RESET)
+	}
 
 	return
 }

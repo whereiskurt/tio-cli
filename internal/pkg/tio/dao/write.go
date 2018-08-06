@@ -40,6 +40,7 @@ func (trans *Translator) CreateTagValue(categoryUUID string, categoryName string
 
 
 func (trans *Translator) DeleteTagValue(valueUUID string) (err error) {
+	trans.Infof(fmt.Sprintf("Calling DELETE on TagValue UUID: %s", valueUUID))
 	tagEndPoint := fmt.Sprintf("https://cloud.tenable.com/tags/values/%s", valueUUID)
 
 	_, err = trans.PortalCache.Delete(tagEndPoint)
