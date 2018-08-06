@@ -329,7 +329,7 @@ func (cli *CommandLineInterface) DrawSearchedAssetTable(assets []dao.AssetDetail
 
 		var tags []string
 		for _, tag := range a.Tags {
-			tags = append(tags, fmt.Sprintf("%s:%s", tag.CategoryName, tag.Value))
+			tags = append(tags, fmt.Sprintf("'%s:%s'", tag.CategoryName, tag.Value))
 		}
 
 		outRec := []string{a.UUID, strings.Join(names, ","), strings.Join(ips, ","), strings.Join(tags, ",")}

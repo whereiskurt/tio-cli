@@ -27,6 +27,7 @@ type TranslatorCache struct {
 type PortalCache struct {
 	Portal         *tenable.Portal
 	CacheDisabled  bool
+	ClobberCache   bool
 	CacheFolder    string
 	CacheKey       string
 	UseCryptoCache bool
@@ -54,6 +55,7 @@ func NewPortalCache(config *tio.BaseConfig) *PortalCache {
 	p.CacheFolder = config.CacheFolder
 	p.CacheKey = config.CacheKey
 	p.UseCryptoCache = config.UseCryptoCache
+	p.ClobberCache = config.ClobberCache
 	p.CacheDisabled = config.CacheDisabled
 	p.OfflineMode = config.OfflineMode
 
@@ -229,9 +231,12 @@ func (portal *PortalCache) Get(url string) (body []byte, filename string, err er
 		return body, filename, err
 	}
 
-	body, err = portal.PortalCacheGet(filename)
-	if err == nil {
-		return body, filename, err
+
+	if ! portal.ClobberCache {
+		body, err = portal.PortalCacheGet(filename)
+		if err == nil {
+			return body, filename, err
+		}
 	}
 
 	portal.Stats.Count(STAT_CACHE_MISS)

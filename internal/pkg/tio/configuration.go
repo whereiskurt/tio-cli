@@ -22,11 +22,15 @@ type BaseConfig struct {
 	CacheKey           string
 	CacheFolder        string
 	CacheDisabled      bool
+	ClobberCache			 bool
+
 	UseCryptoCache     bool
 	QuietMode          bool
 	OfflineMode        bool
 	NoColourMode       bool
 	DisplayVersionMode bool
+	
+
 	LogFilename        string
 	LogFolder          string
 	LogFileAppend      bool
