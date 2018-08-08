@@ -8,10 +8,10 @@ import (
 )
 
 func (trans *Translator) CreateTagCategory(categoryName string) (categoryUUID string, err error) {
-	var tagEndPoint string = "https://cloud.tenable.com/tags/categories"
+	var url string = "https://cloud.tenable.com/tags/categories"
 
 	postBody := fmt.Sprintf("{\"name\":\"%s\",\"description\":\"\"}", categoryName)
-	raw, err := trans.PortalCache.PostJSON(tagEndPoint, postBody)
+	raw, err := trans.PortalCache.PostJSON(url, postBody)
 
 	var tag tenable.TagCategory
 
@@ -26,33 +26,30 @@ func (trans *Translator) CreateTagCategory(categoryName string) (categoryUUID st
 	return categoryUUID, err
 }
 func (trans *Translator) CreateTagValue(categoryUUID string, categoryName string, categoryValue string) (err error) {
-	var tagEndPoint string = "https://cloud.tenable.com/tags/values"
+	var url string = "https://cloud.tenable.com/tags/values"
 
 	postBody := fmt.Sprintf("{\"category_uuid\":\"%s\",\"category_name\":\"%s\",\"category_description\":\"\",\"value\":\"%s\",\"description\":\"\"}", categoryUUID, categoryName, categoryValue)
 
-	body, err := trans.PortalCache.PostJSON(tagEndPoint, postBody)
+	body, err := trans.PortalCache.PostJSON(url, postBody)
 	if err != nil {
-		trans.Errorf("%s:%s", err, body)
+		trans.Errorf("ERROR: %s\n%s", err, body)
 	}
 
 	return err
 }
 
-
 func (trans *Translator) DeleteTagValue(valueUUID string) (err error) {
+	var url string = fmt.Sprintf("https://cloud.tenable.com/tags/values/%s", valueUUID)
+
 	trans.Infof(fmt.Sprintf("Calling DELETE on TagValue UUID: %s", valueUUID))
-	tagEndPoint := fmt.Sprintf("https://cloud.tenable.com/tags/values/%s", valueUUID)
 
-	_, err = trans.PortalCache.Delete(tagEndPoint)
-
-	//DELETE:https://cloud.tenable.com/tags/categories/39d2705b-9c06-4c1e-9f03-98c1769705de
-	//DELETE:https://cloud.tenable.com/tags/values/25214874-a953-4ef2-851d-f773357ec490
+	_, err = trans.PortalCache.Delete(url)
 
 	return err
 }
 
 func (trans *Translator) TagByAssetUUID(assetUUID string, categoryName string, value string) (err error) {
-	var tagEndPoint string = "https://cloud.tenable.com/tags/assets/assignments"
+	var url string = "https://cloud.tenable.com/tags/assets/assignments"
 
 	tagUUID, err := trans.GetTagUUID(categoryName, value)
 	if err != nil {
@@ -60,8 +57,8 @@ func (trans *Translator) TagByAssetUUID(assetUUID string, categoryName string, v
 		return err
 	}
 
-	postBody := fmt.Sprintf("{\"action\":\"add\",\"assets\":\"%s\",\"tags\":[{\"category_name\":\"%s\",\"value\":\"%s\",\"valueId\":\"%s\"}]}", assetUUID, categoryName, value, tagUUID)
-	body, err := trans.PortalCache.PostJSON(tagEndPoint, postBody)
+	data := fmt.Sprintf("{\"action\":\"add\",\"assets\":\"%s\",\"tags\":[{\"category_name\":\"%s\",\"value\":\"%s\",\"valueId\":\"%s\"}]}", assetUUID, categoryName, value, tagUUID)
+	body, err := trans.PortalCache.PostJSON(url, data)
 	if err != nil {
 		trans.Errorf("%s:%s", err, body)
 	}
@@ -71,7 +68,7 @@ func (trans *Translator) TagByAssetUUID(assetUUID string, categoryName string, v
 }
 
 func (trans *Translator) UntagByAssetUUID(assetUUID string, categoryName string, value string) (err error) {
-	var tagEndPoint string = "https://cloud.tenable.com/tags/assets/assignments"
+	var url string = "https://cloud.tenable.com/tags/assets/assignments"
 
 	tagUUID, err := trans.GetTagUUID(categoryName, value)
 	if err != nil {
@@ -79,8 +76,8 @@ func (trans *Translator) UntagByAssetUUID(assetUUID string, categoryName string,
 		return err
 	}
 
-	postBody := fmt.Sprintf("{\"action\":\"remove\",\"assets\":\"%s\",\"tags\":[{\"uuid\":\"%s\"}]}", assetUUID, tagUUID)
-	_, err = trans.PortalCache.PostJSON(tagEndPoint, postBody)
+	data := fmt.Sprintf("{\"action\":\"remove\",\"assets\":\"%s\",\"tags\":[{\"uuid\":\"%s\"}]}", assetUUID, tagUUID)
+	_, err = trans.PortalCache.PostJSON(url, data)
 	if err != nil {
 		trans.Errorf("%s", err)
 	}
@@ -88,10 +85,3 @@ func (trans *Translator) UntagByAssetUUID(assetUUID string, categoryName string,
 	//TODO: InvalidateAssetCache
 	return err
 }
-
-//https://cloud.tenable.com/workbenches/assets?date_range=0&filter.0.quality=set-has&filter.0.filter=tag.addenda-agents&filter.0.value=testtagkph&filter.search_type=and
-//https://cloud.tenable.com/workbenches/assets?date_range=30&filter.0.quality=set-has&filter.0.filter=tag.addenda-agents&filter.0.value=testtagkph&filter.search_type=and
-
-//DELETE:
-//https://cloud.tenable.com/tags/assets/assignments
-//{"action":"remove","assets":"b1058b41-378d-4bbd-8dfc-e90344cf6070","tags":[{"uuid":"4d6983a8-0956-4e04-8cc7-f625bd2dc912"}]}

@@ -143,15 +143,14 @@ func (trans *Translator) getTenableAsset(assetUUID string) (assetInfo tenable.As
 	return assetInfo, err
 }
 
-//curl 'https://cloud.tenable.com/workbenches/assets?date_range=30&filter.0.quality=set-has&filter.0.filter=tag.location&filter.0.value=test&filter.search_type=and' 
-
+//curl 'https://cloud.tenable.com/workbenches/assets?date_range=30&filter.0.quality=set-has&filter.0.filter=tag.location&filter.0.value=test&filter.search_type=and'
 
 func (trans *Translator) searchAssetByTag(tagCategory string, tagValue string) (assets []tenable.AssetInfo, err error) {
-	
-	var url string = fmt.Sprintf("date_range=0&filter.0.quality=set-has&filter.0.filter=tag.%s&filter.0.value=%s&filter.search_type=and",tagCategory, tagValue)
 
-	var portalUrl = trans.Config.Base.BaseUrl + "/workbenches/assets?" + url 
-	
+	var url string = fmt.Sprintf("date_range=0&filter.0.quality=set-has&filter.0.filter=tag.%s&filter.0.value=%s&filter.search_type=and", tagCategory, tagValue)
+
+	var portalUrl = trans.Config.Base.BaseUrl + "/workbenches/assets?" + url
+
 	var memcacheKey = portalUrl
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {

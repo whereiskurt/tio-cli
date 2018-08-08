@@ -39,7 +39,7 @@ type Translator struct {
 	Memcache        *ccache.Cache
 	ThreadSafe      *sync.Mutex
 
-	Workers          map[string]*sync.WaitGroup
+	Workers map[string]*sync.WaitGroup
 
 	IgnoreScanId     map[string]bool
 	IncludeScanId    map[string]bool
@@ -47,10 +47,10 @@ type Translator struct {
 	IncludePluginId  map[string]bool
 	IgnoreHistoryId  map[string]bool
 	IncludeHistoryId map[string]bool
-	IgnoreAssetId  map[string]bool
-	IncludeAssetId map[string]bool
-	IgnoreHostId  map[string]bool
-	IncludeHostId map[string]bool
+	IgnoreAssetId    map[string]bool
+	IncludeAssetId   map[string]bool
+	IgnoreHostId     map[string]bool
+	IncludeHostId    map[string]bool
 
 	Anonymizer *tenable.Anonymizer
 
@@ -158,8 +158,7 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 	return t
 }
 
-
-func (trans *Translator) GetTagValues() (tags[] TagValue, err error) {
+func (trans *Translator) GetTagValues() (tags []TagValue, err error) {
 
 	var memcacheKey = "translator:GetTagValue:ALL"
 
@@ -207,7 +206,7 @@ func (trans *Translator) GetTagUUID(categoryName string, value string) (tagUUID 
 	return tagUUID, nil
 }
 
-func (trans *Translator) GetTagCategories() (tags[] TagCategory, err error) {
+func (trans *Translator) GetTagCategories() (tags []TagCategory, err error) {
 	trans.Stats.Count(STAT_GETTAGS)
 
 	var memcacheKey = "translator:GetTagCategory:ALL"
@@ -292,7 +291,7 @@ func (trans *Translator) GetScan(scanId string) (scan Scan, err error) {
 
 func (trans *Translator) SearchAssetsByTag(tagCategory string, tagValue string) (assets []AssetDetail, err error) {
 
-	tenableAssets, err := trans.searchAssetByTag(tagCategory, tagValue) 
+	tenableAssets, err := trans.searchAssetByTag(tagCategory, tagValue)
 
 	for _, a := range tenableAssets {
 		asset, err := trans.fromAssetInfo(a)
@@ -549,8 +548,8 @@ func (trans *Translator) fromScanList(scanList tenable.ScanList) []Scan {
 	return scans
 }
 
-func (trans *Translator) fromTagCategories(tenableTags tenable.TagCategories) (tags[] TagCategory, err error) {
-	for _,v := range tenableTags.Categories {
+func (trans *Translator) fromTagCategories(tenableTags tenable.TagCategories) (tags []TagCategory, err error) {
+	for _, v := range tenableTags.Categories {
 		var tag TagCategory
 		tag.ContainerUUID = v.ContainerUUID
 		tag.UUID = v.UUID
@@ -563,17 +562,17 @@ func (trans *Translator) fromTagCategories(tenableTags tenable.TagCategories) (t
 	return tags, err
 }
 
-func (trans *Translator) fromTagValues(tenableTags tenable.TagValues) (tags[] TagValue, err error) {
-	for _,v := range tenableTags.Values {
+func (trans *Translator) fromTagValues(tenableTags tenable.TagValues) (tags []TagValue, err error) {
+	for _, v := range tenableTags.Values {
 		var tag TagValue
-		
+
 		tag.ContainerUUID = v.ContainerUUID
-		tag.UUID = v.UUID            
+		tag.UUID = v.UUID
 		tag.ModelName = v.ModelName
 		tag.Value = v.Value
-		tag.Description = v.Description         
+		tag.Description = v.Description
 		tag.Type = v.Type
-		tag.CategoryUUID = v.CategoryUUID       
+		tag.CategoryUUID = v.CategoryUUID
 		tag.CategoryName = v.CategoryName
 		tag.CategoryDescription = v.CategoryDescription
 
@@ -741,20 +740,20 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 
 func (trans *Translator) fromAssetInfo(tenableAsset tenable.AssetInfo) (asset AssetDetail, err error) {
 
-  asset.UUID = tenableAsset.UUID
-	if asset.UUID  == "" {
+	asset.UUID = tenableAsset.UUID
+	if asset.UUID == "" {
 		asset.UUID = tenableAsset.Id
 	}
- 	asset.TenableUUID = tenableAsset.TenableUUID
- 	asset.IPV4 = tenableAsset.IPV4
- 	asset.IPV6 = tenableAsset.IPV6
- 	asset.FQDN = tenableAsset.FQDN
- 	asset.MACAddress = tenableAsset.MACAddress
- 	asset.NetBIOS = tenableAsset.NetBIOS
- 	asset.SystemType = tenableAsset.SystemType
- 	asset.HostName = tenableAsset.HostName
- 	asset.AgentName = tenableAsset.AgentName
- 	asset.BIOSUUID = tenableAsset.BIOSUUID
+	asset.TenableUUID = tenableAsset.TenableUUID
+	asset.IPV4 = tenableAsset.IPV4
+	asset.IPV6 = tenableAsset.IPV6
+	asset.FQDN = tenableAsset.FQDN
+	asset.MACAddress = tenableAsset.MACAddress
+	asset.NetBIOS = tenableAsset.NetBIOS
+	asset.SystemType = tenableAsset.SystemType
+	asset.HostName = tenableAsset.HostName
+	asset.AgentName = tenableAsset.AgentName
+	asset.BIOSUUID = tenableAsset.BIOSUUID
 
 	for _, t := range tenableAsset.Tags {
 		var tag AssetTagDetail

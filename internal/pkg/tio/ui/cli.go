@@ -320,16 +320,16 @@ func (cli *CommandLineInterface) DrawSearchedAssetTable(assets []dao.AssetDetail
 		names = append(names, a.FQDN...)
 		if len(names) == 0 {
 			names = append(names, a.HostName...)
-		}
-		if len(names) == 0 {
-			names = append(names, a.NetBIOS...)
+			if len(names) == 0 {
+				names = append(names, a.NetBIOS...)
+			}
 		}
 
 		var ips []string = append(a.IPV4, a.IPV6...)
 
 		var tags []string
 		for _, tag := range a.Tags {
-			tags = append(tags, fmt.Sprintf("'%s:%s'", tag.CategoryName, tag.Value))
+			tags = append(tags, fmt.Sprintf("%s:%s", tag.CategoryName, tag.Value))
 		}
 
 		outRec := []string{a.UUID, strings.Join(names, ","), strings.Join(ips, ","), strings.Join(tags, ",")}

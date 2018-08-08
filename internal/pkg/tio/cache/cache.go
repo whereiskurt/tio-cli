@@ -43,7 +43,7 @@ var reCurrentScan = regexp.MustCompile("^.*?/scans/(\\d+)$")
 var reHistoryScan = regexp.MustCompile("^.*?/scans/(\\d+)\\?history_id=(\\d+)$")
 var reHostScan = regexp.MustCompile("^.*?/scans/(\\d+)\\/hosts/(\\d+)\\?history_id=(\\d+)$")
 var reAssetHostMap = regexp.MustCompile("^.*?/private/scans/(\\d+)\\/assets/vulnerabilities?\\?history_id=(\\d+)$")
-var reAssetInfo = regexp.MustCompile("^.*?/workbenches/assets/(.+)/info$") //matches a GUID!
+var reAssetInfo = regexp.MustCompile("^.*?/workbenches/assets/(.+)/info$")                                           //matches a GUID!
 var reAssetSearch = regexp.MustCompile("^.*?\\/workbenches\\/assets\\?.+?tag\\.(.+?)\\&filter\\.0\\.value=(.+?)\\&") //matches a GUID!
 
 func NewPortalCache(config *tio.BaseConfig) *PortalCache {
@@ -132,7 +132,7 @@ func (portal *PortalCache) PortalCacheFilename(url string) (filename string, err
 	} else if matched := reAssetSearch.FindStringSubmatch(url); matched != nil {
 		category := matched[1]
 		value := matched[2]
-		folder = "tenable/search/asset/" + category + "/" + value +"/"
+		folder = "tenable/search/asset/" + category + "/" + value + "/"
 
 	} else if matched := reHostScan.FindStringSubmatch(url); matched != nil {
 		scan := matched[1]
@@ -206,7 +206,7 @@ func (portal *PortalCache) PortalCacheGet(cacheFilename string) ([]byte, error) 
 
 func (portal *PortalCache) GetNoCache(url string) (body []byte, err error) {
 	body, err = portal.Portal.Get(url)
-	return body,  err
+	return body, err
 }
 
 func (portal *PortalCache) PostJSON(endPoint string, postData string) (body []byte, err error) {
@@ -231,8 +231,7 @@ func (portal *PortalCache) Get(url string) (body []byte, filename string, err er
 		return body, filename, err
 	}
 
-
-	if ! portal.ClobberCache {
+	if !portal.ClobberCache {
 		body, err = portal.PortalCacheGet(filename)
 		if err == nil {
 			return body, filename, err

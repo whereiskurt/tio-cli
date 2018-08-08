@@ -216,10 +216,9 @@ type AssetHost struct {
 	}
 }
 
-
 type AssetSearchResults struct {
-	Assets[] AssetInfo
-	Total json.Number `json:"total"`
+	Assets []AssetInfo
+	Total  json.Number `json:"total"`
 }
 
 type Asset struct {

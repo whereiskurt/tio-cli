@@ -109,15 +109,15 @@ type PluginDetailSummary struct {
 }
 
 type PluginDetail struct {
-	RiskFactor            string 
-	FunctionName          string 
-	PluginPublicationDate string 
-	PatchPublicationDate  string 
+	RiskFactor            string
+	FunctionName          string
+	PluginPublicationDate string
+	PatchPublicationDate  string
 	Attribute             map[string]PluginDetailAttribute
 }
 type PluginDetailAttribute struct {
-	Name  string 
-	Value string 
+	Name  string
+	Value string
 }
 
 ////// Computed
@@ -126,27 +126,27 @@ type HostPluginExposure struct {
 	Plugin                  PluginDetailSummary
 	FirstScan               ScanHistoryDetail
 	LastScan                ScanHistoryDetail
-	DaysSinceFirstDetection string 
-	DaysSinceLastDetection  string 
-	VulnerableStatus        string 
-	DurationStatus          string 
-	IsVulnerable            bool   
-	IsPatched               bool   
+	DaysSinceFirstDetection string
+	DaysSinceLastDetection  string
+	VulnerableStatus        string
+	DurationStatus          string
+	IsVulnerable            bool
+	IsPatched               bool
 }
 
 type AssetDetail struct {
-	UUID string
-	Tags []AssetTagDetail
-	TenableUUID []string 
-	IPV4        []string 
-	IPV6        []string 
-	FQDN        []string 
-	MACAddress  []string 
-	NetBIOS     []string 
-	SystemType  []string 
-	HostName    []string 
-	AgentName   []string 
-	BIOSUUID    []string 
+	UUID        string
+	Tags        []AssetTagDetail
+	TenableUUID []string
+	IPV4        []string
+	IPV6        []string
+	FQDN        []string
+	MACAddress  []string
+	NetBIOS     []string
+	SystemType  []string
+	HostName    []string
+	AgentName   []string
+	BIOSUUID    []string
 }
 
 type AssetTagDetail struct {
@@ -159,7 +159,7 @@ type AssetTagDetail struct {
 }
 
 type TagValue struct {
-	ContainerUUID       string 
+	ContainerUUID       string
 	UUID                string
 	ModelName           string
 	Value               string
@@ -171,9 +171,9 @@ type TagValue struct {
 }
 
 type TagCategory struct {
-	ContainerUUID string 
-	UUID          string 
-	ModelName     string 
-	Name          string 
-	Description   string 
+	ContainerUUID string
+	UUID          string
+	ModelName     string
+	Name          string
+	Description   string
 }
