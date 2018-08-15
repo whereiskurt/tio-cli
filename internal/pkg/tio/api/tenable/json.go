@@ -156,10 +156,7 @@ type PluginFamilies struct {
 type FamilyPlugins struct {
 	Id      json.Number `json:"id"`
 	Name    string      `json:"name"`
-	Plugins []struct {
-		Id   json.Number `json:"id"`
-		Name string      `json:"name"`
-	}
+	Plugins []Plugin
 }
 
 //https://cloud.tenable.com/api#/resources/plugins/plugin/{pluginId}

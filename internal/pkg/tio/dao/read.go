@@ -43,7 +43,7 @@ func (trans *Translator) getTenableAllPlugins() (plugins []tenable.Plugin, err e
 	var pluginFamilies tenable.PluginFamilies
 	err = json.Unmarshal([]byte(string(rawFamilies)), &pluginFamilies)
 	if err != nil {
-		trans.Errorf("ERROR: %s", err)
+		trans.Errorf("ERROR: Couldn't unmarshal PluginFamilies %s", err)
 		return plugins, err
 	}
 
@@ -58,7 +58,7 @@ func (trans *Translator) getTenableAllPlugins() (plugins []tenable.Plugin, err e
 		var family tenable.FamilyPlugins
 		err = json.Unmarshal([]byte(string(rawFamily)), &family)
 		if err != nil {
-			trans.Errorf("ERROR: %s", err)
+			trans.Errorf("ERROR: Couldn't unmarshal FamilyPlugins %s", err)
 			return plugins, err
 		}
 
