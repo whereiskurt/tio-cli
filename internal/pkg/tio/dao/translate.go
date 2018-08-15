@@ -158,6 +158,34 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 	return t
 }
 
+func (trans *Translator) GetAllPlugins() (plugins []PluginDetailSummary, err error) {
+	var memcacheKey = "translator:GetAllPlugins:ALL"
+
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		plugins = item.Value().([]PluginDetailSummary)
+		return plugins, err
+	}
+
+	tenablePlugins, err := trans.getTenableAllPlugins()
+	if err != nil {
+		trans.Errorf("ERROR: %s", err)
+		return plugins, err
+	}
+
+	plugins, err = trans.fromPlugins(tenablePlugins)
+
+	trans.Memcache.Set(memcacheKey, plugins, time.Minute*60)
+
+	return plugins, err
+}
+
+func (trans *Translator) fromPlugins(tenablePlugins []tenable.Plugin) (plugins []PluginDetailSummary, err error) {
+
+	return plugins, err
+
+}
+
 func (trans *Translator) GetTagValues() (tags []TagValue, err error) {
 
 	var memcacheKey = "translator:GetTagValue:ALL"
@@ -174,6 +202,9 @@ func (trans *Translator) GetTagValues() (tags []TagValue, err error) {
 	}
 
 	tags, err = trans.fromTagValues(tentableValues)
+	if err != nil {
+		return tags, err
+	}
 
 	trans.Memcache.Set(memcacheKey, tags, time.Minute*60)
 
@@ -481,6 +512,8 @@ func (trans *Translator) GetScannerTZ(scan Scan) (scannerTZ string) {
 	scannerTZ = trans.Config.Base.DefaultTimezone
 	return scannerTZ
 }
+
+
 
 func (trans *Translator) fromHostDetailSummary(hsd HostScanSummary, hd tenable.HostDetail) (host HostScanDetail, err error) {
 

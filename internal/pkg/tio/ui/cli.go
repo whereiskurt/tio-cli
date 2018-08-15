@@ -285,6 +285,28 @@ func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail, hostKeys []s
 	}
 }
 
+func (cli *CommandLineInterface) DrawPlugins(plugins []dao.PluginDetailSummary) {
+
+	table := tablewriter.NewWriter(cli.Output)
+	table.SetHeader([]string{"PluginId", "Name"})
+	table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER})
+	table.SetAutoWrapText(false)
+
+	data := [][]string{}
+
+	for _, p := range plugins {
+		outRec := []string{p.PluginId, p.Name}
+		data = append(data, outRec)
+	}
+
+	if len(data) > 0 {
+		table.AppendBulk(data)
+		table.Render()
+	}
+
+	return
+}
+
 func (cli *CommandLineInterface) DrawTags(tags []dao.TagValue) {
 	table := tablewriter.NewWriter(cli.Output)
 	table.SetHeader([]string{"UUID", "Name", "Value"})

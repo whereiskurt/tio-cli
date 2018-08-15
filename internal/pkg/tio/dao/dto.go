@@ -41,28 +41,28 @@ type ScanHistory struct {
 type ScanHistoryDetail struct {
 	Scan Scan
 
-	HistoryId           string `json:"history_id"`
-	HistoryIndex        string `json:"history_index"`
-	Status              string `json:"status"`
-	CreationDate        string `json:'create_date'`
-	LastModifiedDate    string `json:'last_modified_date'`
-	PluginCriticalCount string `json:"plugin_critical_count"`
-	PluginHighCount     string `json:"plugin_high_count"`
-	PluginMediumCount   string `json:"plugin_medium_count"`
-	PluginLowCount      string `json:"plugin_low_count"`
-	PluginTotalCount    string `json:"plugin_total_count"`
+	HistoryId           string
+	HistoryIndex        string
+	Status              string
+	CreationDate        string
+	LastModifiedDate    string
+	PluginCriticalCount string
+	PluginHighCount     string
+	PluginMediumCount   string
+	PluginLowCount      string
+	PluginTotalCount    string
 
-	ScanStart     string `json:"scan_start"`
-	ScanStartUnix string `json:"scan_start_unix"`
-	ScanEnd       string `json:"scan_end"`
-	ScanEndUnix   string `json:"scan_end_unix"`
-	ScanDuration  string `json:"scan_duration"`
+	ScanStart     string
+	ScanStartUnix string
+	ScanEnd       string
+	ScanEndUnix   string
+	ScanDuration  string
 
-	HostCount  string                         `json:"hostCount"`
-	Host       map[string]HostScanSummary     `json:"hostMap"`
-	HostPlugin map[string]PluginDetailSummary `json:"hostPluginMap"`
+	HostCount  string
+	Host       map[string]HostScanSummary
+	HostPlugin map[string]PluginDetailSummary
 
-	HostAssetMap map[string]string `json:"hostAssetMap"`
+	HostAssetMap map[string]string
 }
 
 //TODO: Replace with building and ARRYA and using encoding/csv
@@ -74,37 +74,37 @@ func (s *ScanHistoryDetail) CSVHeader() string {
 }
 
 type HostScanSummary struct {
-	HostId              string `json:"hostId"`
+	HostId              string
 	Asset               AssetDetail
 	ScanDetail          ScanHistoryDetail
 	HostDetail          HostScanDetail
-	PluginCriticalCount string `json:"pluginCriticalCount"`
-	PluginHighCount     string `json:"pluginHighCount"`
-	PluginMediumCount   string `json:"pluginMediumCount"`
-	PluginLowCount      string `json:"pluginLowCount"`
-	PluginTotalCount    string `json:"pluginTotalCount"`
+	PluginCriticalCount string
+	PluginHighCount     string
+	PluginMediumCount   string
+	PluginLowCount      string
+	PluginTotalCount    string
 }
 
 type HostScanDetail struct {
-	FQDN             string                         `json:"hostFQDN"`
-	IP               string                         `json:"hostIP"`
-	NetBIOS          string                         `json:"hostNetBIOS"` //Windows only, but prevelant.
-	MACAddresses     string                         `json:"hostMACAddresses"`
-	OperatingSystems string                         `json:"hostOperatingSystems"`
-	ScanStart        string                         `json:"hostScanStart"`
-	ScanStartUnix    string                         `json:"hostScanStartUnix"`
-	ScanEnd          string                         `json:"hostScanEnd"`
-	ScanEndUnix      string                         `json:"hostScanEndUnix"`
-	ScanDuration     string                         `json:"hostScanDuration"`
-	Plugin           map[string]PluginDetailSummary `json:"hostPluginMap"`
+	IP               string
+	FQDN             string
+	NetBIOS          string
+	MACAddresses     string
+	OperatingSystems string
+	ScanStart        string
+	ScanStartUnix    string
+	ScanEnd          string
+	ScanEndUnix      string
+	ScanDuration     string
+	Plugin           map[string]PluginDetailSummary
 }
 
 type PluginDetailSummary struct {
-	PluginId string `"json:pluginId"`
-	Name     string `"json:pluginName"`
-	Family   string `"json:pluginFamily"`
-	Count    string `"json:pluginCount"`
-	Severity string `"json:severityTypeId"`
+	PluginId string
+	Name     string
+	Family   string
+	Count    string
+	Severity string
 	Detail   PluginDetail
 }
 

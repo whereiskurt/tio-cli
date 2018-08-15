@@ -39,6 +39,9 @@ type PortalCache struct {
 
 var reAllScans = regexp.MustCompile("^.*?/scans$")
 var rePlugin = regexp.MustCompile("^.*?/plugins/plugin/(\\d+)$")
+var rePluginFamilies = regexp.MustCompile("^.*?/plugins/families$")
+var reFamilyPlugins = regexp.MustCompile("^.*?/plugins/families/(\\d+)$")
+
 var reCurrentScan = regexp.MustCompile("^.*?/scans/(\\d+)$")
 var reHistoryScan = regexp.MustCompile("^.*?/scans/(\\d+)\\?history_id=(\\d+)$")
 var reHostScan = regexp.MustCompile("^.*?/scans/(\\d+)\\/hosts/(\\d+)\\?history_id=(\\d+)$")
@@ -81,6 +84,13 @@ func (portal *PortalCache) PortalCacheFilename(url string) (filename string, err
 
 	if matched := reAllScans.FindStringSubmatch(url); matched != nil {
 		folder = "tenable/scans/"
+
+	} else if matched := rePluginFamilies.FindStringSubmatch(url); matched != nil {
+		folder = "tenable/plugins/families/" 
+
+	} else if matched := reFamilyPlugins.FindStringSubmatch(url); matched != nil {
+		familyId := matched[1]
+		folder = "tenable/plugins/families/" + familyId + "/"
 
 	} else if matched := rePlugin.FindStringSubmatch(url); matched != nil {
 		plugin := matched[1]

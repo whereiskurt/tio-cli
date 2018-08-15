@@ -145,6 +145,23 @@ type HostDetailVulnerabilities struct {
 	Severity     json.Number `json:"severity"`
 }
 
+type PluginFamilies struct {
+	Families []struct {
+		Id    json.Number `json:"id"`
+		Name  string      `json:"name"`
+		Count json.Number `json:"count"`
+	}
+}
+
+type FamilyPlugins struct {
+	Id      json.Number `json:"id"`
+	Name    string      `json:"name"`
+	Plugins []struct {
+		Id   json.Number `json:"id"`
+		Name string      `json:"name"`
+	}
+}
+
 //https://cloud.tenable.com/api#/resources/plugins/plugin/{pluginId}
 //NOTE: A cache record would basically never goes stale.
 type Plugin struct {
@@ -155,12 +172,6 @@ type Plugin struct {
 		Name  string `json:"attribute_name"`
 		Value string `json:"attribute_value"`
 	}
-	RiskFactor                 string
-	FunctionName               string
-	PluginPublicationDate      string
-	DaysSincePluginPublication string
-	PatchPublicationDate       string
-	DaysSincePatchPublication  string
 }
 
 type TagCategories struct {

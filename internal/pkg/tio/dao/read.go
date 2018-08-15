@@ -34,6 +34,43 @@ const (
 	STAT_API_TENABLE_HISTORYID_MEMCACHE tio.StatType = "tio.dao.TenableHistoryId.Memcached"
 )
 
+func (trans *Translator) getTenableAllPlugins() (plugins []tenable.Plugin, err error) {
+	var allFamiliesUrl = trans.Config.Base.BaseUrl + "/plugins/families"
+
+	rawFamilies, _, err := trans.PortalCache.Get(allFamiliesUrl)
+	trans.Infof("Raw: %s", string(rawFamilies))
+
+	var pluginFamilies tenable.PluginFamilies
+	err = json.Unmarshal([]byte(string(rawFamilies)), &pluginFamilies)
+	if err != nil {
+		trans.Errorf("ERROR: %s", err)
+		return plugins, err
+	}
+
+	for _, f := range pluginFamilies.Families {
+
+		var familyUrl = allFamiliesUrl + "/" + string(f.Id)
+		rawFamily, _, err := trans.PortalCache.Get(familyUrl)
+		if err != nil {
+			return plugins, err
+		}
+
+		var family tenable.FamilyPlugins
+		err = json.Unmarshal([]byte(string(rawFamily)), &family)
+		if err != nil {
+			trans.Errorf("ERROR: %s", err)
+			return plugins, err
+		}
+
+		for _, p := range family.Plugins {
+			fmt.Println(fmt.Sprintf("%s, %s, %s", f.Name, string(p.Id),  p.Name))
+		}
+
+	}
+
+	return plugins, err
+}
+
 func (trans *Translator) getTenableTagCategories() (tags tenable.TagCategories, err error) {
 	trans.Stats.Count(STAT_API_TENABLE_TAGSCATEGORY)
 	var portalUrl = trans.Config.Base.BaseUrl + "/tags/categories"

@@ -61,38 +61,43 @@ type BaseConfig struct {
 // }
 
 type VulnerabilityConfig struct {
-	Base     *BaseConfig
-	Previous string
-	Depth    string
+	Base     								*BaseConfig
+	Previous 								string
+	Depth    								string
 
-	Create      bool
-	Delete      bool
-	Tag         bool
-	Untag       bool
-	TagCategory string
-	TagValue    string
-	SearchView  bool
+	Create      						bool
+	Delete      						bool
+	Tag         						bool
+	Untag       						bool
+	TagCategory 						string
+	TagValue    						string
+	SearchView  						bool
 
-	DetailView bool
-	ListView   bool
+	DetailView 							bool
+	ListView   							bool
 
-	ScanId          string
-	IgnoreScanId    string
-	HistoryId       string
-	IgnoreHistoryId string
+	ScanId          				string
+	IgnoreScanId    				string
+	HistoryId       				string
+	IgnoreHistoryId 				string
 
-	HostId          string
-	IgnoreHostId    string
-	AssetUUID       string
-	IgnoreAssetUUID string
-	PluginId        string
-	IgnorePluginId  string
+	HostId          				string
+	IgnoreHostId    				string
+	AssetUUID       				string
+	IgnoreAssetUUID 				string
 
-	ShouldAnon bool
-	SyncMode   bool
-	PurgeMode  bool
+	PluginId        				string
+	IgnorePluginId  				string
+	PluginName			  			string	
+	IgnorePluginName				string //Not implemented!
+	PluginFamilyName			  string  
+	IgnorePluginFamilyName	string //Not implemented!
 
-	CacheFolderWrite string
+	ShouldAnon 							bool
+	SyncMode   							bool
+	PurgeMode  							bool
+
+	CacheFolderWrite			 	string
 }
 
 func NewBaseConfig() *BaseConfig {
