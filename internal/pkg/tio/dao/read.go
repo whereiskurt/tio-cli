@@ -34,11 +34,26 @@ const (
 	STAT_API_TENABLE_HISTORYID_MEMCACHE tio.StatType = "tio.dao.TenableHistoryId.Memcached"
 )
 
-func (trans *Translator) getTenableAllPlugins() (plugins []tenable.Plugin, err error) {
+func (trans *Translator) getTenablePluginDetail(pluginId string) (detail tenable.Plugin, err error) {
+	var detailURL = trans.Config.Base.BaseUrl + "/plugins/plugin/" + pluginId
+
+	rawPlugin, _, err := trans.PortalCache.Get(detailURL)
+	if err != nil {
+		return detail,err
+	}
+
+	err = json.Unmarshal([]byte(string(rawPlugin)), &detail)	
+	if err != nil {
+		return detail,err
+	}
+
+	return detail, err
+}
+
+func (trans *Translator) getTenablePluginsList() (plugins []tenable.Plugin, err error) {
 	var allFamiliesUrl = trans.Config.Base.BaseUrl + "/plugins/families"
 
 	rawFamilies, _, err := trans.PortalCache.Get(allFamiliesUrl)
-	trans.Infof("Raw: %s", string(rawFamilies))
 
 	var pluginFamilies tenable.PluginFamilies
 	err = json.Unmarshal([]byte(string(rawFamilies)), &pluginFamilies)
@@ -49,7 +64,7 @@ func (trans *Translator) getTenableAllPlugins() (plugins []tenable.Plugin, err e
 
 	for _, f := range pluginFamilies.Families {
 
-		var familyUrl = allFamiliesUrl + "/" + string(f.Id)
+		var familyUrl = trans.Config.Base.BaseUrl + "/plugins/families/" + string(f.Id)
 		rawFamily, _, err := trans.PortalCache.Get(familyUrl)
 		if err != nil {
 			return plugins, err
@@ -63,7 +78,11 @@ func (trans *Translator) getTenableAllPlugins() (plugins []tenable.Plugin, err e
 		}
 
 		for _, p := range family.Plugins {
-			fmt.Println(fmt.Sprintf("%s, %s, %s", f.Name, string(p.Id),  p.Name))
+			var rec tenable.Plugin
+			rec.Id = p.Id
+			rec.FamilyName = f.Name
+			rec.Name = p.Name
+			plugins = append(plugins, rec)
 		}
 
 	}
@@ -114,7 +133,7 @@ func (trans *Translator) getTenableTagValues() (tags tenable.TagValues, err erro
 
 	return tags, err
 }
-func (trans *Translator) getTenableAssetHostMap(scanId string, historyId string) (assets tenable.AssetHost, err error) {
+func (trans *Translator) getTenableScanAssetHostMap(scanId string, historyId string) (assets tenable.AssetHost, err error) {
 	trans.Stats.Count(STAT_API_TENABLE_ASSETHOST)
 
 	var portalUrl = trans.Config.Base.BaseUrl + "/private/scans/" + scanId + "/assets/vulnerabilities?history_id=" + historyId

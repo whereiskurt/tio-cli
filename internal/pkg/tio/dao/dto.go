@@ -100,16 +100,16 @@ type HostScanDetail struct {
 }
 
 type PluginDetailSummary struct {
-	PluginId string
-	Name     string
-	Family   string
-	Count    string
-	Severity string
-	Detail   PluginDetail
+	PluginId 				 string
+	Name     				 string
+	FamilyName			 string
+	FamilyId 				 string
+	Count    				 string
+	Severity 				 string
+	Detail   				 PluginDetail
 }
 
 type PluginDetail struct {
-	RiskFactor            string
 	FunctionName          string
 	PluginPublicationDate string
 	PatchPublicationDate  string

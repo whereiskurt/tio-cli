@@ -73,6 +73,10 @@ type VulnerabilityConfig struct {
 	TagValue    						string
 	SearchView  						bool
 
+	Regex       						string
+	RegexFields 						string
+
+	AllView	  							bool
 	DetailView 							bool
 	ListView   							bool
 
@@ -96,6 +100,8 @@ type VulnerabilityConfig struct {
 	ShouldAnon 							bool
 	SyncMode   							bool
 	PurgeMode  							bool
+
+
 
 	CacheFolderWrite			 	string
 }

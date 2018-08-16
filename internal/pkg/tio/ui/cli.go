@@ -285,17 +285,58 @@ func (cli *CommandLineInterface) DrawHosts(r dao.ScanHistoryDetail, hostKeys []s
 	}
 }
 
-func (cli *CommandLineInterface) DrawPlugins(plugins []dao.PluginDetailSummary) {
+func (cli *CommandLineInterface) DrawPluginDetail(plugins []dao.PluginDetailSummary) {
+	var MAX_NAME int = 65
+	var MAX_FAMILYNAME int = 30
 
 	table := tablewriter.NewWriter(cli.Output)
-	table.SetHeader([]string{"PluginId", "Name"})
-	table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER})
+	table.SetHeader([]string{"Family", "PluginId", "Name", "Severity", "Count"})
+	table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_LEFT})
 	table.SetAutoWrapText(false)
 
 	data := [][]string{}
 
 	for _, p := range plugins {
-		outRec := []string{p.PluginId, p.Name}
+
+		if len(p.Name) > MAX_NAME {
+			p.Name = p.Name[0:MAX_NAME]
+		}
+		if len(p.FamilyName) > MAX_FAMILYNAME {
+			p.FamilyName = p.FamilyName[0:MAX_FAMILYNAME]
+		}
+
+		outRec := []string{p.FamilyName, p.PluginId, p.Name, p.Severity, p.Count}
+		data = append(data, outRec)
+	}
+
+	if len(data) > 0 {
+		table.AppendBulk(data)
+		table.Render()
+	}
+
+	return
+}
+func (cli *CommandLineInterface) DrawPluginList(plugins []dao.PluginDetailSummary) {
+	var MAX_NAME int = 65
+	var MAX_FAMILYNAME int = 30
+
+	table := tablewriter.NewWriter(cli.Output)
+	table.SetHeader([]string{"Family", "PluginId", "Name"})
+	table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_LEFT})
+	table.SetAutoWrapText(false)
+
+	data := [][]string{}
+
+	for _, p := range plugins {
+
+		if len(p.Name) > MAX_NAME {
+			p.Name = p.Name[0:MAX_NAME]
+		}
+		if len(p.FamilyName) > MAX_FAMILYNAME {
+			p.FamilyName = p.FamilyName[0:MAX_FAMILYNAME]
+		}
+
+		outRec := []string{p.FamilyName, p.PluginId, p.Name}
 		data = append(data, outRec)
 	}
 
@@ -383,7 +424,7 @@ func (cli *CommandLineInterface) DrawScanVulnTable(rec dao.ScanHistoryDetail, vu
 		if len(p.Name) > 45 {
 			p.Name = p.Name[:45]
 		}
-		outRec := []string{p.PluginId, p.Name, p.Family, sevWord[sev], p.Count}
+		outRec := []string{p.PluginId, p.Name, p.FamilyName, sevWord[sev], p.Count}
 		data = append(data, outRec)
 	}
 

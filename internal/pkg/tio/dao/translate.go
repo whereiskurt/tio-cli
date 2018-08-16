@@ -158,7 +158,8 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 	return t
 }
 
-func (trans *Translator) GetAllPlugins() (plugins []PluginDetailSummary, err error) {
+
+func (trans *Translator) GetPluginList() (plugins []PluginDetailSummary, err error) {
 	var memcacheKey = "translator:GetAllPlugins:ALL"
 
 	item := trans.Memcache.Get(memcacheKey)
@@ -167,23 +168,84 @@ func (trans *Translator) GetAllPlugins() (plugins []PluginDetailSummary, err err
 		return plugins, err
 	}
 
-	tenablePlugins, err := trans.getTenableAllPlugins()
+	tenablePlugins, err := trans.getTenablePluginsList()
 	if err != nil {
 		trans.Errorf("ERROR: %s", err)
 		return plugins, err
 	}
 
-	plugins, err = trans.fromPlugins(tenablePlugins)
+	plugins, err = trans.fromPluginsList(tenablePlugins)
 
 	trans.Memcache.Set(memcacheKey, plugins, time.Minute*60)
 
 	return plugins, err
 }
 
-func (trans *Translator) fromPlugins(tenablePlugins []tenable.Plugin) (plugins []PluginDetailSummary, err error) {
+func (trans *Translator) GetPluginDetail(plugin PluginDetailSummary) (detail PluginDetailSummary, err error) {
+	var memcacheKey = "translator:GetAllPlugin:" + plugin.PluginId
+
+	item := trans.Memcache.Get(memcacheKey)
+	if item != nil {
+		detail = item.Value().(PluginDetailSummary)
+		return detail, err
+	}
+
+	tenableDetail, err := trans.getTenablePluginDetail(string(plugin.PluginId))
+
+	detail, err = trans.fromPlugin(tenableDetail)
+
+	trans.Memcache.Set(memcacheKey, detail, time.Minute*60)
+
+	return detail, err
+}
+
+func (trans *Translator) fromPlugin(p tenable.Plugin) (plugin PluginDetailSummary, err error) {
+
+	plugin.PluginId = string(p.Id)
+	plugin.Name  = strings.TrimSpace(p.Name)
+	plugin.FamilyName = strings.TrimSpace(p.FamilyName)
+
+	plugin.Count = "1"
+
+	plugin.Detail.Attribute = make(map[string]PluginDetailAttribute)
+
+	for _,v := range p.Attributes {
+		var a PluginDetailAttribute
+		a.Name = v.Name
+		a.Value = v.Value
+
+		plugin.Detail.Attribute[v.Name] = a
+
+		if a.Name == "risk_factor" {
+			plugin.Severity = a.Value
+		} else if a.Name == "fname" {
+			plugin.Detail.FunctionName = a.Value
+		} else if a.Name == "patch_publication_date" {
+			plugin.Detail.PatchPublicationDate = a.Value
+		} else if a.Name == "plugin_publication_date" {
+			plugin.Detail.PluginPublicationDate = a.Value
+		}
+
+	}
+
+	//MAP over attributes
+
+	return plugin, err 
+}
+
+func (trans *Translator) fromPluginsList(tenablePlugins []tenable.Plugin) (plugins []PluginDetailSummary, err error) {
+
+	for _, p := range tenablePlugins {
+		var rec PluginDetailSummary
+
+		rec.PluginId = string(p.Id)
+		rec.Name  = strings.TrimSpace(p.Name)
+		rec.FamilyName = strings.TrimSpace(p.FamilyName)
+
+		plugins = append(plugins, rec)
+	}
 
 	return plugins, err
-
 }
 
 func (trans *Translator) GetTagValues() (tags []TagValue, err error) {
@@ -541,7 +603,7 @@ func (trans *Translator) fromHostDetailSummary(hsd HostScanSummary, hd tenable.H
 		var p PluginDetailSummary
 		p.PluginId = string(v.PluginId)
 		p.Name = v.PluginName
-		p.Family = v.PluginFamily
+		p.FamilyName = v.PluginFamily
 		p.Count = string(v.Count)
 		p.Severity = string(v.Severity)
 		host.Plugin[p.PluginId] = p
@@ -664,7 +726,7 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 		}
 
 		//AssetId lookup and mapping
-		amap, err := trans.getTenableAssetHostMap(scanId, historyId)
+		amap, err := trans.getTenableScanAssetHostMap(scanId, historyId)
 		if err != nil {
 			trans.Errorf("Cannot map hostid to assetids: %s", err)
 			return record, err
@@ -754,7 +816,7 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 
 			retPlugin.PluginId = string(vuln.PluginId)
 			retPlugin.Name = vuln.Name
-			retPlugin.Family = vuln.Family
+			retPlugin.FamilyName = vuln.Family
 			retPlugin.Count = string(vuln.Count)
 			retPlugin.Severity = string(vuln.Severity)
 
