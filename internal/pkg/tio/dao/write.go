@@ -11,7 +11,7 @@ func (trans *Translator) CreateTagCategory(categoryName string) (categoryUUID st
 	var url string = "https://cloud.tenable.com/tags/categories"
 
 	postBody := fmt.Sprintf("{\"name\":\"%s\",\"description\":\"\"}", categoryName)
-	raw, err := trans.PortalCache.PostJSON(url, postBody)
+	raw, err := trans.PortalCache.Portal.POST(url, postBody, "application/json")
 
 	var tag tenable.TagCategory
 
@@ -30,7 +30,7 @@ func (trans *Translator) CreateTagValue(categoryUUID string, categoryName string
 
 	postBody := fmt.Sprintf("{\"category_uuid\":\"%s\",\"category_name\":\"%s\",\"category_description\":\"\",\"value\":\"%s\",\"description\":\"\"}", categoryUUID, categoryName, categoryValue)
 
-	body, err := trans.PortalCache.PostJSON(url, postBody)
+	body, err := trans.PortalCache.Portal.POST(url, postBody,"application/json")
 	if err != nil {
 		trans.Errorf("ERROR: %s\n%s", err, body)
 	}
@@ -43,7 +43,7 @@ func (trans *Translator) DeleteTagValue(valueUUID string) (err error) {
 
 	trans.Infof(fmt.Sprintf("Calling DELETE on TagValue UUID: %s", valueUUID))
 
-	_, err = trans.PortalCache.Delete(url)
+	err = trans.PortalCache.Portal.DELETE(url)
 
 	return err
 }
@@ -58,7 +58,7 @@ func (trans *Translator) TagByAssetUUID(assetUUID string, categoryName string, v
 	}
 
 	data := fmt.Sprintf("{\"action\":\"add\",\"assets\":\"%s\",\"tags\":[{\"category_name\":\"%s\",\"value\":\"%s\",\"valueId\":\"%s\"}]}", assetUUID, categoryName, value, tagUUID)
-	body, err := trans.PortalCache.PostJSON(url, data)
+	body, err := trans.PortalCache.Portal.POST(url, data, "application/json")
 	if err != nil {
 		trans.Errorf("%s:%s", err, body)
 	}
@@ -77,7 +77,7 @@ func (trans *Translator) UntagByAssetUUID(assetUUID string, categoryName string,
 	}
 
 	data := fmt.Sprintf("{\"action\":\"remove\",\"assets\":\"%s\",\"tags\":[{\"uuid\":\"%s\"}]}", assetUUID, tagUUID)
-	_, err = trans.PortalCache.PostJSON(url, data)
+	_, err = trans.PortalCache.Portal.POST(url, data, "application/json")
 	if err != nil {
 		trans.Errorf("%s", err)
 	}

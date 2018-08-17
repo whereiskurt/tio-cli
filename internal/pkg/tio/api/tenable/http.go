@@ -58,7 +58,7 @@ func (portal *Portal) TenableXHeader() string {
 }
 
 //NOTE: HTTP DELETE is NOT implemented for deleting scan history_id..
-func (portal *Portal) Delete(endPoint string) error {
+func (portal *Portal) DELETE(endPoint string) (err error) {
 	var url string = endPoint
 
 	client := &http.Client{Transport: tr}
@@ -93,7 +93,7 @@ func (portal *Portal) Delete(endPoint string) error {
 	return nil
 }
 
-func (portal *Portal) Post(endPoint string, postData string, postType string) (body []byte, err error) {
+func (portal *Portal) POST(endPoint string, postData string, postType string) (body []byte, err error) {
 	var reqStartTime = time.Now() //Start the clock!
 
 	client := &http.Client{Transport: tr}
@@ -129,7 +129,7 @@ func (portal *Portal) Post(endPoint string, postData string, postType string) (b
 	return body, nil
 }
 
-func (portal *Portal) Get(endPoint string) ([]byte, error) {
+func (portal *Portal) GET(endPoint string) ([]byte, error) {
 	var reqStartTime = time.Now() //Start the clock!
 
 	client := &http.Client{Transport: tr}
@@ -180,3 +180,4 @@ func (portal *Portal) Get(endPoint string) ([]byte, error) {
 
 	return body, nil
 }
+

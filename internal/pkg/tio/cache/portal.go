@@ -8,7 +8,7 @@ import (
 	"os"
 	"path"
 	"regexp"
-
+	"github.com/karlseguin/ccache"
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio"
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio/api/tenable"
 	"github.com/whereiskurt/tio-cli/internal/pkg/tio/obfu"
@@ -26,6 +26,8 @@ type TranslatorCache struct {
 
 type PortalCache struct {
 	Portal         *tenable.Portal
+	Anonymizer     *tenable.Anonymizer
+	BaseUrl    		 string
 	CacheDisabled  bool
 	ClobberCache   bool
 	CacheFolder    string
@@ -35,13 +37,15 @@ type PortalCache struct {
 	CacheKeyBytes  []byte
 	Log            *tio.Logger
 	Stats          *tio.Statistics
+	Memcache        *ccache.Cache
+
+
 }
 
 var reAllScans = regexp.MustCompile("^.*?/scans$")
 var rePlugin = regexp.MustCompile("^.*?/plugins/plugin/(\\d+)$")
 var rePluginFamilies = regexp.MustCompile("^.*?/plugins/families$")
 var reFamilyPlugins = regexp.MustCompile("^.*?/plugins/families/(\\d+)$")
-
 var reCurrentScan = regexp.MustCompile("^.*?/scans/(\\d+)$")
 var reHistoryScan = regexp.MustCompile("^.*?/scans/(\\d+)\\?history_id=(\\d+)$")
 var reHostScan = regexp.MustCompile("^.*?/scans/(\\d+)\\/hosts/(\\d+)\\?history_id=(\\d+)$")
@@ -52,6 +56,9 @@ var reAssetSearch = regexp.MustCompile("^.*?\\/workbenches\\/assets\\?.+?tag\\.(
 func NewPortalCache(config *tio.BaseConfig) *PortalCache {
 	p := new(PortalCache)
 	p.Portal = tenable.NewPortal(config)
+	p.Memcache = ccache.New(ccache.Configure().MaxSize(500000).ItemsToPrune(50))
+
+	p.BaseUrl = config.BaseUrl
 
 	p.Stats = tio.NewStatistics()
 
@@ -76,8 +83,13 @@ func NewPortalCache(config *tio.BaseConfig) *PortalCache {
 
 	return p
 }
+func NewTranslatorCache(config *tio.BaseConfig) *TranslatorCache {
+	t := new(TranslatorCache)
+	t.Log = config.Logger
+	return t
+}
 
-func (portal *PortalCache) PortalCacheFilename(url string) (filename string, err error) {
+func (portal *PortalCache) Filename(url string) (filename string, err error) {
 	var folder string
 	var crypto bool = portal.UseCryptoCache
 	var KEY_SIZE int = 4
@@ -173,7 +185,7 @@ func (portal *PortalCache) PortalCacheFilename(url string) (filename string, err
 	return filename, err
 }
 
-func (portal *PortalCache) PortalCacheSet(cacheFilename string, store []byte) (err error) {
+func (portal *PortalCache) Store(filename string, store []byte) (err error) {
 	portal.Stats.Count(STAT_CACHE_STORE)
 
 	if portal.UseCryptoCache {
@@ -184,67 +196,52 @@ func (portal *PortalCache) PortalCacheSet(cacheFilename string, store []byte) (e
 		store = encDat
 	}
 
-	err = os.MkdirAll(path.Dir(cacheFilename), 0777)
+	err = os.MkdirAll(path.Dir(filename), 0777)
 	if err != nil {
-		portal.Log.Errorf("Cannot create cache folder '%s' - %s", cacheFilename, err)
+		portal.Log.Errorf("Cannot create cache folder '%s' - %s", filename, err)
 		return err
 	}
 
-	err = ioutil.WriteFile(cacheFilename, store, 0644)
+	err = ioutil.WriteFile(filename, store, 0644)
 	return err
 }
-func (portal *PortalCache) PortalCacheGet(cacheFilename string) ([]byte, error) {
+func (portal *PortalCache) Fetch(filename string) (store []byte, err error) {
 
-	dat, err := ioutil.ReadFile(cacheFilename)
+	store, err = ioutil.ReadFile(filename)
 	if err != nil {
-		return nil, err
+		return
 	}
 	portal.Stats.Count(STAT_CACHE_HIT)
 
 	if !portal.UseCryptoCache {
-		return dat, nil
+		return
 	}
 
-	decDat, decErr := obfu.Decrypt(dat, portal.CacheKeyBytes)
-	if decErr != nil {
-		portal.Log.Errorf("Cache: Failed to decrypt: %s", decErr)
-		return nil, decErr
+	store, err = obfu.Decrypt(store, portal.CacheKeyBytes)
+	if err != nil {
+		portal.Log.Errorf("Cache: Failed to decrypt: %s", err)
+		return
 	}
 
-	return decDat, nil
+	return
 }
 
-func (portal *PortalCache) GetNoCache(url string) (body []byte, err error) {
-	body, err = portal.Portal.Get(url)
-	return body, err
-}
-
-func (portal *PortalCache) PostJSON(endPoint string, postData string) (body []byte, err error) {
-	body, err = portal.Portal.Post(endPoint, postData, "application/json")
-	return body, err
-}
-
-func (portal *PortalCache) Delete(endPoint string) (body []byte, err error) {
-	err = portal.Portal.Delete(endPoint)
-	return nil, err
-}
-
-func (portal *PortalCache) Get(url string) (body []byte, filename string, err error) {
+func (portal *PortalCache) GET(url string) (body []byte, err error) {
 	if portal.CacheDisabled == true {
-		body, err := portal.GetNoCache(url)
-		return body, "", err
+		body, err = portal.Portal.GET(url)
+		return
 	}
 
-	filename, err = portal.PortalCacheFilename(url)
+	filename, err := portal.Filename(url)
 	if err != nil {
 		portal.Log.Errorf("%s", err)
-		return body, filename, err
+		return
 	}
 
 	if !portal.ClobberCache {
-		body, err = portal.PortalCacheGet(filename)
+		body, err = portal.Fetch(filename)
 		if err == nil {
-			return body, filename, err
+			return
 		}
 	}
 
@@ -252,25 +249,19 @@ func (portal *PortalCache) Get(url string) (body []byte, filename string, err er
 
 	if portal.OfflineMode == true {
 		err = fmt.Errorf("Cache MISSED for '%s' in '--offlineMode'", filename)
-		return body, filename, err
+		return
 	}
 
 	//TODO: Add some 'soft retry' concepts here.
-	body, err = portal.GetNoCache(url)
+	body, err = portal.Portal.GET(url)
 	if err != nil {
-		return body, filename, err
+		return
 	}
 
-	err = portal.PortalCacheSet(filename, body)
+	err = portal.Store(filename, body)
 	if err != nil {
-		return body, filename, err
+		return
 	}
 
-	return body, filename, err
-}
-
-func NewTranslatorCache(config *tio.BaseConfig) *TranslatorCache {
-	t := new(TranslatorCache)
-	t.Log = config.Logger
-	return t
+	return 
 }

@@ -160,43 +160,51 @@ func NewTranslator(config *tio.VulnerabilityConfig) (t *Translator) {
 
 
 func (trans *Translator) GetPluginList() (plugins []PluginDetailSummary, err error) {
+	var tenable = trans.PortalCache
+
 	var memcacheKey = "translator:GetAllPlugins:ALL"
 
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
 		plugins = item.Value().([]PluginDetailSummary)
-		return plugins, err
+		return
 	}
 
-	tenablePlugins, err := trans.getTenablePluginsList()
+	items, err := tenable.GetPluginsList()
 	if err != nil {
-		trans.Errorf("ERROR: %s", err)
-		return plugins, err
+		return
 	}
 
-	plugins, err = trans.fromPluginsList(tenablePlugins)
+	plugins, err = trans.fromPluginsList(items)
+	if err != nil {
+		return
+	}
 
 	trans.Memcache.Set(memcacheKey, plugins, time.Minute*60)
-
-	return plugins, err
+	return
 }
 
-func (trans *Translator) GetPluginDetail(plugin PluginDetailSummary) (detail PluginDetailSummary, err error) {
-	var memcacheKey = "translator:GetAllPlugin:" + plugin.PluginId
+func (trans *Translator) GetPluginDetail(pluginId string) (detail PluginDetailSummary, err error) {
+	var tenable = trans.PortalCache
+
+	var memcacheKey = "translator:GetAllPlugin:" + pluginId
 
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
 		detail = item.Value().(PluginDetailSummary)
-		return detail, err
+		return
 	}
 
-	tenableDetail, err := trans.getTenablePluginDetail(string(plugin.PluginId))
+	tenableDetail, err := tenable.GetPluginDetail(string(pluginId))
 
 	detail, err = trans.fromPlugin(tenableDetail)
+	if err != nil {
+		return
+	}
 
 	trans.Memcache.Set(memcacheKey, detail, time.Minute*60)
 
-	return detail, err
+	return
 }
 
 func (trans *Translator) fromPlugin(p tenable.Plugin) (plugin PluginDetailSummary, err error) {
@@ -258,7 +266,7 @@ func (trans *Translator) GetTagValues() (tags []TagValue, err error) {
 		return tags, nil
 	}
 
-	tentableValues, err := trans.getTenableTagValues()
+	tentableValues, err := trans.PortalCache.GetTagValues()
 	if err != nil {
 		return tags, err
 	}
@@ -278,10 +286,11 @@ func (trans *Translator) GetTagUUID(categoryName string, value string) (tagUUID 
 	item := trans.Memcache.Get(memcacheKey)
 	if item != nil {
 		tagUUID = item.Value().(string)
-		return tagUUID, nil
+		return 
 	}
 
-	tags, err := trans.getTenableTagValues()
+	tags, err := trans.PortalCache.GetTagValues()
+
 	for _, v := range tags.Values {
 		if categoryName == v.CategoryName && v.Value == value {
 			tagUUID = v.UUID
@@ -291,15 +300,17 @@ func (trans *Translator) GetTagUUID(categoryName string, value string) (tagUUID 
 
 	if tagUUID == "" {
 		err = errors.New(fmt.Sprintf("Couldn't find tag UUID for catgeory '%s' and value '%s'", categoryName, value))
-		return tagUUID, err
+		return 
 	}
 
 	trans.Memcache.Set(memcacheKey, tagUUID, time.Minute*60)
 
-	return tagUUID, nil
+	return 
 }
 
 func (trans *Translator) GetTagCategories() (tags []TagCategory, err error) {
+	var tenable = trans.PortalCache
+
 	trans.Stats.Count(STAT_GETTAGS)
 
 	var memcacheKey = "translator:GetTagCategory:ALL"
@@ -308,21 +319,26 @@ func (trans *Translator) GetTagCategories() (tags []TagCategory, err error) {
 	if item != nil {
 		trans.Stats.Count(STAT_GETTAGS_MEMCACHE)
 		tags = item.Value().([]TagCategory)
-		return tags, nil
+		return 
 	}
 
-	tenableCategories, err := trans.getTenableTagCategories()
+	cats, err := tenable.GetTagCategories()
 	if err != nil {
-		return tags, err
+		return 
 	}
 
-	tags, err = trans.fromTagCategories(tenableCategories)
+	tags, err = trans.fromTagCategories(cats)
+	if err != nil {
+		return 
+	}
 
 	trans.Memcache.Set(memcacheKey, tags, time.Minute*60)
-	return tags, err
+	return 
 }
 
 func (trans *Translator) GetScans() (scans []Scan, err error) {
+	var tenable = trans.PortalCache
+	
 	trans.Stats.Count(STAT_GETSCANS)
 
 	var memcacheKey = "translator:GetScans"
@@ -334,7 +350,7 @@ func (trans *Translator) GetScans() (scans []Scan, err error) {
 		return scans, nil
 	}
 
-	tenableScans, err := trans.getTenableScanList()
+	tenableScans, err := tenable.GetScanList()
 	if err != nil {
 		trans.Errorf("GetScans: Cannot retrieve Tenable ScanList: '%s'", err)
 		return scans, err
@@ -383,24 +399,30 @@ func (trans *Translator) GetScan(scanId string) (scan Scan, err error) {
 }
 
 func (trans *Translator) SearchAssetsByTag(tagCategory string, tagValue string) (assets []AssetDetail, err error) {
+	var tenable = trans.PortalCache
 
-	tenableAssets, err := trans.searchAssetByTag(tagCategory, tagValue)
+	tenableAssets, err := tenable.SearchAssetByTag(tagCategory, tagValue)
 
 	for _, a := range tenableAssets {
-		asset, err := trans.fromAssetInfo(a)
+		var asset AssetDetail
+		asset, err = trans.fromAssetInfo(a)
 		if err != nil {
-			return assets, err
+			return 
 		}
 		assets = append(assets, asset)
 	}
 
-	return assets, err
+	return 
 }
 
 func (trans *Translator) GetAsset(assetUUID string) (asset AssetDetail, err error) {
-	tenableAsset, err := trans.getTenableAsset(assetUUID)
-
-	return trans.fromAssetInfo(tenableAsset)
+	var raw tenable.AssetInfo
+	raw, err = trans.PortalCache.GetAsset(assetUUID)
+	if err != nil {
+		return
+	}
+	asset, err = trans.fromAssetInfo(raw)
+	return 
 }
 
 func (trans *Translator) GoGetHostDetails(out chan ScanHistory, concurrentWorkers int) (err error) {
@@ -490,7 +512,7 @@ func (trans *Translator) GetHostDetail(host HostScanSummary) (record HostScanDet
 		return record, nil
 	}
 
-	hd, err := trans.getTenableHostDetail(scanId, hostId, historyId)
+	hd, err := trans.getHostDetail(scanId, hostId, historyId)
 	if err != nil {
 		trans.Stats.Count(STAT_GETHOSTDETAIL_ERROR)
 		if !trans.Config.Base.OfflineMode {
@@ -551,13 +573,13 @@ func (trans *Translator) GetScanHistory(scanId string, previousOffset int) (reco
 		return record, nil
 	}
 
-	historyId, err := trans.getTenableHistoryId(scanId, previousOffset)
+	historyId, err := trans.getHistoryId(scanId, previousOffset)
 	if err != nil {
 		trans.Errorf("GetScanHistory: Cannot retrieve historyid for scanid '%s' at offset '%d': %s", scanId, previousOffset, err)
 		return record, err
 	}
 
-	scanDetail, err := trans.getTenableScanDetail(scanId, historyId)
+	scanDetail, err := trans.getScanDetail(scanId, historyId)
 	if err != nil {
 		trans.Errorf("GetScanHistory: Cannot retrieve Tenable Scan Detail: id:%s, histid:%s, offset:%d - %s", scanId, historyId, previousOffset, err)
 		return record, err
@@ -709,7 +731,7 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 
 		hist.Scan = record.Scan
 
-		historyId, err := trans.getTenableHistoryId(scanId, i)
+		historyId, err := trans.getHistoryId(scanId, i)
 		if err != nil {
 			trans.Errorf("HistoryID not available for scan '%s' offset '%d' - %s", scanId, i, err)
 			return record, err
@@ -719,14 +741,14 @@ func (trans *Translator) fromScanDetail(scanId string, detail tenable.ScanDetail
 			continue
 		}
 
-		histDetails, err := trans.getTenableScanDetail(scanId, historyId)
+		histDetails, err := trans.getScanDetail(scanId, historyId)
 		if err != nil {
 			trans.Errorf("%s", err)
 			return record, err
 		}
 
 		//AssetId lookup and mapping
-		amap, err := trans.getTenableScanAssetHostMap(scanId, historyId)
+		amap, err := trans.PortalCache.GetScanAssetHostMap(scanId, historyId)
 		if err != nil {
 			trans.Errorf("Cannot map hostid to assetids: %s", err)
 			return record, err
